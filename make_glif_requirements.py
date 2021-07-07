@@ -1,0 +1,174 @@
+""" This script is a support script for build_glif_network script.
+This is supposed to read necessary human editable files and generate files required by build_network.py
+
+input files:
+V1model_seed_file.xlsx: human editable file that contains information of each population
+bio_models_prop_ltd.csv: file that contains biophysical cell types from cell type database
+lif_models_prop.csv: file that contains LIF cell types from cell type database
+
+output files: biophys_props/v1_node_models.json
+let's get the population
+
+
+Necessary information:
+locations e.g. 'VisL23'
+pop_name e.g. 'e23Cux2'
+ncells 56057
+ei 'e'
+depth_range [100.0, 310.0]
+and models nested
+
+models
+N: 43368
+node_type_id: 100000102,
+model_type: 'point_process'
+model_template: 'nrn:IntFire1'
+dynamic_params: e23Cux2_avg_lif.json
+
+for biophysical models there are more requirements
+morphology: Cux2-CreERT2_Ai14... take from the file...
+model_processing: 'aibs_perisomatic'
+rotation_angle_zaxis: -2.728849956000004
+"""
+
+
+# %% reading excel file to get the population info
+import pylightxl as xl
+import numpy as np
+import pandas as pd
+import json
+
+
+def extract_info(row):
+    d = {}
+    d["ncells"] = row["pop_combined_count"]
+    d["ei"] = row["ei"]
+    d["depth_range"] = [row["upper_bound"], row["lower_bound"]]
+    return d
+
+
+def extract_criteria(row):
+    d = {}
+    query = ["ei", "location", "reporter_status"]
+    for q in query:
+        d[q] = row[q]
+    # for non-simple ones, do manually
+    d["cre_line"] = row["cre_line"].split(",")
+    return d
+
+
+def pick_lif_model(models_df, row):
+    selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
+    model_dict = {}
+    model_dict["N"] = int(row["pop_peripheral_count"])
+    model_dict["node_type_id"] = int(selected_df["node_type_id"])
+    model_dict["model_type"] = "point_process"
+    model_dict["model_template"] = "nrn:IntFire1"
+    model_dict["dynamics_params"] = selected_df.iloc[0]["parameters_file"]
+    return model_dict
+
+
+def pick_bio_models(models_df, row):
+    criteria = extract_criteria(row)
+    selected = (
+        (models_df["ei"] == criteria["ei"])
+        & (models_df["reporter_status"] == "positive")
+        & (models_df["location"] == criteria["location"])
+    )
+    selected &= (
+        models_df["cre_line"].isin(criteria["cre_line"])
+        if criteria["reporter_status"] == "positive"
+        else ~models_df["cre_line"].isin(criteria["cre_line"])
+    )
+    ncell_all = row["pop_core_count"]
+    models_pop_df = models_df[selected]
+    # set number of cells here
+    n_models = np.sum(selected)
+    # print(row["pop_name"])
+    assert n_models > 0
+    cell_count_each = ncell_all // n_models
+    residual = ncell_all % n_models
+    model_cell_count = np.array([cell_count_each] * n_models)
+    model_cell_count[:residual] += 1
+    # this will create something like [5 5 4 4 4], ncell_all == 22 & n_models == 5
+
+    models = []
+    for i in range(n_models):
+        poprow = models_pop_df.iloc[i]
+        model_dict = {}
+        model_dict["N"] = int(model_cell_count[i])
+        model_dict["node_type_id"] = int(poprow["node_type_id"])
+        model_dict["model_type"] = "biophysical"
+        model_dict["model_template"] = "ctdb:Biophys1.hoc"
+        model_dict["dynamics_params"] = poprow["parameters_file"]
+        model_dict["morphology"] = poprow["morphology_file"]
+        model_dict["model_processing"] = "aibs_perisomatic"
+        model_dict["rotation_angle_zaxis"] = poprow["rotation_angle_zaxis"]
+        models.append(model_dict)
+
+    return models
+
+
+def make_v1_node_models():
+    db = xl.readxl("V1model_seed_file.xlsx")
+    table = db.ws('cell_models').ssd(keycols="pop_id", keyrows="pop_id")
+    t0 = table[0]
+    seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
+    bio_models_df = pd.read_csv("node_props/bio_models_prop_ltd.csv", sep=" ")
+    lif_models_df = pd.read_csv("node_props/lif_models_prop.csv", sep=" ")
+    node_models = {"locations": {}}
+    for location, subdf in seed_df.groupby("location"):
+        location_dict = {}
+        for pop_id, row in subdf.iterrows():
+            pop_dict = extract_info(row)
+
+            # here, make the model
+            models = pick_bio_models(bio_models_df, row)
+            # insert lif models here
+            models.insert(0, pick_lif_model(lif_models_df, row))
+            pop_dict["models"] = models
+            location_dict[pop_name_change(row["pop_name"])] = pop_dict
+
+        node_models["locations"][location] = location_dict
+
+    # node_models["inner_radial_range"] = [1.0, 400.0]
+    # node_models["outer_radial_range"] = [400.0, 845.0]
+
+    # process general properties
+    general_table = db.ws('general_parameters').ssd(keycols="properties", keyrows="properties")
+    tg = general_table[0]
+    general_df = pd.DataFrame(data=tg["data"], index=tg["keyrows"], columns=tg["keycols"])
+    node_models["core_radius"] = float(general_df.loc['core_radius'])
+    node_models["radius"] = float(general_df.loc['radius'])
+
+    with open("biophys_props/v1_node_models.json", "w") as f:
+        json.dump(node_models, f, indent=2)
+
+
+def pop_name_change(pop_name):
+    if pop_name == "VisL2/3":
+        return "VisL23"
+    if pop_name == "VisL6a":
+        return "VisL6"
+    return pop_name
+
+
+# make_v1_node_models()
+
+
+# %% studying a bit about biomodels
+
+db = xl.readxl("V1model_seed_file.xlsx")
+table = db.ws(db.ws_names[0]).ssd(keycols="pop_id", keyrows="pop_id")
+
+
+table2 = db.ws(db.ws_names[1]).ssd(keycols="properties", keyrows="properties")
+
+t0 = table2[0]
+general_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
+general_df.loc['radius']
+
+db.ws_names
+
+# %% let's try to read it to understand
+
