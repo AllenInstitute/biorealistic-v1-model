@@ -113,6 +113,7 @@ def find_direction_rule(src_label, trg_label):
 
 
 def add_edges_v1(net):
+    cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
     conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
     conn_weight_df = conn_weight_df[~(conn_weight_df["source_label"] == "LGN")]
@@ -120,7 +121,7 @@ def add_edges_v1(net):
         node_type_id = row["target_model_id"]
         src_type = row["source_label"]
         trg_type = row["target_label"]
-        src_trg_params = compute_pair_type_parameters(src_type, trg_type)
+        src_trg_params = compute_pair_type_parameters(src_type, trg_type, cc_prob_dict)
         # print(src_trg_params)
 
         weight_fnc, weight_sigma = find_direction_rule(src_type, trg_type)
@@ -341,6 +342,12 @@ if __name__ == "__main__":
         help="force existings network files to be overwritten",
     )
     parser.add_argument(
+        "--no-recurrent",
+        action="store_true",
+        default=False,
+        help="Make no recurrent connections in V1. Just nodes and feed-forward connections."
+    )
+    parser.add_argument(
         "--fraction",
         type=float,
         default=1.0,
@@ -366,7 +373,8 @@ if __name__ == "__main__":
         print("Building v1 network")
         # check_files_exists(args.output_dir, 'v1', 'v1', args.force_overwrite)
         v1 = add_nodes_v1(fraction=args.fraction)
-        v1 = add_edges_v1(v1)
+        if not args.no_recurrent:
+            v1 = add_edges_v1(v1)
         v1.build()
         print("Saving v1 network")
         v1.save(args.output_dir)

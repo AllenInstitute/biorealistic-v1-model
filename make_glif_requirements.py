@@ -77,15 +77,16 @@ def distribute_nums(n, m):
     counts[:residual] += 1  # add number to distribute the residual
     return counts
 
+
 def pick_glif_models(models_df, row):
     # models are pre-selected, so you can directly search with pop_name
     selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
-    
-    ncell_all = int(row['pop_combined_count'])
+
+    ncell_all = int(row["pop_combined_count"])
     n_models = selected_df.shape[0]
     assert n_models > 0
     model_cell_count = distribute_nums(ncell_all, n_models)
-    
+
     models = []
     for i in range(n_models):
         poprow = selected_df.iloc[i]
@@ -96,8 +97,9 @@ def pick_glif_models(models_df, row):
         model_dict["model_template"] = "nest:glif_lif_asc_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
         models.append(model_dict)
-    
+
     return models
+
 
 def pick_bio_models(models_df, row):
     criteria = extract_criteria(row)
@@ -139,7 +141,7 @@ def pick_bio_models(models_df, row):
 
 def make_v1_node_models():
     db = xl.readxl("V1model_seed_file.xlsx")
-    table = db.ws('cell_models').ssd(keycols="pop_id", keyrows="pop_id")
+    table = db.ws("cell_models").ssd(keycols="pop_id", keyrows="pop_id")
     t0 = table[0]
     seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
     glif_models_df = pd.read_csv("glif_requisite/glif_models_prop.csv", sep=" ")
@@ -159,12 +161,16 @@ def make_v1_node_models():
     # node_models["outer_radial_range"] = [400.0, 845.0]
 
     # process general properties
-    general_table = db.ws('general_parameters').ssd(keycols="properties", keyrows="properties")
+    general_table = db.ws("general_parameters").ssd(
+        keycols="properties", keyrows="properties"
+    )
     tg = general_table[0]
-    general_df = pd.DataFrame(data=tg["data"], index=tg["keyrows"], columns=tg["keycols"])
-    node_models["core_radius"] = float(general_df.loc['core_radius'])
-    node_models["radius"] = float(general_df.loc['radius'])
-    
+    general_df = pd.DataFrame(
+        data=tg["data"], index=tg["keyrows"], columns=tg["keycols"]
+    )
+    node_models["core_radius"] = float(general_df.loc["core_radius"])
+    node_models["radius"] = float(general_df.loc["radius"])
+
     if not os.path.exists("glif_props"):
         os.mkdir("glif_props")
 

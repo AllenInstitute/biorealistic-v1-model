@@ -1,0 +1,87 @@
+{
+  "i1Htr3a": {
+    "probability": 0.588, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 10
+  },
+  "e23": {
+    "probability": 0.789, "poissonParameter": 1.5, "sON_ratio": 0.90, "centers_d_min": 4.00,
+    "centers_d_max": 6.00, "ON_OFF_w_min": 7.50, "ON_OFF_w_max": 9.50, "aspectRatio_min": 3.4,
+    "aspectRatio_max": 3.6, "N_syn": 15
+  },
+  "i23Pvalb": {
+    "probability": 0.824, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 10.0, "ON_OFF_w_max": 13.0, "aspectRatio_min": 1.6,
+    "aspectRatio_max": 1.8, "N_syn": 15
+  },
+  "i23Sst": {
+    "probability": 0.000, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 0
+  },
+  "i23Htr3a": {
+    "probability": 0.000, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 0
+  },
+  "e4": {
+    "probability": 1.000, "poissonParameter": 2.0, "sON_ratio": 0.90, "centers_d_min": 4.00,
+    "centers_d_max": 6.00, "ON_OFF_w_min": 7.50, "ON_OFF_w_max": 9.50, "aspectRatio_min": 3.4,
+    "aspectRatio_max": 3.6, "N_syn": 80
+  },
+  "i4Pvalb": {
+    "probability": 1.000, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 10.0, "ON_OFF_w_max": 13.0, "aspectRatio_min": 1.6,
+    "aspectRatio_max": 1.8, "N_syn": 75
+  },
+  "i4Sst": {
+    "probability": 0.333, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 25
+  },
+  "i4Htr3a": {
+    "probability": 0.444, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 20
+  },
+  "e5": {
+    "probability": 1.000, "poissonParameter": 1.5, "sON_ratio": 0.50, "centers_d_min": 8.00,
+    "centers_d_max": 12.0, "ON_OFF_w_min": 12.0, "ON_OFF_w_max": 16.0, "aspectRatio_min": 1.6,
+    "aspectRatio_max": 1.8, "N_syn": 15
+  },
+  "i5Pvalb": {
+    "probability": 1.000, "poissonParameter": 2.0, "sON_ratio": 0.50, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 10.0, "ON_OFF_w_max": 13.0, "aspectRatio_min": 1.6,
+    "aspectRatio_max": 1.8, "N_syn": 20
+  },
+  "i5Sst": {
+    "probability": 0.000, "poissonParameter": 2.0, "sON_ratio": 0.50, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 0
+  },
+  "i5Htr3a": {
+    "probability": 0.000, "poissonParameter": 2.0, "sON_ratio": 0.50, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 0
+  },
+  "e6": {
+    "probability": 0.778, "poissonParameter": 1.5, "sON_ratio": 0.90, "centers_d_min": 3.00,
+    "centers_d_max": 4.00, "ON_OFF_w_min": 9.00, "ON_OFF_w_max": 11.0, "aspectRatio_min": 3.4,
+    "aspectRatio_max": 3.6, "N_syn": 15
+  },
+  "i6Pvalb": {
+    "probability": 0.818, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 10.0, "ON_OFF_w_max": 13.0, "aspectRatio_min": 1.6,
+    "aspectRatio_max": 1.8, "N_syn": 10
+  },
+  "i6Sst": {
+    "probability": 0.000, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 0
+  },
+  "i6Htr3a": {
+    "probability": 0.000, "poissonParameter": 2.0, "sON_ratio": 0.75, "centers_d_min": 6.00,
+    "centers_d_max": 10.0, "ON_OFF_w_min": 8.50, "ON_OFF_w_max": 11.0, "aspectRatio_min": 2.2,
+    "aspectRatio_max": 2.4, "N_syn": 0
+  }
+}
