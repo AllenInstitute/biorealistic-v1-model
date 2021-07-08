@@ -132,7 +132,10 @@ print(
 )
 
 # %% make a table and save
-df = pd.DataFrame(glif_eV_values, index=glif_sp_ids, columns=["explained variance ratio"])
+df = pd.DataFrame(
+    glif_eV_values, index=glif_sp_ids, columns=["explained variance ratio"]
+)
 
-df.to_csv('glif_explained_variance_ratio.csv')
+df.to_csv("cell_types/glif_explained_variance_ratio.csv")
+print("Data written in cell_types/glif_explained_variance_ratio.csv.\nDone!")
 

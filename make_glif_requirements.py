@@ -37,6 +37,7 @@ import pylightxl as xl
 import numpy as np
 import pandas as pd
 import json
+import os
 
 
 def extract_info(row):
@@ -68,6 +69,36 @@ def pick_lif_model(models_df, row):
     return model_dict
 
 
+def distribute_nums(n, m):
+    # distribute n to m entities. used to distribute cells into models.
+    base_num = n // m
+    residual = n % m
+    counts = np.array([base_num] * m)
+    counts[:residual] += 1  # add number to distribute the residual
+    return counts
+
+def pick_glif_models(models_df, row):
+    # models are pre-selected, so you can directly search with pop_name
+    selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
+    
+    ncell_all = int(row['pop_combined_count'])
+    n_models = selected_df.shape[0]
+    assert n_models > 0
+    model_cell_count = distribute_nums(ncell_all, n_models)
+    
+    models = []
+    for i in range(n_models):
+        poprow = selected_df.iloc[i]
+        model_dict = {}
+        model_dict["N"] = int(model_cell_count[i])
+        model_dict["node_type_id"] = int(poprow["specimen__id"])
+        model_dict["model_type"] = "point_process"
+        model_dict["model_template"] = "nest:glif_lif_asc_psc"
+        model_dict["dynamics_params"] = poprow["parameters_file"]
+        models.append(model_dict)
+    
+    return models
+
 def pick_bio_models(models_df, row):
     criteria = extract_criteria(row)
     selected = (
@@ -86,10 +117,7 @@ def pick_bio_models(models_df, row):
     n_models = np.sum(selected)
     # print(row["pop_name"])
     assert n_models > 0
-    cell_count_each = ncell_all // n_models
-    residual = ncell_all % n_models
-    model_cell_count = np.array([cell_count_each] * n_models)
-    model_cell_count[:residual] += 1
+    model_cell_count = distribute_nums(ncell_all, n_models)
     # this will create something like [5 5 4 4 4], ncell_all == 22 & n_models == 5
 
     models = []
@@ -114,18 +142,14 @@ def make_v1_node_models():
     table = db.ws('cell_models').ssd(keycols="pop_id", keyrows="pop_id")
     t0 = table[0]
     seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
-    bio_models_df = pd.read_csv("node_props/bio_models_prop_ltd.csv", sep=" ")
-    lif_models_df = pd.read_csv("node_props/lif_models_prop.csv", sep=" ")
+    glif_models_df = pd.read_csv("glif_requisite/glif_models_prop.csv", sep=" ")
     node_models = {"locations": {}}
     for location, subdf in seed_df.groupby("location"):
         location_dict = {}
         for pop_id, row in subdf.iterrows():
             pop_dict = extract_info(row)
 
-            # here, make the model
-            models = pick_bio_models(bio_models_df, row)
-            # insert lif models here
-            models.insert(0, pick_lif_model(lif_models_df, row))
+            models = pick_glif_models(glif_models_df, row)
             pop_dict["models"] = models
             location_dict[pop_name_change(row["pop_name"])] = pop_dict
 
@@ -140,8 +164,11 @@ def make_v1_node_models():
     general_df = pd.DataFrame(data=tg["data"], index=tg["keyrows"], columns=tg["keycols"])
     node_models["core_radius"] = float(general_df.loc['core_radius'])
     node_models["radius"] = float(general_df.loc['radius'])
+    
+    if not os.path.exists("glif_props"):
+        os.mkdir("glif_props")
 
-    with open("biophys_props/v1_node_models.json", "w") as f:
+    with open("glif_props/v1_node_models.json", "w") as f:
         json.dump(node_models, f, indent=2)
 
 
@@ -153,11 +180,11 @@ def pop_name_change(pop_name):
     return pop_name
 
 
-# make_v1_node_models()
+make_v1_node_models()
 
 
 # %% studying a bit about biomodels
-
+""" this part is no longer necessary
 db = xl.readxl("V1model_seed_file.xlsx")
 table = db.ws(db.ws_names[0]).ssd(keycols="pop_id", keyrows="pop_id")
 
@@ -169,6 +196,7 @@ general_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keyc
 general_df.loc['radius']
 
 db.ws_names
+"""
 
 # %% let's try to read it to understand
 

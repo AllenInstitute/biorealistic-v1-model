@@ -2,9 +2,6 @@
 import json
 import pandas as pd
 import numpy as np
-from allensdk.core.cell_types_cache import CellTypesCache
-
-ctc = CellTypesCache()
 
 
 with open("cell_types/cells.json", "r") as f:
@@ -19,7 +16,7 @@ print(f"{candidates.sum()} mouse V1 cells with 2 or more GLIF models.")
 df = df[candidates]
 
 # mix in explained variance ratio, and type database
-glif_df = pd.read_csv("glif_explained_variance_ratio.csv", index_col=0)
+glif_df = pd.read_csv("cell_types/glif_explained_variance_ratio.csv", index_col=0)
 df = df.join(glif_df, on="specimen__id")
 
 type_df = pd.read_excel(
@@ -93,6 +90,7 @@ print(f"Total: {tot_candidates}")
 
 # %% generate URL list
 
+""" enable this part if you want to get web-interface URLs for each cell model
 urlbase = "http://celltypes.brain-map.org/experiment/electrophysiology/"
 
 for pop_name, pop_df in candidate_dict.items():
@@ -100,14 +98,16 @@ for pop_name, pop_df in candidate_dict.items():
     for _, cell in pop_df.iterrows():
         print(f"{urlbase}{cell.specimen__id}")
     print("")
+"""
 
 
 # %% put it in context
-h = df.hist(column="explained variance ratio", bins=np.linspace(0, 1, 20))
-h[0, 0].plot([evr_thresh, evr_thresh], [0, 100], "r")
+#h = df.hist(column="explained variance ratio", bins=np.linspace(0, 1, 20))
+#h[0, 0].plot([evr_thresh, evr_thresh], [0, 100], "r")
 
 
 # %% save the IDs into a file
 
 # let's just save the entire labeld df as a file.
 df.to_csv("cell_types/cells_with_glif_pop_name.csv")
+print('Data written in cell_types/cells_with_glif_pop_name.csv.\nDone!')
