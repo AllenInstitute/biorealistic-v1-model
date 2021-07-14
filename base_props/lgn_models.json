@@ -1,0 +1,58 @@
+{
+  "sON_TF1": {
+    "N": 7, "model_id": "sON_TF1", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sON_TF1", "size_range": [2, 10]
+  },
+  "sON_TF2": {
+    "N": 5, "model_id": "sON_TF2", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sON_TF2", "size_range": [2, 10]
+  },
+  "sON_TF4": {
+    "N": 7, "model_id": "sON_TF4", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sON_TF4", "size_range": [2, 10]
+  },
+  "sON_TF8": {
+    "N": 15, "model_id": "sON_TF8", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sON_TF8", "size_range": [2, 10]
+  },
+  "sOFF_TF1": {
+    "N": 8, "model_id": "sOFF_TF1", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sOFF_TF1", "size_range": [2, 10]
+  },
+  "sOFF_TF2": {
+    "N": 8, "model_id": "sOFF_TF2", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sOFF_TF2", "size_range": [2, 10]
+  },
+  "sOFF_TF4": {
+    "N": 15, "model_id": "sOFF_TF4", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sOFF_TF4", "size_range": [2, 10]
+  },
+  "sOFF_TF8": {
+    "N": 8, "model_id": "sOFF_TF8", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sOFF_TF8", "size_range": [2, 10]
+  },
+  "sOFF_TF15": {
+    "N": 7, "model_id": "sOFF_TF15", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sOFF_TF15", "size_range": [2, 10]
+  },
+  "tOFF_TF4": {
+    "N": 10, "model_id": "tOFF_TF4", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "tOFF_TF4", "size_range": [2, 10]
+  },
+  "tOFF_TF8": {
+    "N": 5, "model_id": "tOFF_TF8", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "tOFF_TF8", "size_range": [2, 10]
+  },
+  "tOFF_TF15": {
+    "N": 8, "model_id": "tOFF_TF15", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "tOFF_TF15", "size_range": [2, 10]
+  },
+  "sONsOFF_001": {
+    "N": 8, "model_id": "sONsOFF_001", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sONsOFF_001", "size_range": [6]
+  },
+  "sONtOFF_001": {
+    "N": 5, "model_id": "sONtOFF_001", "ei": "e", "location": "LGN",
+    "level_of_detail": "filter", "pop_name": "sONtOFF_001", "size_range": [9]
+  }
+}

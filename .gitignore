@@ -8,3 +8,4 @@ glif_props/*
 glif_requisite/*
 *.pyc
 v1nodes/*
+no_recurrent/*

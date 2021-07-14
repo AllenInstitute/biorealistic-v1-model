@@ -1,7 +1,12 @@
-v1nodes: glif_props/v1_node_models.json
-	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
+mainscripts := build_network.py edge_funcs.py node_funcs.py
 
-test: build_network.py
+v1nodes: glif_props/v1_node_models.json $(mainscripts)
+	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
+	
+no_recurrent: glif_props/v1_node_models.json $(mainscripts)
+	python build_network.py -f --fraction 0.01 -o no_recurrent --no-recurrent
+
+test: $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o test
 	
 glif_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv
@@ -27,4 +32,6 @@ clean:
 	rm -r glif_models
 	rm -r glif_props
 	rm -r glif_requisite
+	rm -r v1nodes
+	rm -r no_recurrent
 	
