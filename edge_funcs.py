@@ -5,7 +5,7 @@ from random import random
 
 
 # cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
-lgn_params = json.load(open("node_props/lgn_params.json", "r"))
+lgn_params = json.load(open("base_props/lgn_params.json", "r"))
 
 
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
