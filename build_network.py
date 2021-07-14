@@ -27,8 +27,8 @@ pd.set_option("display.max_columns", None)
 def add_nodes_v1(fraction=0.50, node_props="glif_props/v1_node_models.json"):
     v1_models = json.load(open(node_props, "r"))
 
-    min_radius = 1.0 # to avoid diverging density near 0
-    radius = v1_models['radius']
+    min_radius = 1.0  # to avoid diverging density near 0
+    radius = v1_models["radius"]
     radial_range = [min_radius, radius]
 
     net = NetworkBuilder("v1")
@@ -113,7 +113,7 @@ def find_direction_rule(src_label, trg_label):
 
 
 def add_edges_v1(net):
-    cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
+    cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
     conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
     conn_weight_df = conn_weight_df[~(conn_weight_df["source_label"] == "LGN")]
@@ -272,30 +272,35 @@ def add_nodes_bkg():
 
 
 def add_bkg_v1_edges(v1_net, bkg_net):
-    conn_weight_df = pd.read_csv("conn_props/bkg_edge_type_models.csv", sep=" ")
+    conn_weight_df = pd.read_csv("base_props/bkg_weights_population.csv")
 
     for _, row in conn_weight_df.iterrows():
         # src_type = row['source_label']
-        trg_type = row["target_label"]
-        target_node_type = row["target_model_id"]
-        nsyns = row.get("nsyns", 1)
+        # trg_type = row["target_label"]
+        # target_node_type = row["target_model_id"]
+        target_pop_name = row["population"]
+        # nsyns = row.get("nsyns", 1)
 
         edge_params = {
             "source": bkg_net.nodes(),
-            "target": v1_net.nodes(node_type_id=target_node_type),
+            # "target": v1_net.nodes(node_type_id=target_node_type),
+            "target": v1_net.nodes(pop_name=target_pop_name),
             "connection_rule": lambda s, t, n: n,
-            "connection_params": {"n": nsyns},
-            "dynamics_params": row["dynamics_params"],
+            # "connection_params": {"n": nsyns},
+            "connection_params": {"n": 1},
+            # "dynamics_params": row["dynamics_params"],
+            "dynamics_params": f"e2{target_pop_name[0]}.json",
             "syn_weight": row["syn_weight"],
-            "delay": row["delay"],
+            # "delay": row["delay"],
+            "delay": 1.0,
         }
-        if trg_type == "biophysical":
-            edge_params.update(
-                {
-                    "target_sections": row["target_sections"],
-                    "distance_range": row["distance_range"],
-                }
-            )
+        # if trg_type == "biophysical":
+        #     edge_params.update(
+        #         {
+        #             "target_sections": row["target_sections"],
+        #             "distance_range": row["distance_range"],
+        #         }
+        #     )
         bkg_net.add_edges(**edge_params)
 
     return bkg_net
@@ -345,7 +350,7 @@ if __name__ == "__main__":
         "--no-recurrent",
         action="store_true",
         default=False,
-        help="Make no recurrent connections in V1. Just nodes and feed-forward connections."
+        help="Make no recurrent connections in V1. Just nodes and feed-forward connections.",
     )
     parser.add_argument(
         "--fraction",

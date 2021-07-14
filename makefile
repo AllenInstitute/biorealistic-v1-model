@@ -3,7 +3,7 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 v1nodes: glif_props/v1_node_models.json $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
 	
-no_recurrent: glif_props/v1_node_models.json $(mainscripts)
+no_recurrent: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
 	python build_network.py -f --fraction 0.01 -o no_recurrent --no-recurrent
 
 test: $(mainscripts)
@@ -21,6 +21,9 @@ glif_requisite/glif_models_prop.csv: make_glif_models_prop.py cell_types/cells_w
 glif_props/v1_node_models.json: make_glif_requirements.py base_props/V1model_seed_file.xlsx glif_requisite/glif_models_prop.csv
 	python make_glif_requirements.py
 
+glif_props/bkg_v1_edge_types.csv: base_props/bkg_weights_population.csv glif_props/v1_node_models.json
+	python make_bkg_weights.py
+	
 cell_types/cells_with_glif_pop_name.csv: pick_glif_all.py base_props/V1model_seed_file.xlsx cell_types/glif_explained_variance_ratio.csv
 	python pick_glif_all.py
 
