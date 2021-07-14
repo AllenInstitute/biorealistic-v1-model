@@ -2,12 +2,11 @@
 This is supposed to read necessary human editable files and generate files required by build_network.py
 
 input files:
-V1model_seed_file.xlsx: human editable file that contains information of each population
-bio_models_prop_ltd.csv: file that contains biophysical cell types from cell type database
-lif_models_prop.csv: file that contains LIF cell types from cell type database
+base_props/V1model_seed_file.xlsx: human editable file that contains information of each population
+glif_requisite/glif_models_prop.csv: file that contains LIF cell types from cell type database
 
-output files: biophys_props/v1_node_models.json
-let's get the population
+output files: glif_props/v1_node_models.json
+# dependencies are written in makefile, so refer to that as a part of documentation.
 
 
 Necessary information:
@@ -140,7 +139,7 @@ def pick_bio_models(models_df, row):
 
 
 def make_v1_node_models():
-    db = xl.readxl("V1model_seed_file.xlsx")
+    db = xl.readxl("base_props/V1model_seed_file.xlsx")
     table = db.ws("cell_models").ssd(keycols="pop_id", keyrows="pop_id")
     t0 = table[0]
     seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])

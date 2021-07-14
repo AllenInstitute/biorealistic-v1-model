@@ -9,10 +9,14 @@ The improvements will be:
 * Segregation of the L5 excitatory cells into IT, ET, and NP types.
 * More cell models are used for the GLIF version of the model
 
-
 Right now, it can only generate V1 GLIF nodes. No other structures, no edges.
 
-Main contributors:
+
+## file descriptions
+base_props/ : seed files that are necessary for building the network most of them are in
+human readable format and editable (except for the LGN part).
+
+## Main contributors:
 * Shinya Ito
 * Darrell Haufler
 * Kael Dai

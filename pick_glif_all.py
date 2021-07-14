@@ -20,13 +20,13 @@ glif_df = pd.read_csv("cell_types/glif_explained_variance_ratio.csv", index_col=
 df = df.join(glif_df, on="specimen__id")
 
 type_df = pd.read_excel(
-    "41593_2019_417_MOESM5_ESM.xlsx", engine="openpyxl", index_col=0
+    "base_props/41593_2019_417_MOESM5_ESM.xlsx", engine="openpyxl", index_col=0
 )
 df = df.join(type_df, on="specimen__id")
 print("GLIF explained variance ratio and ME types mixed in")
 
 # remove cells in the exclude_list
-excl_df = pd.read_csv("exclude_list.csv", index_col=0)
+excl_df = pd.read_csv("base_props/exclude_list.csv", index_col=0)
 df = df[~df["specimen__id"].isin(excl_df.index)]
 
 print(f"{len(df)} cells are available after excluding specific cells from a list.")
@@ -36,7 +36,7 @@ print(f"{len(df)} cells are available after excluding specific cells from a list
 import pylightxl as xl
 
 
-db = xl.readxl("../network_builder/V1model_seed_file.xlsx")
+db = xl.readxl("base_props/V1model_seed_file.xlsx")
 table = db.ws(db.ws_names[0]).ssd(keycols="pop_id", keyrows="pop_id")
 t0 = table[0]
 seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
@@ -102,12 +102,12 @@ for pop_name, pop_df in candidate_dict.items():
 
 
 # %% put it in context
-#h = df.hist(column="explained variance ratio", bins=np.linspace(0, 1, 20))
-#h[0, 0].plot([evr_thresh, evr_thresh], [0, 100], "r")
+# h = df.hist(column="explained variance ratio", bins=np.linspace(0, 1, 20))
+# h[0, 0].plot([evr_thresh, evr_thresh], [0, 100], "r")
 
 
 # %% save the IDs into a file
 
 # let's just save the entire labeld df as a file.
 df.to_csv("cell_types/cells_with_glif_pop_name.csv")
-print('Data written in cell_types/cells_with_glif_pop_name.csv.\nDone!')
+print("Data written in cell_types/cells_with_glif_pop_name.csv.\nDone!")
