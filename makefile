@@ -1,11 +1,11 @@
 mainscripts := build_network.py edge_funcs.py node_funcs.py
 
-v1nodes: glif_props/v1_node_models.json $(mainscripts)
-	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
-	
 no_recurrent: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
 	python build_network.py -f --fraction 0.01 -o no_recurrent --no-recurrent
 
+v1nodes: glif_props/v1_node_models.json $(mainscripts)
+	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
+	
 test: $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o test
 	

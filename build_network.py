@@ -158,7 +158,7 @@ def add_edges_v1(net):
 
 
 def add_nodes_lgn():
-    lgn_models = json.load(open("node_props/lgn_models.json", "r"))
+    lgn_models = json.load(open("base_props/lgn_models.json", "r"))
 
     lgn = NetworkBuilder("lgn")
     X_grids = 15  # 15#15      #15
@@ -220,36 +220,48 @@ def add_nodes_lgn():
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
-    conn_weight_df = pd.read_csv("conn_props/edge_type_models.csv", sep=" ")
-    conn_weight_df = conn_weight_df[(conn_weight_df["source_label"] == "LGN")]
+    # conn_weight_df = pd.read_csv("conn_props/edge_type_models.csv", sep=" ")
+    conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv")
+    # conn_weight_df = conn_weight_df[(conn_weight_df["source_label"] == "LGN")]
 
     lgn_mean = (x_len / 2.0, y_len / 2.0)
-    lgn_models = json.load(open("node_props/lgn_models.json", "r"))
+    lgn_models = json.load(open("base_props/lgn_models.json", "r"))
 
     for _, row in conn_weight_df.iterrows():
-        src_type = row["source_label"]
-        trg_type = row["target_label"]
-        target_node_type = row["target_model_id"]
+        # src_type = row["source_label"]
+        # trg_type = row["target_label"]
+        target_pop_name = row["population"]
+        e_or_i = target_pop_name[0]
+        if e_or_i == "e":
+            sigma = [0.0, 150.0]
+        elif e_or_i == "i":
+            sigma = [0.0, 1e20]
+        else:
+            raise (f"Unknown e_or_i value: {e_or_i} from {target_pop_name}")
 
         edge_params = {
             "source": lgn_net.nodes(),
-            "target": v1_net.nodes(node_type_id=target_node_type),
+            "target": v1_net.nodes(pop_name=target_pop_name),
             "iterator": "all_to_one",
             "connection_rule": select_lgn_sources,
             "connection_params": {"lgn_mean": lgn_mean, "lgn_models": lgn_models},
-            "dynamics_params": row["params_file"],
-            "syn_weight": row["weight_max"],
-            "delay": row["delay"],
-            "weight_function": row["weight_func"],
-            "weight_sigma": row["weight_sigma"],
+            # "dynamics_params": row["params_file"],
+            "dynamics_params": f"e2{e_or_i}.json",
+            # "syn_weight": row["weight_max"],
+            "syn_weight": row["syn_weight"],
+            # "delay": row["delay"],
+            "delay": 1.7,
+            # "weight_function": row["weight_func"],
+            "weight_function": "",
+            "weight_sigma": sigma,
         }
-        if row["target_sections"] is not None:
-            edge_params.update(
-                {
-                    "target_sections": row["target_sections"],
-                    "distance_range": row["distance_range"],
-                }
-            )
+        # if row["target_sections"] is not None:
+        #     edge_params.update(
+        #         {
+        #             "target_sections": row["target_sections"],
+        #             "distance_range": row["distance_range"],
+        #         }
+        #     )
 
         lgn_net.add_edges(**edge_params)
 
