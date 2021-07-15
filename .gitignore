@@ -9,3 +9,6 @@ glif_requisite/*
 *.pyc
 v1nodes/*
 no_recurrent/*
+profile/*
+*prof
+

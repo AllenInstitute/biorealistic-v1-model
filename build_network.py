@@ -3,6 +3,8 @@ import json
 import numpy as np
 import pandas as pd
 import argparse
+import random
+
 
 from node_funcs import (
     generate_random_positions,
@@ -64,10 +66,11 @@ def add_nodes_v1(fraction=0.50, node_props="glif_props/v1_node_models.json"):
                     "dynamics_params": model["dynamics_params"],
                     "ei": ei,
                     "location": location,
-                    "pop_name": (
-                        "LIF" if model["model_type"] == "point_process" else ""
-                    )
-                    + pop_name,
+                    "pop_name": pop_name,
+                    # "pop_name": (
+                    #     "LIF" if model["model_type"] == "point_process" else ""
+                    # )
+                    # + pop_name,
                     "population": "v1",
                     "x": positions[:, 0],
                     "y": positions[:, 1],
@@ -372,6 +375,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
     args = parser.parse_args()
+
+    # set random number seed for reproducibility
+    random.seed(53)
+    np.random.seed(53)
 
     nets = set(args.networks)
     if nets - {"v1", "lgn", "bkg"}:

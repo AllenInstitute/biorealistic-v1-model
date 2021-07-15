@@ -358,14 +358,21 @@ def select_lgn_sources(sources, target, lgn_mean, lgn_models):
     p_tOFF = (1 - abs(cell_TF - tOFF_subunits) / tOFF_sum) / (len(tOFF_subunits) - 1)
 
     # to match previous algorithm reorganize source cells by type
+    # cell_type_dict = {}
+    # for lgn_model in lgn_models:
+    #     # print(lgn_model)
+    #     cell_type_dict[lgn_model] = [
+    #         (src_id, src_dict)
+    #         for src_id, src_dict in zip(source_ids, sources)
+    #         if src_dict["pop_name"] == lgn_model
+    #     ]
+
+    # the above part has been a bottle neck. Here's an idea for rewriting.
     cell_type_dict = {}
     for lgn_model in lgn_models:
-        # print(lgn_model)
-        cell_type_dict[lgn_model] = [
-            (src_id, src_dict)
-            for src_id, src_dict in zip(source_ids, sources)
-            if src_dict["pop_name"] == lgn_model
-        ]
+        cell_type_dict[lgn_model] = []
+    for src_id, src_dict in zip(source_ids, sources):
+        cell_type_dict[src_dict["pop_name"]].append((src_id, src_dict))
 
     lgn_models_subtypes_dictionary = {
         "sON_": {
