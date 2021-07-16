@@ -7,8 +7,6 @@ from numba import njit, jit
 
 # cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
 lgn_params = json.load(open("base_props/lgn_params.json", "r"))
-global saved_lgn_cell_type_dict
-saved_lgn_cell_type_dict = None  # to avoid unecessary computation...
 
 
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
@@ -254,9 +252,12 @@ def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
 
 
 # @profile
-def select_lgn_sources(sources, target, lgn_mean, lgn_models):
+def select_lgn_sources(
+    sources, target, lgn_mean, lgn_ids, lgn_positions, cell_type_dict
+):
     target_id = target.node_id
-    source_ids = [s.node_id for s in sources]
+    # source_ids = [s.node_id for s in sources]
+    source_ids = lgn_ids
 
     parametersDictionary = lgn_params
     pop_name = [key for key in parametersDictionary if key in target["pop_name"]][0]
@@ -386,19 +387,7 @@ def select_lgn_sources(sources, target, lgn_mean, lgn_models):
     #         if src_dict["pop_name"] == lgn_model
     #     ]
 
-    # the above part has been a bottle neck. Here's an idea for rewriting.
-    # the use of global variable speeds up the things. This uses assumption that LGN
-    # sources are the same every time. This is a little dirty impelementation.
-    global saved_lgn_cell_type_dict
-    if saved_lgn_cell_type_dict is None:
-        cell_type_dict = {}
-        for lgn_model in lgn_models:
-            cell_type_dict[lgn_model] = []
-        for src_id, src_dict in zip(source_ids, sources):
-            cell_type_dict[src_dict["pop_name"]].append((src_id, src_dict))
-        saved_lgn_cell_type_dict = cell_type_dict
-    else:
-        cell_type_dict = saved_lgn_cell_type_dict
+    # the above part has been a bottleneck. it is now precomputed.
 
     lgn_models_subtypes_dictionary = {
         "sON_": {
@@ -472,7 +461,7 @@ def select_lgn_sources(sources, target, lgn_mean, lgn_models):
             ellipse_b,
         )
         for src_id, src_dict in cell_type_dict[src_type]:
-            x, y = (src_dict["x"], src_dict["y"])
+            # x, y = (src_dict["x"], src_dict["y"])
 
             # x = x - ellipse_center_x
             # y = y - ellipse_center_y
@@ -484,7 +473,7 @@ def select_lgn_sources(sources, target, lgn_mean, lgn_models):
             #     y_new = x * ellipse_sin_mphi + y * ellipse_cos_mphi
 
             # if ((x_new / ellipse_a) ** 2 + (y_new / ellipse_b) ** 2) <= 1.0:
-            if within_ellipse(x, y, tuning_angle, *ellipse_params):
+            if within_ellipse(*lgn_positions[src_id], tuning_angle, *ellipse_params):
                 if tuning_angle is not None:
                     if src_type == "sONsOFF_001" or src_type == "sONtOFF_001":
                         src_tuning_angle = float(src_dict["tuning_angle"])

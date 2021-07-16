@@ -232,6 +232,14 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
 
     # it is faster to precompute necessary properties of LGN nework.
     # cell_type_dict
+    lgn_ids = [s.node_id for s in lgn_net.nodes()]
+    cell_type_dict = {}
+    lgn_positions = {}
+    for lgn_model in lgn_models:
+        cell_type_dict[lgn_model] = []
+    for src_id, src_dict in zip(lgn_ids, lgn_net.nodes()):
+        cell_type_dict[src_dict["pop_name"]].append((src_id, src_dict))
+        lgn_positions[src_id] = (src_dict["x"], src_dict["y"])
 
     for _, row in conn_weight_df.iterrows():
         # src_type = row["source_label"]
@@ -250,7 +258,12 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
             "target": v1_net.nodes(pop_name=target_pop_name),
             "iterator": "all_to_one",
             "connection_rule": select_lgn_sources,
-            "connection_params": {"lgn_mean": lgn_mean, "lgn_models": lgn_models},
+            "connection_params": {
+                "lgn_mean": lgn_mean,
+                "lgn_ids": lgn_ids,
+                "lgn_positions": lgn_positions,
+                "cell_type_dict": cell_type_dict,
+            },
             # "dynamics_params": row["params_file"],
             "dynamics_params": f"e2{e_or_i}.json",
             # "syn_weight": row["weight_max"],
