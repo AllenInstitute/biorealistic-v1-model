@@ -13,7 +13,7 @@ test: $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o test
 	
 profile: $(mainscripts)
-	python -m cProfile -o out.prof build_network.py -f --fraction 0.001 -o profile --no-recurrent
+	python -m cProfile -o out.prof build_network.py -f --fraction 0.01 -o profile --no-recurrent
 	
 glif_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv
 	python prepare_glif_models.py

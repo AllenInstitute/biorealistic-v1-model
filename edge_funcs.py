@@ -3,6 +3,7 @@ import numpy as np
 import math
 from random import random
 from numba import njit, jit
+from itertools import compress
 
 
 # cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
@@ -253,21 +254,19 @@ def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
 
 # @profile
 def select_lgn_sources(
-    sources, target, lgn_mean, lgn_ids, lgn_positions, cell_type_dict
+    sources, target, lgn_mean, lgn_ids, lgn_x, lgn_y, cell_type_dict
 ):
     target_id = target.node_id
-    # source_ids = [s.node_id for s in sources]
-    source_ids = lgn_ids
 
     parametersDictionary = lgn_params
     pop_name = [key for key in parametersDictionary if key in target["pop_name"]][0]
 
     # Check if target supposed to get a connection and if not, then no need to keep calculating.
     if np.random.random() > parametersDictionary[pop_name]["probability"]:
-        return [None] * len(source_ids)
+        return [None] * len(lgn_ids)
 
     if target_id % 250 == 0:
-        print("connection LGN cells to L4 cell #", target_id)
+        print("connection LGN cells to V1 cell #", target_id)
 
     subfields_centers_distance_min = parametersDictionary[pop_name][
         "centers_d_min"
@@ -460,62 +459,55 @@ def select_lgn_sources(
             ellipse_a,
             ellipse_b,
         )
-        for src_id, src_dict in cell_type_dict[src_type]:
-            # x, y = (src_dict["x"], src_dict["y"])
 
-            # x = x - ellipse_center_x
-            # y = y - ellipse_center_y
+        # speeding up by extracting this element outside
+        in_ellipse = within_ellipse(
+            lgn_x[src_type], lgn_y[src_type], tuning_angle, *ellipse_params
+        )
 
-            # x_new = x
-            # y_new = y
-            # if tuning_angle is not None:
-            #     x_new = x * ellipse_cos_mphi - y * ellipse_sin_mphi
-            #     y_new = x * ellipse_sin_mphi + y * ellipse_cos_mphi
-
-            # if ((x_new / ellipse_a) ** 2 + (y_new / ellipse_b) ** 2) <= 1.0:
-            if within_ellipse(*lgn_positions[src_id], tuning_angle, *ellipse_params):
-                if tuning_angle is not None:
-                    if src_type == "sONsOFF_001" or src_type == "sONtOFF_001":
-                        src_tuning_angle = float(src_dict["tuning_angle"])
-                        delta_tuning = abs(
+        for src_id, src_dict in compress(cell_type_dict[src_type], in_ellipse):
+            if tuning_angle is not None:
+                if src_type == "sONsOFF_001" or src_type == "sONtOFF_001":
+                    src_tuning_angle = float(src_dict["tuning_angle"])
+                    delta_tuning = abs(
+                        abs(
                             abs(
-                                abs(
-                                    180.0
-                                    - abs(tuning_angle_value - src_tuning_angle) % 360.0
-                                )
-                                - 90.0
+                                180.0
+                                - abs(tuning_angle_value - src_tuning_angle) % 360.0
                             )
                             - 90.0
                         )
-                        if delta_tuning < 15.0:
-                            src_cells_selected[src_type].append(src_id)
-
-                    # elif src_type in ['sONtOFF_001']:
-                    #     src_cells_selected[src_type].append(src_id)
-
-                    elif cell_sustained_unit in src_type[:5]:
-                        selection_probability = get_selection_probability(
-                            src_type, lgn_models_subtypes_dictionary
-                        )
-                        if np.random.random() < selection_probability:
-                            src_cells_selected[src_type].append(src_id)
-
-                    elif "tOFF_" in src_type[:5]:
-                        selection_probability = get_selection_probability(
-                            src_type, lgn_models_subtypes_dictionary
-                        )
-                        if np.random.random() < selection_probability:
-                            src_cells_selected[src_type].append(src_id)
-
-                else:
-                    if src_type == "sONsOFF_001" or src_type == "sONtOFF_001":
+                        - 90.0
+                    )
+                    if delta_tuning < 15.0:
                         src_cells_selected[src_type].append(src_id)
-                    else:
-                        selection_probability = get_selection_probability(
-                            src_type, lgn_models_subtypes_dictionary
-                        )
-                        if np.random.random() < selection_probability:
-                            src_cells_selected[src_type].append(src_id)
+
+                # elif src_type in ['sONtOFF_001']:
+                #     src_cells_selected[src_type].append(src_id)
+
+                elif cell_sustained_unit in src_type[:5]:
+                    selection_probability = get_selection_probability(
+                        src_type, lgn_models_subtypes_dictionary
+                    )
+                    if np.random.random() < selection_probability:
+                        src_cells_selected[src_type].append(src_id)
+
+                elif "tOFF_" in src_type[:5]:
+                    selection_probability = get_selection_probability(
+                        src_type, lgn_models_subtypes_dictionary
+                    )
+                    if np.random.random() < selection_probability:
+                        src_cells_selected[src_type].append(src_id)
+
+            else:
+                if src_type == "sONsOFF_001" or src_type == "sONtOFF_001":
+                    src_cells_selected[src_type].append(src_id)
+                else:
+                    selection_probability = get_selection_probability(
+                        src_type, lgn_models_subtypes_dictionary
+                    )
+                    if np.random.random() < selection_probability:
+                        src_cells_selected[src_type].append(src_id)
 
     select_cell_ids = [
         id for _, selected in src_cells_selected.items() for id in selected
@@ -523,9 +515,14 @@ def select_lgn_sources(
 
     # if len(select_cell_ids) > 30:
     #     select_cell_ids = np.random.choice(select_cell_ids, 30, replace=False)
-    nsyns_ret = [
-        parametersDictionary[pop_name]["N_syn"] if id in select_cell_ids else None
-        for id in source_ids
-    ]
+    # nsyns_ret = [
+    #     parametersDictionary[pop_name]["N_syn"] if id in select_cell_ids else None
+    #     for id in lgn_ids
+    # ]
+
+    selected_index = np.where(np.isin(lgn_ids, select_cell_ids))[0]
+    nsyns_ret = [None] * len(lgn_ids)
+    for i in selected_index:
+        nsyns_ret[i] = parametersDictionary[pop_name]["N_syn"]
     return nsyns_ret
 

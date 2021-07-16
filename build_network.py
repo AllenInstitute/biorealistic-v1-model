@@ -234,12 +234,21 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
     # cell_type_dict
     lgn_ids = [s.node_id for s in lgn_net.nodes()]
     cell_type_dict = {}
-    lgn_positions = {}
+    lgn_x = {}
+    lgn_y = {}
     for lgn_model in lgn_models:
+        # initialize the individual list
         cell_type_dict[lgn_model] = []
+        lgn_x[lgn_model] = []
+        lgn_y[lgn_model] = []
     for src_id, src_dict in zip(lgn_ids, lgn_net.nodes()):
         cell_type_dict[src_dict["pop_name"]].append((src_id, src_dict))
-        lgn_positions[src_id] = (src_dict["x"], src_dict["y"])
+        lgn_x[src_dict["pop_name"]].append(src_dict["x"])
+        lgn_y[src_dict["pop_name"]].append(src_dict["y"])
+    for lgn_model in lgn_models:
+        # convert to numpy array for later computation
+        lgn_x[lgn_model] = np.array(lgn_x[lgn_model])
+        lgn_y[lgn_model] = np.array(lgn_y[lgn_model])
 
     for _, row in conn_weight_df.iterrows():
         # src_type = row["source_label"]
@@ -260,8 +269,9 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
             "connection_rule": select_lgn_sources,
             "connection_params": {
                 "lgn_mean": lgn_mean,
-                "lgn_ids": lgn_ids,
-                "lgn_positions": lgn_positions,
+                "lgn_ids": np.array(lgn_ids),
+                "lgn_x": lgn_x,
+                "lgn_y": lgn_y,
                 "cell_type_dict": cell_type_dict,
             },
             # "dynamics_params": row["params_file"],
