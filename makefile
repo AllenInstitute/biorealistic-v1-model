@@ -3,6 +3,9 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 no_recurrent: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o no_recurrent --no-recurrent
 
+no_recurrent_full: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
+	python build_network.py -f --fraction 1 -o no_recurrent_full --no-recurrent
+
 v1nodes: glif_props/v1_node_models.json $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
 	
@@ -40,6 +43,7 @@ clean:
 	rm -r glif_requisite
 	rm -r v1nodes
 	rm -r no_recurrent
+	rm -r no_recurrent_full
 	rm -r profile
 	rm out.prof
 	

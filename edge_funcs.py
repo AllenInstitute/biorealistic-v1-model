@@ -2,10 +2,13 @@ import json
 import numpy as np
 import math
 from random import random
+from numba import njit, jit
 
 
 # cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
 lgn_params = json.load(open("base_props/lgn_params.json", "r"))
+global saved_lgn_cell_type_dict
+saved_lgn_cell_type_dict = None  # to avoid unecessary computation...
 
 
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
@@ -217,6 +220,7 @@ def connect_cells(sources, target, params):
 
 
 def get_selection_probability(src_type, lgn_models_subtypes_dictionary):
+
     current_model_subtypes = lgn_models_subtypes_dictionary[src_type[0:4]]["sub_types"]
     current_model_probabilities = lgn_models_subtypes_dictionary[src_type[0:4]][
         "probabilities"
@@ -235,6 +239,21 @@ def convert_z_to_lindegs(zcoords):
     return np.tan(0.04 * np.array(zcoords) * np.pi / 180.0) * 180.0 / np.pi
 
 
+@njit
+def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
+    """ check if x, y are within the ellipse """
+    x0 = x - e_x
+    y0 = y - e_y
+    if tuning_angle is None:
+        x_rot = x0
+        y_rot = y0
+    else:
+        x_rot = x0 * e_cos - y0 * e_sin
+        y_rot = x0 * e_sin + y0 * e_cos
+    return ((x_rot / e_a) ** 2 + (y_rot / e_b) ** 2) <= 1.0
+
+
+# @profile
 def select_lgn_sources(sources, target, lgn_mean, lgn_models):
     target_id = target.node_id
     source_ids = [s.node_id for s in sources]
@@ -368,11 +387,18 @@ def select_lgn_sources(sources, target, lgn_mean, lgn_models):
     #     ]
 
     # the above part has been a bottle neck. Here's an idea for rewriting.
-    cell_type_dict = {}
-    for lgn_model in lgn_models:
-        cell_type_dict[lgn_model] = []
-    for src_id, src_dict in zip(source_ids, sources):
-        cell_type_dict[src_dict["pop_name"]].append((src_id, src_dict))
+    # the use of global variable speeds up the things. This uses assumption that LGN
+    # sources are the same every time. This is a little dirty impelementation.
+    global saved_lgn_cell_type_dict
+    if saved_lgn_cell_type_dict is None:
+        cell_type_dict = {}
+        for lgn_model in lgn_models:
+            cell_type_dict[lgn_model] = []
+        for src_id, src_dict in zip(source_ids, sources):
+            cell_type_dict[src_dict["pop_name"]].append((src_id, src_dict))
+        saved_lgn_cell_type_dict = cell_type_dict
+    else:
+        cell_type_dict = saved_lgn_cell_type_dict
 
     lgn_models_subtypes_dictionary = {
         "sON_": {
@@ -437,19 +463,28 @@ def select_lgn_sources(sources, target, lgn_mean, lgn_models):
                 ellipse_a = ellipse_b0  # 0.01 #ellipse_b0
 
         # Find those source cells of the appropriate type that have their visual space coordinates within the ellipse.
+        ellipse_params = (
+            ellipse_center_x,
+            ellipse_center_y,
+            ellipse_cos_mphi,
+            ellipse_sin_mphi,
+            ellipse_a,
+            ellipse_b,
+        )
         for src_id, src_dict in cell_type_dict[src_type]:
             x, y = (src_dict["x"], src_dict["y"])
 
-            x = x - ellipse_center_x
-            y = y - ellipse_center_y
+            # x = x - ellipse_center_x
+            # y = y - ellipse_center_y
 
-            x_new = x
-            y_new = y
-            if tuning_angle is not None:
-                x_new = x * ellipse_cos_mphi - y * ellipse_sin_mphi
-                y_new = x * ellipse_sin_mphi + y * ellipse_cos_mphi
+            # x_new = x
+            # y_new = y
+            # if tuning_angle is not None:
+            #     x_new = x * ellipse_cos_mphi - y * ellipse_sin_mphi
+            #     y_new = x * ellipse_sin_mphi + y * ellipse_cos_mphi
 
-            if ((x_new / ellipse_a) ** 2 + (y_new / ellipse_b) ** 2) <= 1.0:
+            # if ((x_new / ellipse_a) ** 2 + (y_new / ellipse_b) ** 2) <= 1.0:
+            if within_ellipse(x, y, tuning_angle, *ellipse_params):
                 if tuning_angle is not None:
                     if src_type == "sONsOFF_001" or src_type == "sONtOFF_001":
                         src_tuning_angle = float(src_dict["tuning_angle"])

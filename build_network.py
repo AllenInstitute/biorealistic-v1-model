@@ -230,6 +230,9 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
     lgn_mean = (x_len / 2.0, y_len / 2.0)
     lgn_models = json.load(open("base_props/lgn_models.json", "r"))
 
+    # it is faster to precompute necessary properties of LGN nework.
+    # cell_type_dict
+
     for _, row in conn_weight_df.iterrows():
         # src_type = row["source_label"]
         # trg_type = row["target_label"]
