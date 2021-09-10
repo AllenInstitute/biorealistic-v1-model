@@ -81,13 +81,13 @@ def add_nodes_v1(fraction=0.50, node_props="glif_props/v1_node_models.json"):
                     # for biophysically detailed cell-types add info about rotations and morphollogy
                     node_props.update(
                         {
-                            "rotation_angle_xaxis": np.zeros(
-                                N
-                            ),  # for RTNeuron store explicity store the x-rotations (even though it should be 0 by default).
+                            # for RTNeuron store explicity store the x-rotations (even though it should be 0 by default).
+                            "rotation_angle_xaxis": np.zeros(N),
                             "rotation_angle_yaxis": 2 * np.pi * np.random.random(N),
+                            # for RTNeuron we need to store z-rotation in the h5 file.
                             "rotation_angle_zaxis": np.full(
                                 N, model["rotation_angle_zaxis"]
-                            ),  # for RTNeuron we need to store z-rotation in the h5 file.
+                            ),
                             "model_processing": model["model_processing"],
                             "morphology": model["morphology"],
                         }
@@ -283,6 +283,7 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
             # "weight_function": row["weight_func"],
             "weight_function": "",
             "weight_sigma": sigma,
+            "model_template": "static_synapse",
         }
         # if row["target_sections"] is not None:
         #     edge_params.update(
@@ -305,7 +306,7 @@ def add_nodes_bkg():
         ei="e",
         location="BKG",
         model_type="virtual",
-        dynamics_params="spike_generator_bkg.json",
+        # dynamics_params="spike_generator_bkg.json",
         x=[-91.23767151810344],
         y=[233.43548226294524],
     )
@@ -313,27 +314,28 @@ def add_nodes_bkg():
 
 
 def add_bkg_v1_edges(v1_net, bkg_net):
-    conn_weight_df = pd.read_csv("base_props/bkg_weights_population.csv")
+    conn_weight_df = pd.read_csv("base_props/bkg_weights_nsyns_population.csv")
 
     for _, row in conn_weight_df.iterrows():
         # src_type = row['source_label']
         # trg_type = row["target_label"]
         # target_node_type = row["target_model_id"]
         target_pop_name = row["population"]
-        # nsyns = row.get("nsyns", 1)
+        nsyns = row.get("nsyns")
 
         edge_params = {
             "source": bkg_net.nodes(),
             # "target": v1_net.nodes(node_type_id=target_node_type),
             "target": v1_net.nodes(pop_name=target_pop_name),
             "connection_rule": lambda s, t, n: n,
-            # "connection_params": {"n": nsyns},
-            "connection_params": {"n": 1},
+            "connection_params": {"n": nsyns},
+            # "connection_params": {"nsyns": 1},
             # "dynamics_params": row["dynamics_params"],
             "dynamics_params": f"e2{target_pop_name[0]}.json",
             "syn_weight": row["syn_weight"],
             # "delay": row["delay"],
             "delay": 1.0,
+            "model_template": "static_synapse",
         }
         # if trg_type == "biophysical":
         #     edge_params.update(

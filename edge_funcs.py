@@ -513,6 +513,7 @@ def select_lgn_sources(
         id for _, selected in src_cells_selected.items() for id in selected
     ]
 
+    # this section has been replaced with the code below
     # if len(select_cell_ids) > 30:
     #     select_cell_ids = np.random.choice(select_cell_ids, 30, replace=False)
     # nsyns_ret = [
