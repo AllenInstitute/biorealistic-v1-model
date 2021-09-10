@@ -9,6 +9,9 @@ glif_requisite/*
 *.pyc
 v1nodes/*
 no_recurrent/*
+no_recurrent_full/*
+no_recurrent_base/*
+misc_scripts/*.csv
 profile/*
 *prof
 

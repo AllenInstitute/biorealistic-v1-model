@@ -62,7 +62,7 @@ model_pop = pd.DataFrame.from_dict(model_dict, orient="index", columns=["populat
 # %% merging part
 merged_bkg = bkg_edge_df.merge(model_pop, left_on="target_model", right_index=True)
 simple_bkg = merged_bkg[["population", "syn_weight"]].drop_duplicates()
-simple_bkg.to_csv("bkg_weights_population.csv", index=False)
+# simple_bkg.to_csv("bkg_weights_population.csv", index=False)
 
 # %% biophysical to extract nsyns
 merged_bio_bkg = bkg_bio_edge_df.merge(
@@ -83,7 +83,7 @@ simple_bkg_merge = simple_bkg.merge(
     simple_bio_bkg_pop["nsyns"], left_on="population", right_index=True
 )
 simple_bkg_merge
-simple_bkg_merge.to_csv("bkg_weights_nsyns_population.csv", index=False)
+simple_bkg_merge.to_csv("bkg_weights_nsyns_population.csv", index=False, sep=" ")
 
 
 # %% merging for lgn
@@ -91,9 +91,18 @@ merged_lgn = lgn_edge_df.merge(model_pop, left_on="target_model", right_index=Tr
 simple_lgn = merged_lgn.groupby("population").mean()[["syn_weight"]]
 # merged_lgn.groupby('population').std()
 # simple_lgn = merged_lgn[["population", "syn_weight"]].drop_duplicates()
-simple_lgn.to_csv("lgn_weights_population.csv")
+simple_lgn.to_csv("lgn_weights_population.csv", sep=" ")
 
 
 # note that this does not care about changes of e5 populations.
 # The generated files should be manually changed to include e5IT, e5ET, and e5NP
 # (I used the average values of old e5 to fill them in.)
+
+# %% let the weights absorb nsyns
+df = pd.read_csv("../base_props/bkg_weights_nsyns_population.csv", index_col=0)
+
+df["syn_weight"] = df["syn_weight"] * df["nsyns"]
+df["nsyns"] = 1
+df
+
+df.to_csv("../base_props/bkg_weights_population.csv", sep=" ")

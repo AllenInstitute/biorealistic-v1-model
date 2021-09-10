@@ -314,7 +314,7 @@ def add_nodes_bkg():
 
 
 def add_bkg_v1_edges(v1_net, bkg_net):
-    conn_weight_df = pd.read_csv("base_props/bkg_weights_nsyns_population.csv")
+    conn_weight_df = pd.read_csv("base_props/bkg_weights_population.csv")
 
     for _, row in conn_weight_df.iterrows():
         # src_type = row['source_label']

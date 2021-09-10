@@ -1,5 +1,5 @@
 # %%
-# given the datafrom that contains population information, create property files
+# given data that contains population information, create property files
 import pandas as pd
 import os
 
