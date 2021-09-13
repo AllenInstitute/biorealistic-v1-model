@@ -224,7 +224,7 @@ def add_nodes_lgn():
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
     # conn_weight_df = pd.read_csv("conn_props/edge_type_models.csv", sep=" ")
-    conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv")
+    conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv", sep=" ")
     # conn_weight_df = conn_weight_df[(conn_weight_df["source_label"] == "LGN")]
 
     lgn_mean = (x_len / 2.0, y_len / 2.0)
@@ -314,7 +314,7 @@ def add_nodes_bkg():
 
 
 def add_bkg_v1_edges(v1_net, bkg_net):
-    conn_weight_df = pd.read_csv("base_props/bkg_weights_population.csv")
+    conn_weight_df = pd.read_csv("base_props/bkg_weights_population.csv", sep=" ")
 
     for _, row in conn_weight_df.iterrows():
         # src_type = row['source_label']
