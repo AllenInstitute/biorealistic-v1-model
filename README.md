@@ -11,7 +11,6 @@ The improvements will be:
 
 Right now, it can only generate V1 GLIF nodes. No other structures, no edges.
 
-
 ## file descriptions
 base_props/: seed files that are necessary for building the network most of them are in
 human readable format and editable (except for the LGN part, which didn't change from
