@@ -26,7 +26,11 @@ from bmtk.builder import NetworkBuilder  # NetworkBuilder
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=0.50, node_props="glif_props/v1_node_models.json"):
+def add_nodes_v1(fraction=0.50, miniature=False):
+    if miniature:
+        node_props="glif_props/v1_node_models_miniature.json"
+    else:
+        node_props="glif_props/v1_node_models.json"
     v1_models = json.load(open(node_props, "r"))
 
     min_radius = 1.0  # to avoid diverging density near 0
@@ -160,14 +164,14 @@ def add_edges_v1(net):
     return net
 
 
-def add_nodes_lgn():
+def add_nodes_lgn(X_grids=15, Y_grids=10):
     lgn_models = json.load(open("base_props/lgn_models.json", "r"))
 
     lgn = NetworkBuilder("lgn")
-    X_grids = 15  # 15#15      #15
-    Y_grids = 10  # 10#10#10      #10
-    X_len = 240.0  # In linear degrees
-    Y_len = 120.0  # In linear degrees
+    # X_grids = 15  # 15#15      #15
+    # Y_grids = 10  # 10#10#10      #10
+    X_len = 16.0 * X_grids # 240.0  # In linear degrees
+    Y_len = 12.0 * Y_grids # 120.0  # In linear degrees
 
     xcoords = []
     ycoords = []
@@ -401,12 +405,20 @@ if __name__ == "__main__":
         default=1.0,
         help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes",
     )
+    parser.add_argument(
+        "--miniature",
+        action="store_true",
+        default=False,
+        help="Make a miniture network with with a small LGN. Only for debugging.",
+    )
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
     args = parser.parse_args()
 
     # set random number seed for reproducibility
-    random.seed(53)
-    np.random.seed(53)
+    # seed = 53  # default
+    seed = 153  # modified
+    random.seed(seed)
+    np.random.seed(seed)
 
     nets = set(args.networks)
     if nets - {"v1", "lgn", "bkg"}:
@@ -424,7 +436,7 @@ if __name__ == "__main__":
     if "v1" in nets:
         print("Building v1 network")
         # check_files_exists(args.output_dir, 'v1', 'v1', args.force_overwrite)
-        v1 = add_nodes_v1(fraction=args.fraction)
+        v1 = add_nodes_v1(fraction=args.fraction, miniature=args.miniature)
         if not args.no_recurrent:
             v1 = add_edges_v1(v1)
         v1.build()
@@ -448,8 +460,12 @@ if __name__ == "__main__":
     if "lgn" in nets:
         print("Building lgn network")
         check_files_exists(args.output_dir, "lgn", "v1", args.force_overwrite)
-        lgn = add_nodes_lgn()
-        lgn = add_lgn_v1_edges(v1, lgn)
+        if args.miniature:
+            lgn = add_nodes_lgn(X_grids=2, Y_grids=2)
+            lgn = add_lgn_v1_edges(v1, lgn, x_len=32.0, y_len=24.0)
+        else:
+            lgn = add_nodes_lgn()
+            lgn = add_lgn_v1_edges(v1, lgn)
         lgn.build()
         lgn.save(args.output_dir)
         print("  done.")

@@ -9,6 +9,15 @@ no_recurrent_full: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.c
 v1nodes: glif_props/v1_node_models.json $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
 	
+miniature/lgn_nodes.h5: $(mainscripts) glif_props/v1_node_models_miniature.json
+	python build_network.py -f -o miniature --no-recurrent --miniature
+	
+miniature_filternet/spikes.h5: miniature/lgn_nodes.h5 configs/config_miniature_filternet.json
+	python run_filternet.py configs/config_miniature_filternet.json
+	
+miniature_run: miniature/lgn_nodes.h5 miniature_filternet/spikes.h5 configs/config_miniature.json
+	python run_pointnet.py configs/config_miniature.json
+
 test: $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o test
 	
@@ -27,6 +36,9 @@ glif_requisite/glif_models_prop.csv: make_glif_models_prop.py cell_types/cells_w
 	
 glif_props/v1_node_models.json: make_glif_requirements.py base_props/V1model_seed_file.xlsx glif_requisite/glif_models_prop.csv
 	python make_glif_requirements.py
+
+glif_props/v1_node_models_miniature.json: make_glif_requirements.py base_props/V1model_seed_file_miniature.xlsx glif_requisite/glif_models_prop.csv
+	python make_glif_requirements.py --miniature
 
 glif_props/bkg_v1_edge_types.csv: base_props/bkg_weights_population.csv glif_props/v1_node_models.json
 	python make_bkg_weights.py
