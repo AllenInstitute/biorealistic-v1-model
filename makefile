@@ -10,13 +10,22 @@ v1nodes: glif_props/v1_node_models.json $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
 	
 miniature/lgn_nodes.h5: $(mainscripts) glif_props/v1_node_models_miniature.json
-	python build_network.py -f -o miniature --no-recurrent --miniature
+	python build_network.py -f -o miniature --no-recurrent --miniature --feed-forward-v2
 	
 miniature_filternet/spikes.h5: miniature/lgn_nodes.h5 configs/config_miniature_filternet.json
 	python run_filternet.py configs/config_miniature_filternet.json
 	
-miniature_run: miniature/lgn_nodes.h5 miniature_filternet/spikes.h5 configs/config_miniature.json
+miniature_run: miniature/lgn_nodes.h5 configs/config_miniature.json
 	python run_pointnet.py configs/config_miniature.json
+
+juste4/lgn_nodes.h5: $(mainscripts) glif_props/v1_node_models_juste4.json
+	python build_network.py -f -o juste4 --no-recurrent --feed-forward-v2
+	
+juste4/spikes.h5: juste4/lgn_nodes.h5 configs/config_juste4_filternet.json
+	python run_filternet.py configs/config_juste4_filternet.json
+	
+juste4_run: juste4/lgn_nodes.h5 configs/config_juste4.json
+	python run_pointnet.py configs/config_juste4.json
 
 test: $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o test

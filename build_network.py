@@ -12,7 +12,12 @@ from node_funcs import (
     get_filter_spatial_size,
     get_filter_temporal_params,
 )
-from edge_funcs import compute_pair_type_parameters, connect_cells, select_lgn_sources
+from edge_funcs import (
+    compute_pair_type_parameters,
+    connect_cells,
+    select_lgn_sources,
+    select_lgn_sources_powerlaw,
+)
 
 # from node_funcs import generate_random_positions, generate_positions_grids, get_filter_spatial_size, \
 #     get_filter_temporal_params
@@ -28,9 +33,9 @@ pd.set_option("display.max_columns", None)
 
 def add_nodes_v1(fraction=0.50, miniature=False):
     if miniature:
-        node_props="glif_props/v1_node_models_miniature.json"
+        node_props = "glif_props/v1_node_models_miniature.json"
     else:
-        node_props="glif_props/v1_node_models.json"
+        node_props = "glif_props/v1_node_models.json"
     v1_models = json.load(open(node_props, "r"))
 
     min_radius = 1.0  # to avoid diverging density near 0
@@ -164,14 +169,14 @@ def add_edges_v1(net):
     return net
 
 
-def add_nodes_lgn(X_grids=15, Y_grids=10):
+def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0):
     lgn_models = json.load(open("base_props/lgn_models.json", "r"))
 
     lgn = NetworkBuilder("lgn")
     # X_grids = 15  # 15#15      #15
     # Y_grids = 10  # 10#10#10      #10
-    X_len = 16.0 * X_grids # 240.0  # In linear degrees
-    Y_len = 12.0 * Y_grids # 120.0  # In linear degrees
+    X_len = x_block * X_grids  # 240.0  # In linear degrees
+    Y_len = y_block * Y_grids  # 120.0  # In linear degrees
 
     xcoords = []
     ycoords = []
@@ -224,6 +229,53 @@ def add_nodes_lgn(X_grids=15, Y_grids=10):
         )
 
     return lgn
+
+
+def add_lgn_v1_edges_experimental(v1_net, lgn_net, x_len=240.0, y_len=120.0):
+    conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv", sep=" ")
+    lgn_mean = (x_len / 2.0, y_len / 2.0)
+    lgn_models = pd.read_json("base_props/lgn_models.json", orient="index")
+
+    prop_query = ["node_id", "x", "y", "pop_name", "tuning_angle"]
+    lgn_nodes = pd.DataFrame([{q: s[q] for q in prop_query} for s in lgn_net.nodes()])
+
+    # this regular expression is picking up a number after TF
+    lgn_nodes["temporal_freq"] = lgn_nodes["pop_name"].str.extract("TF(\d+)")
+    # make a complex version beforehand for easy shift/rotation
+    lgn_nodes["xy_complex"] = lgn_nodes["x"] + 1j * lgn_nodes["y"]
+
+    for _, row in conn_weight_df.iterrows():
+        target_pop_name = row["population"]
+        e_or_i = target_pop_name[0]
+        if e_or_i == "e":
+            sigma = [0.0, 150.0]
+        elif e_or_i == "i":
+            sigma = [0.0, 1e20]
+        else:
+            # Additional care for LIF will be necessary if applied for Biophysical
+            raise (f"Unknown e_or_i value: {e_or_i} from {target_pop_name}")
+
+        edge_params = {
+            "source": lgn_net.nodes(),
+            "target": v1_net.nodes(pop_name=target_pop_name),
+            "iterator": "all_to_one",
+            "connection_rule": select_lgn_sources_powerlaw,
+            "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
+            # "dynamics_params": row["params_file"],
+            "dynamics_params": f"e2{e_or_i}.json",
+            # "syn_weight": row["weight_max"],
+            "syn_weight": row["syn_weight"],
+            # "delay": row["delay"],
+            "delay": 1.7,
+            # "weight_function": row["weight_func"],
+            "weight_function": "",
+            "weight_sigma": sigma,
+            "model_template": "static_synapse",
+        }
+
+        lgn_net.add_edges(**edge_params)
+
+    return lgn_net
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
@@ -409,7 +461,13 @@ if __name__ == "__main__":
         "--miniature",
         action="store_true",
         default=False,
-        help="Make a miniture network with with a small LGN. Only for debugging.",
+        help="Make a miniture network with with a small LGN. Only for debugging",
+    )
+    parser.add_argument(
+        "--feed-forward-v2",
+        action="store_true",
+        default=False,
+        help="use a version 2 of the feed-forward thalamocortical connection",
     )
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
     args = parser.parse_args()
@@ -460,12 +518,24 @@ if __name__ == "__main__":
     if "lgn" in nets:
         print("Building lgn network")
         check_files_exists(args.output_dir, "lgn", "v1", args.force_overwrite)
+
+        if args.feed_forward_v2:
+            lgn_v1_edge_func = add_lgn_v1_edges_experimental
+        else:
+            lgn_v1_edge_func = add_lgn_v1_edges
+
         if args.miniature:
-            lgn = add_nodes_lgn(X_grids=2, Y_grids=2)
-            lgn = add_lgn_v1_edges(v1, lgn, x_len=32.0, y_len=24.0)
+            if args.feed_forward_v2:
+                lgn = add_nodes_lgn(X_grids=5, Y_grids=4, x_block=8.0, y_block=8.0)
+                lgn = lgn_v1_edge_func(v1, lgn, x_len=5 * 8.0, y_len=4 * 8.0)
+            else:
+                lgn = add_nodes_lgn(X_grids=5, Y_grids=4, x_block=16.0, y_block=12.0)
+                lgn = lgn_v1_edge_func(v1, lgn, x_len=5 * 16.0, y_len=4 * 12.0)
+            # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+            # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
         else:
             lgn = add_nodes_lgn()
-            lgn = add_lgn_v1_edges(v1, lgn)
+            lgn = lgn_v1_edge_func(v1, lgn)
         lgn.build()
         lgn.save(args.output_dir)
         print("  done.")

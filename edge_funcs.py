@@ -4,10 +4,13 @@ import math
 from random import random
 from numba import njit, jit
 from itertools import compress
+from scipy.stats import yulesimon
 
 
 # cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
 lgn_params = json.load(open("base_props/lgn_params.json", "r"))
+power_law_exponent = 3.58  # calculated from the EM data
+power_law_mean = 1.1737  # above exponent numerically define this
 
 
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
@@ -526,4 +529,175 @@ def select_lgn_sources(
     for i in selected_index:
         nsyns_ret[i] = parametersDictionary[pop_name]["N_syn"]
     return nsyns_ret
+
+
+def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
+    target_id = target.node_id
+    # it's a little scary to ahve lgn_params here...
+    pop_name = [key for key in lgn_params if key in target["pop_name"]][0]
+
+    if target_id % 250 == 0:
+        print("connection LGN cells to V1 cell #", target_id)
+
+    x_position_lin_degrees = convert_x_to_lindegs(target["x"])
+    y_position_lin_degrees = convert_z_to_lindegs(target["z"])
+
+    # center of the visual RF
+    vis_x = lgn_mean[0] + x_position_lin_degrees
+    vis_y = lgn_mean[1] + y_position_lin_degrees
+    rf_center = vis_x + 1j * vis_y
+
+    tuning_angle = float(target["tuning_angle"])
+    tuning_angle = None if math.isnan(tuning_angle) else tuning_angle
+    testing = False
+
+    if tuning_angle is not None:
+        tuning_angle_rad = tuning_angle / 180.0 * math.pi
+        if testing:
+            rf_shift_vector = -np.exp(1j * tuning_angle_rad)  # tentatively flipping
+            probability_sON = 1.0  # for testing purpose fix later
+        else:
+            rf_shift_vector = np.exp(1j * tuning_angle_rad)  # using complex expression
+            probability_sON = lgn_params[pop_name]["sON_ratio"]
+        if np.random.random() < probability_sON:
+            cell_ignore_unit = "sOFF"  # sON cell. ignore sOFF
+        else:
+            cell_ignore_unit = "sON"
+            rf_shift_vector = -rf_shift_vector  # This will be flipped.
+
+    # not very comfortable with this.
+    cell_TF = np.random.poisson(lgn_params[pop_name]["poissonParameter"])
+    while cell_TF <= 0:
+        cell_TF = np.random.poisson(lgn_params[pop_name]["poissonParameter"])
+
+    subunit_freqs = {"sON": [1, 2, 4, 8], "sOFF": [1, 2, 4, 8, 15], "tOFF": [4, 8, 15]}
+    # calculate probability for each subunit types separately
+
+    # start calculating the relative probability for each candidate neuron
+    # make a candidate pool (circular)
+
+    # circle with radius 40 centered at vis_x, vis_y
+    big_circle = (vis_x, vis_y, 1.0, 0.0, 40, 40)
+    in_circle = within_ellipse(
+        np.array(lgn_nodes["x"]), np.array(lgn_nodes["y"]), tuning_angle, *big_circle
+    )
+
+    lgn_circle = lgn_nodes[in_circle]
+
+    # RF center of LGN cell as a complex number
+    lgn_complex = np.array(lgn_circle["x"] + 1j * lgn_circle["y"])
+
+    # shift sustained and transient units
+    if testing:
+        shift = 2.5  # amount to shift the RF
+    else:
+        shift = 2.5  # amount to shift the RF
+    lgn_complex[lgn_circle["pop_name"].str.contains("sON_")] -= rf_shift_vector * shift
+    lgn_complex[lgn_circle["pop_name"].str.contains("sOFF_")] -= rf_shift_vector * shift
+    lgn_complex[lgn_circle["pop_name"].str.contains("tOFF_")] += rf_shift_vector * shift
+
+    # next, elongate the LGN complex orthogonal to the shift vector
+    # rotate by shift vector to adjust the angle, strech, and rotate back.
+    # sq_asr = np.sqrt(1.15)  # sqrt of aspect ratio (take from data later)
+    sq_asr = np.sqrt(1.5)  # sqrt of aspect ratio (take from data later)
+    lgn_relative = lgn_complex - rf_center
+    lgn_rotate = lgn_relative / rf_shift_vector
+    lgn_strech = lgn_rotate.real * sq_asr + 1j * lgn_rotate.imag / sq_asr
+    lgn_back = lgn_strech * rf_shift_vector
+
+    # relative_rf_dist = np.abs(lgn_complex - rf_center)
+    relative_rf_dist = np.abs(lgn_back)
+
+    gauss_radius = 5.0  # extention of LGN axons in degrees
+    gaussian_prob = gaussian_probability(relative_rf_dist, gauss_radius)
+
+    # ignoring sONsOFF cells for now
+
+    # assign relative probability calculated above
+    subunit_prob = np.zeros_like(gaussian_prob)
+    for subname, freqs in subunit_freqs.items():
+        if cell_ignore_unit in subname:
+            # ignore either sON or sOFF
+            continue
+        probs = calculate_subunit_probs(cell_TF, [float(f) for f in freqs])
+        for i in range(len(probs)):
+            # construct the name
+            typename = f"{subname}_TF{freqs[i]}"
+            subunit_prob[lgn_circle["pop_name"].str.contains(typename)] = probs[i]
+
+    total_prob = gaussian_prob * subunit_prob
+    total_prob = total_prob / sum(total_prob)  # normalize
+    # num_cons = np.random.randint(100, 700)
+    num_cons = int(np.random.lognormal(5.8, 0.661))  # from LGN statistics.
+    # num_cons = int(np.random.lognormal(5.8, 0.4))
+    # num_cons = 400
+    num_cons = min(num_cons, sum(total_prob > 0))
+    selected_locs = pick_from_probs(num_cons, total_prob)
+
+    # now neurons are selected. Next set the number of synapses
+    # draw from the Yule distribution (scipy)
+    num_syns_indv = yulesimon.rvs(5.10, size=num_cons)
+    # num_syns_indv = yulesimon.rvs(4.2, size=num_cons)
+    num_syns, num_neurons = np.unique(num_syns_indv, return_counts=True)
+    selected_lgn_inds = lgn_circle.index[selected_locs]
+    selected_lgn_dist = relative_rf_dist[selected_locs]
+
+    nsyns_ret = np.zeros(len(lgn_nodes), dtype=int)
+    for i in range(len(num_syns) - 1, 0, -1):
+        gaussian_prob = gaussian_probability(
+            selected_lgn_dist, gauss_radius / np.sqrt(num_syns[i])
+        )
+        gaussian_prob = gaussian_prob / sum(gaussian_prob)
+        syn_selected = pick_from_probs(num_neurons[i], gaussian_prob)
+        nsyns_ret[selected_lgn_inds[syn_selected]] = num_syns[i]
+
+        selected_lgn_inds = np.delete(selected_lgn_inds, syn_selected)
+        selected_lgn_dist = np.delete(selected_lgn_dist, syn_selected)
+
+    # there should be 1 synapse connections remaining
+    nsyns_ret[selected_lgn_inds] = 1
+    nsyns_ret = list(nsyns_ret)
+
+    # getting back to list
+    nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
+    # return
+    return nsyns_ret
+
+
+def pick_from_probs(n, prob_dist):
+    # pick n item based on prob_dist and return index of the choice
+    return np.random.choice(
+        list(range(len(prob_dist))), size=n, replace=False, p=prob_dist
+    )
+
+
+def gaussian_probability(x, sigma):
+    return np.exp(-(x ** 2 / (2 * sigma ** 2)))
+
+
+def calculate_subunit_probs(cell_TF, tf_list):
+    tf_array = np.array(tf_list)
+    tf_sum = np.sum(abs(cell_TF - tf_array))
+    p_sON = (1 - abs(cell_TF - tf_array) / tf_sum) / (len(tf_array) - 1)
+    return p_sON
+
+
+def general_candidate_pool_ellipse(vis_x, vis_y):
+    visx_width = 5 * 4  # to cover most candidate cells
+    visy_width = 5 * 4
+    ellipse_center_x = vis_x
+    ellipse_center_y = vis_y
+    ellipse_cos_mphi = (1.0,)
+    ellipse_sin_mphi = (0.0,)
+    ellipse_a = visx_width
+    ellipse_b = visy_width
+    ellipse_params = (
+        ellipse_center_x,
+        ellipse_center_y,
+        ellipse_cos_mphi,
+        ellipse_sin_mphi,
+        ellipse_a,
+        ellipse_b,
+    )
+    return ellipse_params
 
