@@ -35,17 +35,36 @@ v1df["FR"] = spike_rates
 # v1df_one_type = v1df[v1df["node_type_id"] == 488689403]
 # v1df_s = v1df_one_type.sort_values("tuning_angle")
 v1df_s = v1df.sort_values("tuning_angle")
+v1df_s = v1df_s[v1df_s.FR < 5]
 
-# fig, ax = plt.subplots(1, 1, figsize=(15, 5))
+v1df
+v1df_s
 
-# v1df_s.plot.scatter("tuning_angle", "FR", ax=ax)
-# v1df_s.rolling(100).mean().plot(
-#     "tuning_angle", "FR", ax=ax, color="tab:orange", linewidth=3
-# )
+fig, ax = plt.subplots(1, 1, figsize=(15, 5))
+
+v1df_s.plot.scatter("tuning_angle", "FR", ax=ax)
+v1df_s.rolling(100).mean().plot(
+    "tuning_angle", "FR", ax=ax, color="tab:orange", linewidth=3
+)
+# ax.set_ylim([0, 15])
+
 
 #  look at the traces
-
 v1df.to_csv("v1df_mini.csv")
+
+
+# %% determining which cell type is firing
+used_models_df = pd.read_csv("misc_files/used_models.csv", index_col=0)
+used_models_df.specimen__id
+
+rheo_df = used_models_df[["specimen__id", "model_rheo"]]
+v1df_r = v1df.merge(rheo_df, left_on="node_type_id", right_on="specimen__id")
+
+fig, ax = plt.subplots(1, 1, figsize=(15, 5))
+v1df_r.plot.scatter("model_rheo", "FR", ax=ax)
+# v1df_r.plot.hexbin('model_rheo', 'FR', ax=ax, bins='log')
+
+
 # %%
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -102,6 +121,13 @@ v1df.plot.scatter("tuning_angle", "evoked I")
 v1df.plot.scatter("tuning_angle", "f1 I")
 v1df.plot.scatter("tuning_angle", "f1/evoked")
 plt.ylim([0.0, 1.5])
+
+(stim_I - spont_I).mean()
+(spont_I).mean()
+(stim_I).mean()
+
+
+# %% It'll look great if you chop off neurons with high FR.
 
 
 # %% report the distribution of the number of synapses form LGN to v1

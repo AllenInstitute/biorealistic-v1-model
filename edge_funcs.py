@@ -539,8 +539,11 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     if target_id % 250 == 0:
         print("connection LGN cells to V1 cell #", target_id)
 
-    x_position_lin_degrees = convert_x_to_lindegs(target["x"])
-    y_position_lin_degrees = convert_z_to_lindegs(target["z"])
+    # x_position_lin_degrees = convert_x_to_lindegs(target["x"])
+    # y_position_lin_degrees = convert_z_to_lindegs(target["z"])
+    # this is simpler for the new coordinate
+    x_position_lin_degrees = target["x"] * 0.07
+    y_position_lin_degrees = target["z"] * 0.04
 
     # center of the visual RF
     vis_x = lgn_mean[0] + x_position_lin_degrees
@@ -628,8 +631,8 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     total_prob = gaussian_prob * subunit_prob
     total_prob = total_prob / sum(total_prob)  # normalize
     # num_cons = np.random.randint(100, 700)
-    num_cons = int(np.random.lognormal(5.8, 0.661))  # from LGN statistics.
-    # num_cons = int(np.random.lognormal(5.8, 0.4))
+    # num_cons = int(np.random.lognormal(5.8, 0.661))  # from LGN statistics.
+    num_cons = int(np.random.lognormal(5.8, 0.2))
     # num_cons = 400
     num_cons = min(num_cons, sum(total_prob > 0))
     selected_locs = pick_from_probs(num_cons, total_prob)

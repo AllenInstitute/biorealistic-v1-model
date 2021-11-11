@@ -521,16 +521,27 @@ if __name__ == "__main__":
 
         if args.feed_forward_v2:
             lgn_v1_edge_func = add_lgn_v1_edges_experimental
+            x_block_unit = 8.0  # spherical coordinate
+            y_block_unit = 8.0
         else:
             lgn_v1_edge_func = add_lgn_v1_edges
+            x_block_unit = 16.0
+            y_block_unit = 12.0
 
         if args.miniature:
-            if args.feed_forward_v2:
-                lgn = add_nodes_lgn(X_grids=5, Y_grids=4, x_block=8.0, y_block=8.0)
-                lgn = lgn_v1_edge_func(v1, lgn, x_len=5 * 8.0, y_len=4 * 8.0)
-            else:
-                lgn = add_nodes_lgn(X_grids=5, Y_grids=4, x_block=16.0, y_block=12.0)
-                lgn = lgn_v1_edge_func(v1, lgn, x_len=5 * 16.0, y_len=4 * 12.0)
+            lgn = add_nodes_lgn(
+                X_grids=15, Y_grids=10, x_block=x_block_unit, y_block=y_block_unit
+            )
+            lgn = lgn_v1_edge_func(
+                v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
+            )
+
+            # if args.feed_forward_v2:
+            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+            #     lgn = add_lgn_v1_edges_experimental(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
+            # else:
+            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0)
+            #     lgn = add_lgn_v1_edges(v1, lgn, x_len=15 * 16.0, y_len=10 * 12.0)
             # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
             # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
         else:
