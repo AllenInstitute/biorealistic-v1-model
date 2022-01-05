@@ -5,6 +5,7 @@ import pandas as pd
 import argparse
 import random
 
+from mpi4py import MPI
 
 from node_funcs import (
     generate_random_positions,
@@ -232,7 +233,8 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0):
 
 
 def add_lgn_v1_edges_experimental(v1_net, lgn_net, x_len=240.0, y_len=120.0):
-    conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv", sep=" ")
+    # conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv", sep=" ")
+    conn_weight_df = pd.read_csv("glif_props/lgn_weights_model.csv", sep=" ")
     lgn_mean = (x_len / 2.0, y_len / 2.0)
     lgn_models = pd.read_json("base_props/lgn_models.json", orient="index")
 
@@ -246,6 +248,7 @@ def add_lgn_v1_edges_experimental(v1_net, lgn_net, x_len=240.0, y_len=120.0):
 
     for _, row in conn_weight_df.iterrows():
         target_pop_name = row["population"]
+        target_model_id = row["model_id"]
         e_or_i = target_pop_name[0]
         if e_or_i == "e":
             sigma = [0.0, 150.0]
@@ -257,14 +260,15 @@ def add_lgn_v1_edges_experimental(v1_net, lgn_net, x_len=240.0, y_len=120.0):
 
         edge_params = {
             "source": lgn_net.nodes(),
-            "target": v1_net.nodes(pop_name=target_pop_name),
+            # "target": v1_net.nodes(pop_name=target_pop_name),
+            "target": v1_net.nodes(node_type_id=target_model_id),
             "iterator": "all_to_one",
             "connection_rule": select_lgn_sources_powerlaw,
             "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
             # "dynamics_params": row["params_file"],
             "dynamics_params": f"e2{e_or_i}.json",
             # "syn_weight": row["weight_max"],
-            "syn_weight": row["syn_weight"],
+            "syn_weight": row["syn_weight_psp"],
             # "delay": row["delay"],
             "delay": 1.7,
             # "weight_function": row["weight_func"],
@@ -473,10 +477,25 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # set random number seed for reproducibility
-    # seed = 53  # default
-    seed = 153  # modified
-    random.seed(seed)
-    np.random.seed(seed)
+    # The strategy is to use the common seed for all MPI ranks for nodes, and use
+    # separate ones for edges. Though this may not be optimal, I reset the seed
+    # multiple times for that reason.
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    seed_v1_nodes = 153
+    seed_v1_edges = 154 + rank
+    seed_lgn_nodes = 253
+    seed_lgn_edges = 254 + rank
+
+    def set_seed(seed):
+        random.seed(seed)
+        np.random.seed(seed)
+
+    # print(rank)
+    # exit()
+    # seed = 153 + rank  # modified for MPI running (Please use 8 cores)
+    # random.seed(seed)
+    # np.random.seed(seed)
 
     nets = set(args.networks)
     if nets - {"v1", "lgn", "bkg"}:
@@ -494,8 +513,10 @@ if __name__ == "__main__":
     if "v1" in nets:
         print("Building v1 network")
         # check_files_exists(args.output_dir, 'v1', 'v1', args.force_overwrite)
+        set_seed(seed_v1_nodes)
         v1 = add_nodes_v1(fraction=args.fraction, miniature=args.miniature)
         if not args.no_recurrent:
+            set_seed(seed_v1_edges)
             v1 = add_edges_v1(v1)
         v1.build()
         print("Saving v1 network")
@@ -529,9 +550,11 @@ if __name__ == "__main__":
             y_block_unit = 12.0
 
         if args.miniature:
+            set_seed(seed_lgn_nodes)
             lgn = add_nodes_lgn(
                 X_grids=15, Y_grids=10, x_block=x_block_unit, y_block=y_block_unit
             )
+            set_seed(seed_lgn_edges)
             lgn = lgn_v1_edge_func(
                 v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
             )
@@ -545,7 +568,9 @@ if __name__ == "__main__":
             # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
             # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
         else:
+            set_seed(seed_lgn_nodes)
             lgn = add_nodes_lgn()
+            set_seed(seed_lgn_edges)
             lgn = lgn_v1_edge_func(v1, lgn)
         lgn.build()
         lgn.save(args.output_dir)

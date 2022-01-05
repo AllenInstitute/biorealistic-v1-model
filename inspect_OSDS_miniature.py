@@ -7,11 +7,14 @@ from sonata.circuit import File
 import h5py
 
 d = "miniature/"
-dfiles = [d + "lgn_nodes.h5", d + "v1_nodes.h5", d + "lgn_v1_edges.h5"]
+# d = "original_mini/"
+dnet = d + "network/"
+dout = d + "output/"
+dfiles = [dnet + "lgn_nodes.h5", dnet + "v1_nodes.h5", dnet + "lgn_v1_edges.h5"]
 dtfiles = [
-    d + "lgn_node_types.csv",
-    d + "v1_node_types.csv",
-    d + "lgn_v1_edge_types.csv",
+    dnet + "lgn_node_types.csv",
+    dnet + "v1_node_types.csv",
+    dnet + "lgn_v1_edge_types.csv",
 ]
 
 net = File(dfiles, dtfiles)
@@ -20,7 +23,7 @@ v1df = net.nodes["v1"].to_dataframe()
 
 n_neu = len(v1df)
 
-spikes_df = pd.read_csv("miniature_output/spikes.csv", sep=" ")
+spikes_df = pd.read_csv(dout + "spikes.csv", sep=" ")
 spikes_df = spikes_df.query("timestamps > 500")
 
 spike_rates = np.zeros(n_neu)
@@ -35,7 +38,7 @@ v1df["FR"] = spike_rates
 # v1df_one_type = v1df[v1df["node_type_id"] == 488689403]
 # v1df_s = v1df_one_type.sort_values("tuning_angle")
 v1df_s = v1df.sort_values("tuning_angle")
-v1df_s = v1df_s[v1df_s.FR < 5]
+# v1df_s = v1df_s[v1df_s.FR < 5]
 
 v1df
 v1df_s
@@ -46,7 +49,7 @@ v1df_s.plot.scatter("tuning_angle", "FR", ax=ax)
 v1df_s.rolling(100).mean().plot(
     "tuning_angle", "FR", ax=ax, color="tab:orange", linewidth=3
 )
-# ax.set_ylim([0, 15])
+ax.set_ylim([0, 3])
 
 
 #  look at the traces
@@ -63,6 +66,31 @@ v1df_r = v1df.merge(rheo_df, left_on="node_type_id", right_on="specimen__id")
 fig, ax = plt.subplots(1, 1, figsize=(15, 5))
 v1df_r.plot.scatter("model_rheo", "FR", ax=ax)
 # v1df_r.plot.hexbin('model_rheo', 'FR', ax=ax, bins='log')
+
+
+# %% comparison with the unitary inputs
+import json
+
+v1unitary = json.load(open("misc_files/v1_synapse_amps.json", "r"))
+v1unitary_ser = pd.Series(v1unitary["e2e"], name="Unitary PSP")
+v1unitary_ser_i = pd.Series(v1unitary["e2i"], name="Unitary PSP")
+v1unitary_ser.index = pd.to_numeric(v1unitary_ser.index)
+v1unitary_ser_i.index = pd.to_numeric(v1unitary_ser_i.index)
+
+v1unitary_ser_both = v1unitary_ser.append(v1unitary_ser_i)
+
+
+unit_df = used_models_df.merge(
+    v1unitary_ser_both, left_on="specimen__id", right_index=True
+)
+unit_df.keys()
+
+
+unit_df.plot.scatter("model_rheo", "Unitary PSP")
+unit_df.plot.scatter("R_input", "Unitary PSP")
+unit_df.plot.scatter("C", "Unitary PSP")
+unit_df["R/C"] = unit_df["R_input"] / unit_df["C"]
+unit_df.plot.scatter("R/C", "Unitary PSP")
 
 
 # %%

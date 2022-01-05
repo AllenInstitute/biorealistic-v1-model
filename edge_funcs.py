@@ -614,32 +614,50 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     gauss_radius = 5.0  # extention of LGN axons in degrees
     gaussian_prob = gaussian_probability(relative_rf_dist, gauss_radius)
 
-    # ignoring sONsOFF cells for now
-
     # assign relative probability calculated above
     subunit_prob = np.zeros_like(gaussian_prob)
     for subname, freqs in subunit_freqs.items():
         if cell_ignore_unit in subname:
             # ignore either sON or sOFF
             continue
+
         probs = calculate_subunit_probs(cell_TF, [float(f) for f in freqs])
         for i in range(len(probs)):
             # construct the name
             typename = f"{subname}_TF{freqs[i]}"
             subunit_prob[lgn_circle["pop_name"].str.contains(typename)] = probs[i]
 
+    # treatments for sONsOFF and sONtOFF cells
+    # tuning_angles are defined only for sONsOFF and sONtOFF cells, so this should be fine.
+    lgn_ori_eligible = (
+        delta_ori(lgn_circle["tuning_angle"] - target["tuning_angle"]) < 15
+    )
+    subunit_prob[lgn_ori_eligible] = 1.0
+
     total_prob = gaussian_prob * subunit_prob
     total_prob = total_prob / sum(total_prob)  # normalize
     # num_cons = np.random.randint(100, 700)
+    original_exp = lgn_params[pop_name]["probability"] * lgn_params[pop_name]["N_syn"]
+    num_syns_mean = 500 / 80 * original_exp  # so that e4 becomes 500
+    logn_sigma = 0.66  # from data
+    yule_param = lgn_params[pop_name]["yuleParameter"]
+    num_cons_mean = num_syns_mean * (yule_param - 1) / yule_param
+    logn_mu = np.log(num_cons_mean) - logn_sigma ** 2 / 2
+
+    num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
+
     # num_cons = int(np.random.lognormal(5.8, 0.661))  # from LGN statistics.
-    num_cons = int(np.random.lognormal(5.8, 0.2))
+    # num_cons = int(np.random.lognormal(5.8, 0.2))  # more realistic value...
     # num_cons = 400
+
+    # this line avoid crashing when you don't have sufficinet number of source LGN neurons
+    num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
     num_cons = min(num_cons, sum(total_prob > 0))
     selected_locs = pick_from_probs(num_cons, total_prob)
 
     # now neurons are selected. Next set the number of synapses
     # draw from the Yule distribution (scipy)
-    num_syns_indv = yulesimon.rvs(5.10, size=num_cons)
+    num_syns_indv = yulesimon.rvs(yule_param, size=num_cons)
     # num_syns_indv = yulesimon.rvs(4.2, size=num_cons)
     num_syns, num_neurons = np.unique(num_syns_indv, return_counts=True)
     selected_lgn_inds = lgn_circle.index[selected_locs]
@@ -681,8 +699,8 @@ def gaussian_probability(x, sigma):
 def calculate_subunit_probs(cell_TF, tf_list):
     tf_array = np.array(tf_list)
     tf_sum = np.sum(abs(cell_TF - tf_array))
-    p_sON = (1 - abs(cell_TF - tf_array) / tf_sum) / (len(tf_array) - 1)
-    return p_sON
+    p = (1 - abs(cell_TF - tf_array) / tf_sum) / (len(tf_array) - 1)
+    return p
 
 
 def general_candidate_pool_ellipse(vis_x, vis_y):
@@ -704,3 +722,7 @@ def general_candidate_pool_ellipse(vis_x, vis_y):
     )
     return ellipse_params
 
+
+# orientation comparator
+def delta_ori(angle):
+    return np.abs(np.abs(angle - 90) % 180 - 90)
