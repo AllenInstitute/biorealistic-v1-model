@@ -38,7 +38,7 @@ $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config_filternet.json mak
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5 
 	ssh -t hpc-login 'cd realistic-model/glif_builder; sbatch --wait $*/jobs/filternet_8dir_10trials.sh'
 
-$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/network/lgn_v1_edge_types.csv %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 
+$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/network/lgn_v1_edge_types.csv %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py
 	ssh -t hpc-login 'cd realistic-model/glif_builder; sbatch --wait $*/jobs/8dir_10trials.sh'
 
 $(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.csv calculate_odsi.py

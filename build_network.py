@@ -272,7 +272,8 @@ def add_lgn_v1_edges_experimental(v1_net, lgn_net, x_len=240.0, y_len=120.0):
             # "delay": row["delay"],
             "delay": 1.7,
             # "weight_function": row["weight_func"],
-            "weight_function": "",
+            # "weight_function": "",
+            "weight_function": "DendriticConstancy_LGN",
             "weight_sigma": sigma,
             "model_template": "static_synapse",
         }

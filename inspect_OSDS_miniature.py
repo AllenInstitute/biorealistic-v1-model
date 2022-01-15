@@ -118,7 +118,7 @@ def get_np_data(filename):
         return (time, npd)
 
 
-time, npd = get_np_data("miniature_output/cai_traces.h5")
+time, npd = get_np_data("miniature/output/cai_traces.h5")
 
 # plt.plot(time, npd[:, [276, 284, 300]])
 # plt.plot(time, npd[:, [276]])
@@ -140,14 +140,19 @@ f1_I = np.abs(f1_I[:, stim_time].mean(axis=1))
 # plt.plot(spont_I)
 # plt.plot(stim_I)
 # plt.plot(f1_I)
+v1df_sub = v1df.loc[range(0, 17001, 100)]
 
-v1df["evoked I"] = stim_I - spont_I
-v1df["f1 I"] = f1_I
-v1df["f1/evoked"] = f1_I / (stim_I - spont_I)
 
-v1df.plot.scatter("tuning_angle", "evoked I")
-v1df.plot.scatter("tuning_angle", "f1 I")
-v1df.plot.scatter("tuning_angle", "f1/evoked")
+v1df_sub["evoked I"] = stim_I - spont_I
+v1df_sub["f1 I"] = f1_I
+v1df_sub["f1/evoked"] = f1_I / (stim_I - spont_I)
+
+v1df_sub['evoked I'].mean()
+
+
+v1df_sub.plot.scatter("tuning_angle", "evoked I")
+v1df_sub.plot.scatter("tuning_angle", "f1 I")
+v1df_sub.plot.scatter("tuning_angle", "f1/evoked")
 plt.ylim([0.0, 1.5])
 
 (stim_I - spont_I).mean()
