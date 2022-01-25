@@ -153,7 +153,7 @@ def make_v1_node_models():
     glif_models_df = pd.read_csv("glif_requisite/glif_models_prop.csv", sep=" ")
     node_models = {"locations": {}}
     # Load unitary v1 synapse amps:
-    v1_synapse_amps = json.load(open("glif_props/v1_synapse_amps.json", "r"))
+    v1_synapse_amps = json.load(open("base_props/v1_synapse_amps.json", "r"))
     for location, subdf in seed_df.groupby("location"):
         location_dict = {}
         for pop_id, row in subdf.iterrows():
