@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import argparse
 import random
+from scipy.stats import lognorm
 
 from mpi4py import MPI
 
@@ -50,6 +51,8 @@ def add_nodes_v1(fraction=0.50, miniature=False):
             pop_size = pop_dict["ncells"]
             depth_range = -np.array(pop_dict["depth_range"], dtype=np.float)
             ei = pop_dict["ei"]
+            lognorm_shape = pop_dict["lognorm_shape"]
+            lognorm_scale = pop_dict["lognorm_scale"]
 
             for model in pop_dict["models"]:
                 if "N" not in model:
@@ -86,6 +89,9 @@ def add_nodes_v1(fraction=0.50, miniature=False):
                     "y": positions[:, 1],
                     "z": positions[:, 2],
                     "tuning_angle": np.linspace(0.0, 360.0, N, endpoint=False),
+                    "target_sizes": generate_target_sizes(N,lognorm_shape,lognorm_scale),
+                    "EPSP_unitary":model["EPSP_unitary"],
+                    "IPSP_unitary":model["IPSP_unitary"],
                 }
                 if model["model_type"] == "biophysical":
                     # for biophysically detailed cell-types add info about rotations and morphollogy
@@ -427,6 +433,11 @@ def check_files_exists(output_dir, src_net, trg_net, force_overwrite):
                     f
                 )
             )
+
+def generate_target_sizes(N,ln_shape,ln_scale):
+    ln_rv = lognorm(s=ln_shape,loc=0,scale=ln_scale)
+    ln_rvs = ln_rv.rvs(N).round()
+    return ln_rvs
 
 
 if __name__ == "__main__":
