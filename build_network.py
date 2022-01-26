@@ -132,8 +132,10 @@ def find_direction_rule(src_label, trg_label):
 
 
 def add_edges_v1(net):
-    cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
-    conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
+    cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
+    conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
+    #cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
+    #conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
     conn_weight_df = conn_weight_df[~(conn_weight_df["source_label"] == "LGN")]
     for _, row in conn_weight_df.iterrows():
