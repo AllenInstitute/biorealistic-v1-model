@@ -41,8 +41,8 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     if trg_new[0:2] == "i2":
         trg_tmp = trg_new[0:2] + trg_new[3]
 
-    cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
-
+    #cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
+    cc_props = cc_prob_dict[source_type + "-" + target_type]
     ##### For distance dependence which is modeled as a Gaussian ####
     # P = A * exp(-r^2 / sigma^2)
     # Since papers reported probabilities of connection having measured from 50um to 100um intersomatic distance
@@ -61,7 +61,10 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     sigma = cc_props["sigma"]
 
     # Gaussian equation was intergrated to and solved to calculate new A_new. See accompanying documentation.
-    A_new = A_literature / ((sigma / R0) ** 2 * (1 - np.exp(-((R0 / sigma) ** 2))))
+    if cc_props["is_pmax"]==1:
+        A_new = A_literature
+    else:
+        A_new = A_literature / ((sigma / R0) ** 2 * (1 - np.exp(-((R0 / sigma) ** 2))))
 
     # Due to the measured values in the literature being from multiple sources and approximations that were
     # made by us and the literature (for instance R0 = 75um and sigma from the literature), we found that it is

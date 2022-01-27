@@ -170,10 +170,14 @@ def add_edges_v1(net):
                     dynamics_params=row["params_file"],
                     syn_weight=row["weight_max"],
                     delay=row["delay"],
-                    weight_function=weight_fnc,
-                    weight_sigma=weight_sigma,
-                    distance_range=row["distance_range"],
-                    target_sections=row["target_sections"],
+                    #weight_function=weight_fnc,
+                    #weight_sigma=weight_sigma,
+                    #distance_range=row["distance_range"],
+                    #target_sections=row["target_sections"],
+                    PSP_correction = row['PSP_scale_factor'],
+                    lognorm_shape = row['lognorm_shape'],
+                    lognorm_scale = row['lognorm_scale'],
+                    model_template="static_synapse",
                 )
     return net
 
