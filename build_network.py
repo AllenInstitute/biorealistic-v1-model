@@ -5,6 +5,7 @@ import pandas as pd
 import argparse
 import random
 from scipy.stats import lognorm
+from pathlib import Path
 
 from mpi4py import MPI
 
@@ -89,9 +90,11 @@ def add_nodes_v1(fraction=0.50, miniature=False):
                     "y": positions[:, 1],
                     "z": positions[:, 2],
                     "tuning_angle": np.linspace(0.0, 360.0, N, endpoint=False),
-                    "target_sizes": generate_target_sizes(N,lognorm_shape,lognorm_scale),
-                    "EPSP_unitary":model["EPSP_unitary"],
-                    "IPSP_unitary":model["IPSP_unitary"],
+                    "target_sizes": generate_target_sizes(
+                        N, lognorm_shape, lognorm_scale
+                    ),
+                    "EPSP_unitary": model["EPSP_unitary"],
+                    "IPSP_unitary": model["IPSP_unitary"],
                 }
                 if model["model_type"] == "biophysical":
                     # for biophysically detailed cell-types add info about rotations and morphollogy
@@ -134,8 +137,8 @@ def find_direction_rule(src_label, trg_label):
 def add_edges_v1(net):
     cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
     conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
-    #cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
-    #conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
+    # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
+    # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
     conn_weight_df = conn_weight_df[~(conn_weight_df["source_label"] == "LGN")]
     for _, row in conn_weight_df.iterrows():
@@ -170,13 +173,13 @@ def add_edges_v1(net):
                     dynamics_params=row["params_file"],
                     syn_weight=row["weight_max"],
                     delay=row["delay"],
-                    #weight_function=weight_fnc,
-                    #weight_sigma=weight_sigma,
-                    #distance_range=row["distance_range"],
-                    #target_sections=row["target_sections"],
-                    PSP_correction = row['PSP_scale_factor'],
-                    lognorm_shape = row['lognorm_shape'],
-                    lognorm_scale = row['lognorm_scale'],
+                    # weight_function=weight_fnc,
+                    # weight_sigma=weight_sigma,
+                    # distance_range=row["distance_range"],
+                    # target_sections=row["target_sections"],
+                    PSP_correction=row["PSP_scale_factor"],
+                    lognorm_shape=row["lognorm_shape"],
+                    lognorm_scale=row["lognorm_scale"],
                     model_template="static_synapse",
                 )
     return net
@@ -440,8 +443,9 @@ def check_files_exists(output_dir, src_net, trg_net, force_overwrite):
                 )
             )
 
-def generate_target_sizes(N,ln_shape,ln_scale):
-    ln_rv = lognorm(s=ln_shape,loc=0,scale=ln_scale)
+
+def generate_target_sizes(N, ln_shape, ln_scale):
+    ln_rv = lognorm(s=ln_shape, loc=0, scale=ln_scale)
     ln_rvs = ln_rv.rvs(N).round()
     return ln_rvs
 
@@ -524,8 +528,10 @@ if __name__ == "__main__":
             )
         )
 
-    if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+    # if not os.path.exists(args.output_dir):
+    #     os.mkdir(args.output_dir)
+    # changed to better handled with MPI (requires python >= 3.5)
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     v1 = None
     if "v1" in nets:
