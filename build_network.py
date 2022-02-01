@@ -95,9 +95,17 @@ def add_nodes_v1(fraction=0.50, miniature=False):
                     ),
                     "EPSP_unitary": model["EPSP_unitary"],
                     "IPSP_unitary": model["IPSP_unitary"],
+                    "pop_size_shape": lognorm_shape,
+                    "pop_size_scale": lognorm_scale,
+                    "pop_size_mean": int(
+                        lognorm(s=lognorm_shape, loc=0, scale=lognorm_scale).stats(
+                            moments="m"
+                        )
+                    ),
+                    # "size_connectivity_correction":
                 }
                 if model["model_type"] == "biophysical":
-                    # for biophysically detailed cell-types add info about rotations and morphollogy
+                    # for biophysically detailed cell-types add info about rotations and morphology
                     node_props.update(
                         {
                             # for RTNeuron store explicity store the x-rotations (even though it should be 0 by default).
@@ -134,6 +142,12 @@ def find_direction_rule(src_label, trg_label):
         return "DirectionRule_others", 50.0
 
 
+def syn_weight_by_experimental_distribution(source, target):
+    syn_weight = 0
+    n_syns_ = 1
+    return syn_weight, n_syns_
+
+
 def add_edges_v1(net):
     cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
     conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
@@ -164,7 +178,7 @@ def add_edges_v1(net):
                     weight_sigma=weight_sigma,
                 )
             else:
-                net.add_edges(
+                cm = net.add_edges(
                     source={"pop_name": src_type},
                     target={"node_type_id": node_type_id},
                     iterator="all_to_one",
@@ -181,6 +195,17 @@ def add_edges_v1(net):
                     lognorm_shape=row["lognorm_shape"],
                     lognorm_scale=row["lognorm_scale"],
                     model_template="static_synapse",
+                )
+                cm.add_properties(
+                    ["syn_weight", "n_syns_"],
+                    rule=syn_weight_by_experimental_distribution,
+                    rule_params={
+                        "PSP_correction": row["PSP_scale_factor"],
+                        "connection_params": src_trg_params,
+                        "lognorm_shape": row["lognorm_shape"],
+                        "lognorm_scale": row["lognorm_scale"],
+                    },
+                    dtypes=[np.float, np.int],
                 )
     return net
 
@@ -608,4 +633,3 @@ if __name__ == "__main__":
         bkg.build()
         bkg.save(args.output_dir)
         print("  done.")
-

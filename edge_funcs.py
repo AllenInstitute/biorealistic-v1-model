@@ -14,7 +14,7 @@ power_law_mean = 1.1737  # above exponent numerically define this
 
 
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
-    """ Takes in two strings for the source and target type. It determined the connectivity parameters needed based on
+    """Takes in two strings for the source and target type. It determined the connectivity parameters needed based on
     distance dependence and orientation tuning dependence and returns a dictionary of these parameters. A description
     of the calculation and resulting formulas used herein can be found in the accompanying documentation. Note that the
     source and target can be the same as this function works on cell TYPES and not individual nodes. The first step of
@@ -41,7 +41,7 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     if trg_new[0:2] == "i2":
         trg_tmp = trg_new[0:2] + trg_new[3]
 
-    #cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
+    # cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
     cc_props = cc_prob_dict[source_type + "-" + target_type]
     ##### For distance dependence which is modeled as a Gaussian ####
     # P = A * exp(-r^2 / sigma^2)
@@ -61,7 +61,7 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     sigma = cc_props["sigma"]
 
     # Gaussian equation was intergrated to and solved to calculate new A_new. See accompanying documentation.
-    if cc_props["is_pmax"]==1:
+    if cc_props["is_pmax"] == 1:
         A_new = A_literature
     else:
         A_new = A_literature / ((sigma / R0) ** 2 * (1 - np.exp(-((R0 / sigma) ** 2))))
@@ -169,12 +169,16 @@ def connect_cells(sources, target, params):
     # if tid % 1000 == 0:
     #     print('target {}'.format(tid))
 
+    # size of target cell (total syn number) will modulate connection probability
+    target_size = target.target_sizes
+    target_pop_mean_size = target.pop_size_mean
+
     # Read parameter values needed for distance and orientation dependence
     A_new = params["A_new"]
     sigma = params["sigma"]
     gradient = params["gradient"]
     intercept = params["intercept"]
-    nsyn_range = params["nsyn_range"]
+    # nsyn_range = params["nsyn_range"]
 
     # Calculate the intersomatic distance between the current two cells (in 2D - not including depth)
     intersomatic_distance = np.sqrt(
@@ -214,11 +218,17 @@ def connect_cells(sources, target, params):
     if 0.0 in intersomatic_distance:
         p_connect[np.where(intersomatic_distance == 0.0)[0][0]] = 0
 
+    # Connection p proportional to target cell synapse number relative to population average:
+    p_connect = p_connect * target_size / target_pop_mean_size
+
     # Decide which cells get a connection based on the p_connect value calculated
     p_connected = np.random.binomial(1, p_connect)
-    p_connected[p_connected == 1] = np.random.randint(
-        nsyn_range[0], nsyn_range[1], len(p_connected[p_connected == 1])
-    )
+
+    # Synapse number only used for calculating numbers of "leftover" syns to assign as background; N_syn_ will be added through 'add_properties'
+    p_connected[p_connected == 1] = 1
+    # p_connected[p_connected == 1] = np.random.randint(
+    #    nsyn_range[0], nsyn_range[1], len(p_connected[p_connected == 1])
+    # )
 
     nsyns_ret = [Nsyn if Nsyn != 0 else None for Nsyn in p_connected]
     return nsyns_ret
@@ -246,7 +256,7 @@ def convert_z_to_lindegs(zcoords):
 
 @njit
 def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
-    """ check if x, y are within the ellipse """
+    """check if x, y are within the ellipse"""
     x0 = x - e_x
     y0 = y - e_y
     if tuning_angle is None:
