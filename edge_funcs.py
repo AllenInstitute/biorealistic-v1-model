@@ -4,14 +4,17 @@ import math
 from random import random
 from numba import njit, jit
 from itertools import compress
+from scipy.stats import yulesimon
 
 
 # cc_prob_dict = json.load(open('biophys_props/v1_conn_props.json', 'r'))
 lgn_params = json.load(open("base_props/lgn_params.json", "r"))
+power_law_exponent = 3.58  # calculated from the EM data
+power_law_mean = 1.1737  # above exponent numerically define this
 
 
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
-    """ Takes in two strings for the source and target type. It determined the connectivity parameters needed based on
+    """Takes in two strings for the source and target type. It determined the connectivity parameters needed based on
     distance dependence and orientation tuning dependence and returns a dictionary of these parameters. A description
     of the calculation and resulting formulas used herein can be found in the accompanying documentation. Note that the
     source and target can be the same as this function works on cell TYPES and not individual nodes. The first step of
@@ -38,13 +41,13 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     if trg_new[0:2] == "i2":
         trg_tmp = trg_new[0:2] + trg_new[3]
 
-    cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
-
+    # cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
+    cc_props = cc_prob_dict[source_type + "-" + target_type]
     ##### For distance dependence which is modeled as a Gaussian ####
     # P = A * exp(-r^2 / sigma^2)
     # Since papers reported probabilities of connection having measured from 50um to 100um intersomatic distance
     # we had to normalize ensure A. In short, A had to be set such that the integral from 0 to 75um of the above
-    # function was equal to the reported A in the lietature. Please see accompanying documentation for the derivation
+    # function was equal to the reported A in the literature. Please see accompanying documentation for the derivation
     # of equations which should explain how A_new is determined.
     # Note we intergrate upto 75um as an approximate mid-point from the reported literature.
 
@@ -58,7 +61,10 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     sigma = cc_props["sigma"]
 
     # Gaussian equation was intergrated to and solved to calculate new A_new. See accompanying documentation.
-    A_new = A_literature / ((sigma / R0) ** 2 * (1 - np.exp(-((R0 / sigma) ** 2))))
+    if cc_props["is_pmax"] == 1:
+        A_new = A_literature
+    else:
+        A_new = A_literature / ((sigma / R0) ** 2 * (1 - np.exp(-((R0 / sigma) ** 2))))
 
     # Due to the measured values in the literature being from multiple sources and approximations that were
     # made by us and the literature (for instance R0 = 75um and sigma from the literature), we found that it is
@@ -163,12 +169,16 @@ def connect_cells(sources, target, params):
     # if tid % 1000 == 0:
     #     print('target {}'.format(tid))
 
+    # size of target cell (total syn number) will modulate connection probability
+    target_size = target["target_sizes"]
+    target_pop_mean_size = target["nsyn_size_mean"]
+
     # Read parameter values needed for distance and orientation dependence
     A_new = params["A_new"]
     sigma = params["sigma"]
     gradient = params["gradient"]
     intercept = params["intercept"]
-    nsyn_range = params["nsyn_range"]
+    # nsyn_range = params["nsyn_range"]
 
     # Calculate the intersomatic distance between the current two cells (in 2D - not including depth)
     intersomatic_distance = np.sqrt(
@@ -202,17 +212,30 @@ def connect_cells(sources, target, params):
 
     # # Sanity check warning
     # if p_connect > 1:
-    #     print 'WARNING WARNING WARNING: p_connect is greater that 1.0 it is: ', p_connect
+    #    print(
+    #        "WARNING WARNING WARNING: p_connect is greater that 1.0 it is: "
+    #        + str(p_connect)
+    #    )
 
     # If not the same cell (no self-connections)
     if 0.0 in intersomatic_distance:
         p_connect[np.where(intersomatic_distance == 0.0)[0][0]] = 0
 
+    # Connection p proportional to target cell synapse number relative to population average:
+    p_connect = p_connect * target_size / target_pop_mean_size
+
+    # If p_connect > 1 set to 1:
+    p_connect[p_connect > 1] = 1
+
     # Decide which cells get a connection based on the p_connect value calculated
     p_connected = np.random.binomial(1, p_connect)
-    p_connected[p_connected == 1] = np.random.randint(
-        nsyn_range[0], nsyn_range[1], len(p_connected[p_connected == 1])
-    )
+
+    # Synapse number only used for calculating numbers of "leftover" syns to assign as background; N_syn_ will be added through 'add_properties'
+    # p_connected[p_connected == 1] = 1
+
+    # p_connected[p_connected == 1] = np.random.randint(
+    #    nsyn_range[0], nsyn_range[1], len(p_connected[p_connected == 1])
+    # )
 
     nsyns_ret = [Nsyn if Nsyn != 0 else None for Nsyn in p_connected]
     return nsyns_ret
@@ -240,7 +263,7 @@ def convert_z_to_lindegs(zcoords):
 
 @njit
 def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
-    """ check if x, y are within the ellipse """
+    """check if x, y are within the ellipse"""
     x0 = x - e_x
     y0 = y - e_y
     if tuning_angle is None:
@@ -527,3 +550,208 @@ def select_lgn_sources(
         nsyns_ret[i] = parametersDictionary[pop_name]["N_syn"]
     return nsyns_ret
 
+
+def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
+    target_id = target.node_id
+    # it's a little scary to ahve lgn_params here...
+    pop_name = [key for key in lgn_params if key in target["pop_name"]][0]
+
+    if target_id % 250 == 0:
+        print("connection LGN cells to V1 cell #", target_id)
+
+    # x_position_lin_degrees = convert_x_to_lindegs(target["x"])
+    # y_position_lin_degrees = convert_z_to_lindegs(target["z"])
+    # this is simpler for the new coordinate
+    x_position_lin_degrees = target["x"] * 0.07
+    y_position_lin_degrees = target["z"] * 0.04
+
+    # center of the visual RF
+    vis_x = lgn_mean[0] + x_position_lin_degrees
+    vis_y = lgn_mean[1] + y_position_lin_degrees
+    rf_center = vis_x + 1j * vis_y
+
+    tuning_angle = float(target["tuning_angle"])
+    tuning_angle = None if math.isnan(tuning_angle) else tuning_angle
+    testing = False
+
+    if tuning_angle is not None:
+        tuning_angle_rad = tuning_angle / 180.0 * math.pi
+        if testing:
+            rf_shift_vector = -np.exp(1j * tuning_angle_rad)  # tentatively flipping
+            probability_sON = 1.0  # for testing purpose fix later
+        else:
+            rf_shift_vector = np.exp(1j * tuning_angle_rad)  # using complex expression
+            probability_sON = lgn_params[pop_name]["sON_ratio"]
+        if np.random.random() < probability_sON:
+            cell_ignore_unit = "sOFF"  # sON cell. ignore sOFF
+        else:
+            cell_ignore_unit = "sON"
+            rf_shift_vector = -rf_shift_vector  # This will be flipped.
+
+    # not very comfortable with this.
+    cell_TF = np.random.poisson(lgn_params[pop_name]["poissonParameter"])
+    while cell_TF <= 0:
+        cell_TF = np.random.poisson(lgn_params[pop_name]["poissonParameter"])
+
+    subunit_freqs = {"sON": [1, 2, 4, 8], "sOFF": [1, 2, 4, 8, 15], "tOFF": [4, 8, 15]}
+    # calculate probability for each subunit types separately
+
+    # start calculating the relative probability for each candidate neuron
+    # make a candidate pool (circular)
+
+    # circle with radius 40 centered at vis_x, vis_y
+    big_circle = (vis_x, vis_y, 1.0, 0.0, 40, 40)
+    in_circle = within_ellipse(
+        np.array(lgn_nodes["x"]), np.array(lgn_nodes["y"]), tuning_angle, *big_circle
+    )
+
+    lgn_circle = lgn_nodes[in_circle]
+
+    # RF center of LGN cell as a complex number
+    lgn_complex = np.array(lgn_circle["x"] + 1j * lgn_circle["y"])
+
+    # shift sustained and transient units
+    if testing:
+        shift = 2.5  # amount to shift the RF
+    else:
+        shift = 2.5  # amount to shift the RF
+    lgn_complex[lgn_circle["pop_name"].str.contains("sON_")] -= rf_shift_vector * shift
+    lgn_complex[lgn_circle["pop_name"].str.contains("sOFF_")] -= rf_shift_vector * shift
+    lgn_complex[lgn_circle["pop_name"].str.contains("tOFF_")] += rf_shift_vector * shift
+
+    # next, elongate the LGN complex orthogonal to the shift vector
+    # rotate by shift vector to adjust the angle, strech, and rotate back.
+    # sq_asr = np.sqrt(1.15)  # sqrt of aspect ratio (take from data later)
+    sq_asr = np.sqrt(1.5)  # sqrt of aspect ratio (take from data later)
+    lgn_relative = lgn_complex - rf_center
+    lgn_rotate = lgn_relative / rf_shift_vector
+    lgn_strech = lgn_rotate.real * sq_asr + 1j * lgn_rotate.imag / sq_asr
+    lgn_back = lgn_strech * rf_shift_vector
+
+    # relative_rf_dist = np.abs(lgn_complex - rf_center)
+    relative_rf_dist = np.abs(lgn_back)
+
+    gauss_radius = 5.0  # extention of LGN axons in degrees
+    gaussian_prob = gaussian_probability(relative_rf_dist, gauss_radius)
+
+    # assign relative probability calculated above
+    subunit_prob = np.zeros_like(gaussian_prob)
+    for subname, freqs in subunit_freqs.items():
+        if cell_ignore_unit in subname:
+            # ignore either sON or sOFF
+            continue
+
+        probs = calculate_subunit_probs(cell_TF, [float(f) for f in freqs])
+        for i in range(len(probs)):
+            # construct the name
+            typename = f"{subname}_TF{freqs[i]}"
+            subunit_prob[lgn_circle["pop_name"].str.contains(typename)] = probs[i]
+
+    # treatments for sONsOFF and sONtOFF cells
+    # tuning_angles are defined only for sONsOFF and sONtOFF cells, so this should be fine.
+    lgn_ori_eligible = (
+        delta_ori(lgn_circle["tuning_angle"] - target["tuning_angle"]) < 15
+    )
+    subunit_prob[lgn_ori_eligible] = 1.0
+
+    total_prob = gaussian_prob * subunit_prob
+    total_prob = total_prob / sum(total_prob)  # normalize
+    # num_cons = np.random.randint(100, 700)
+    # original_exp = lgn_params[pop_name]["probability"] * lgn_params[pop_name]["N_syn"]
+
+    # fraction of LGN synapses in e4's synapses. fixed parameter for this model
+    e4_lgn_fraction = 0.2
+    num_syns_orig = (
+        target["target_sizes"]
+        * e4_lgn_fraction
+        * lgn_params[pop_name]["synapse_ratio_against_e4"]
+    )
+
+    # num_syns_mean = 500 / 80 * original_exp  # so that e4 becomes 500
+    # logn_sigma = 0.66  # from data
+    yule_param = lgn_params[pop_name]["yuleParameter"]
+    num_cons = int(np.round(num_syns_orig * (yule_param - 1) / yule_param))
+    # logn_mu = np.log(num_cons_mean) - logn_sigma ** 2 / 2
+
+    # num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
+
+    # num_cons = int(np.random.lognormal(5.8, 0.661))  # from LGN statistics.
+    # num_cons = int(np.random.lognormal(5.8, 0.2))  # more realistic value...
+    # num_cons = 400
+
+    # num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
+    # this line avoid crashing when you don't have sufficinet number of source LGN neurons
+    num_cons = min(num_cons, sum(total_prob > 0))
+    selected_locs = pick_from_probs(num_cons, total_prob)
+
+    # now neurons are selected. Next set the number of synapses
+    # draw from the Yule distribution (scipy)
+    num_syns_indv = yulesimon.rvs(yule_param, size=num_cons)
+    # num_syns_indv = yulesimon.rvs(4.2, size=num_cons)
+    num_syns, num_neurons = np.unique(num_syns_indv, return_counts=True)
+    selected_lgn_inds = lgn_circle.index[selected_locs]
+    selected_lgn_dist = relative_rf_dist[selected_locs]
+
+    nsyns_ret = np.zeros(len(lgn_nodes), dtype=int)
+    for i in range(len(num_syns) - 1, 0, -1):
+        gaussian_prob = gaussian_probability(
+            selected_lgn_dist, gauss_radius / np.sqrt(num_syns[i])
+        )
+        gaussian_prob = gaussian_prob / sum(gaussian_prob)
+        syn_selected = pick_from_probs(num_neurons[i], gaussian_prob)
+        nsyns_ret[selected_lgn_inds[syn_selected]] = num_syns[i]
+
+        selected_lgn_inds = np.delete(selected_lgn_inds, syn_selected)
+        selected_lgn_dist = np.delete(selected_lgn_dist, syn_selected)
+
+    # there should be 1 synapse connections remaining
+    nsyns_ret[selected_lgn_inds] = 1
+    nsyns_ret = list(nsyns_ret)
+
+    # getting back to list
+    nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
+    # return
+    return nsyns_ret
+
+
+def pick_from_probs(n, prob_dist):
+    # pick n item based on prob_dist and return index of the choice
+    return np.random.choice(
+        list(range(len(prob_dist))), size=n, replace=False, p=prob_dist
+    )
+
+
+def gaussian_probability(x, sigma):
+    return np.exp(-(x ** 2 / (2 * sigma ** 2)))
+
+
+def calculate_subunit_probs(cell_TF, tf_list):
+    tf_array = np.array(tf_list)
+    tf_sum = np.sum(abs(cell_TF - tf_array))
+    p = (1 - abs(cell_TF - tf_array) / tf_sum) / (len(tf_array) - 1)
+    return p
+
+
+def general_candidate_pool_ellipse(vis_x, vis_y):
+    visx_width = 5 * 4  # to cover most candidate cells
+    visy_width = 5 * 4
+    ellipse_center_x = vis_x
+    ellipse_center_y = vis_y
+    ellipse_cos_mphi = (1.0,)
+    ellipse_sin_mphi = (0.0,)
+    ellipse_a = visx_width
+    ellipse_b = visy_width
+    ellipse_params = (
+        ellipse_center_x,
+        ellipse_center_y,
+        ellipse_cos_mphi,
+        ellipse_sin_mphi,
+        ellipse_a,
+        ellipse_b,
+    )
+    return ellipse_params
+
+
+# orientation comparator
+def delta_ori(angle):
+    return np.abs(np.abs(angle - 90) % 180 - 90)

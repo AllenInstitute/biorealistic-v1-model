@@ -14,4 +14,8 @@ no_recurrent_base/*
 misc_scripts/*.csv
 profile/*
 *prof
-
+miniature*/*
+slurm*.out
+original_mini/*
+test/*
+configs/*

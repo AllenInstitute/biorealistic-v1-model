@@ -1,4 +1,4 @@
-""" This script is a support script for build_glif_network script.
+""" This is a support script for build_network.py.
 This is supposed to read necessary human editable files and generate files required by build_network.py
 
 input files:
@@ -37,6 +37,7 @@ import numpy as np
 import pandas as pd
 import json
 import os
+import argparse
 
 
 def extract_info(row):
@@ -44,6 +45,9 @@ def extract_info(row):
     d["ncells"] = row["pop_combined_count"]
     d["ei"] = row["ei"]
     d["depth_range"] = [row["upper_bound"], row["lower_bound"]]
+    # Adding lognormal parameters for distribution of "size"/synapse numbers
+    d["nsyn_lognorm_shape"] = row["nsyn_lognorm_shape"]
+    d["nsyn_lognorm_scale"] = row["nsyn_lognorm_scale"]
     return d
 
 
@@ -95,13 +99,23 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
         model_dict["model_type"] = "point_process"
         model_dict["model_template"] = "nest:glif_lif_asc_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
-        # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1 mV):
-        if row["ei"]=='e':
-            model_dict['EPSP_unitary'] = v1_synapse_amps['e2e'][str(poprow["specimen__id"])]
-            model_dict['IPSP_unitary'] =v1_synapse_amps['i2e'][str(poprow["specimen__id"])]
-        if row["ei"]=='i':
-            model_dict['EPSP_unitary'] = v1_synapse_amps['e2i'][str(poprow["specimen__id"])]
-            model_dict['IPSP_unitary'] =v1_synapse_amps['i2i'][str(poprow["specimen__id"])]
+
+        # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)
+        if row["ei"] == "e":
+            model_dict["EPSP_unitary"] = v1_synapse_amps["e2e"][
+                str(poprow["specimen__id"])
+            ]
+            model_dict["IPSP_unitary"] = v1_synapse_amps["i2e"][
+                str(poprow["specimen__id"])
+            ]
+        if row["ei"] == "i":
+            model_dict["EPSP_unitary"] = v1_synapse_amps["e2i"][
+                str(poprow["specimen__id"])
+            ]
+            model_dict["IPSP_unitary"] = v1_synapse_amps["i2i"][
+                str(poprow["specimen__id"])
+            ]
+
         models.append(model_dict)
 
     return models
@@ -145,8 +159,15 @@ def pick_bio_models(models_df, row):
     return models
 
 
-def make_v1_node_models():
-    db = xl.readxl("base_props/V1model_seed_file.xlsx")
+def make_v1_node_models(miniature=False):
+    if miniature:
+        filepath = "base_props/V1model_seed_file_miniature.xlsx"
+        outfilepath = "glif_props/v1_node_models_miniature.json"
+    else:
+        filepath = "base_props/V1model_seed_file.xlsx"
+        outfilepath = "glif_props/v1_node_models.json"
+
+    db = xl.readxl(filepath)
     table = db.ws("cell_models").ssd(keycols="pop_id", keyrows="pop_id")
     t0 = table[0]
     seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
@@ -158,8 +179,7 @@ def make_v1_node_models():
         location_dict = {}
         for pop_id, row in subdf.iterrows():
             pop_dict = extract_info(row)
-
-            models = pick_glif_models(glif_models_df, row,v1_synapse_amps)
+            models = pick_glif_models(glif_models_df, row, v1_synapse_amps)
             pop_dict["models"] = models
             location_dict[pop_name_change(row["pop_name"])] = pop_dict
 
@@ -182,11 +202,12 @@ def make_v1_node_models():
     if not os.path.exists("glif_props"):
         os.mkdir("glif_props")
 
-    with open("glif_props/v1_node_models.json", "w") as f:
+    with open(outfilepath, "w") as f:
         json.dump(node_models, f, indent=2)
 
 
 def pop_name_change(pop_name):
+    # handles two exceptions in pop_name
     if pop_name == "VisL2/3":
         return "VisL23"
     if pop_name == "VisL6a":
@@ -194,23 +215,17 @@ def pop_name_change(pop_name):
     return pop_name
 
 
-make_v1_node_models()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Make a required node definition file for the GLIF model"
+    )
+    parser.add_argument(
+        "-m",
+        "--miniature",
+        action="store_true",
+        default=False,
+        help="make a miniature version of the simualtion for debugging",
+    )
+    args = parser.parse_args()
 
-
-# %% studying a bit about biomodels
-""" this part is no longer necessary
-db = xl.readxl("V1model_seed_file.xlsx")
-table = db.ws(db.ws_names[0]).ssd(keycols="pop_id", keyrows="pop_id")
-
-
-table2 = db.ws(db.ws_names[1]).ssd(keycols="properties", keyrows="properties")
-
-t0 = table2[0]
-general_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
-general_df.loc['radius']
-
-db.ws_names
-"""
-
-# %% let's try to read it to understand
-
+    make_v1_node_models(args.miniature)

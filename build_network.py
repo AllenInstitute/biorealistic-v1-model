@@ -4,7 +4,12 @@ import numpy as np
 import pandas as pd
 import argparse
 import random
+from scipy import interpolate, integrate
+from scipy.stats import lognorm, rv_continuous
+from pathlib import Path
+from math import sqrt, exp, log
 
+from mpi4py import MPI
 
 from node_funcs import (
     generate_random_positions,
@@ -12,7 +17,12 @@ from node_funcs import (
     get_filter_spatial_size,
     get_filter_temporal_params,
 )
-from edge_funcs import compute_pair_type_parameters, connect_cells, select_lgn_sources
+from edge_funcs import (
+    compute_pair_type_parameters,
+    connect_cells,
+    select_lgn_sources,
+    select_lgn_sources_powerlaw,
+)
 
 # from node_funcs import generate_random_positions, generate_positions_grids, get_filter_spatial_size, \
 #     get_filter_temporal_params
@@ -26,7 +36,11 @@ from bmtk.builder import NetworkBuilder  # NetworkBuilder
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=0.50, node_props="glif_props/v1_node_models.json"):
+def add_nodes_v1(fraction=0.50, miniature=False):
+    if miniature:
+        node_props = "glif_props/v1_node_models_miniature.json"
+    else:
+        node_props = "glif_props/v1_node_models.json"
     v1_models = json.load(open(node_props, "r"))
 
     min_radius = 1.0  # to avoid diverging density near 0
@@ -40,6 +54,8 @@ def add_nodes_v1(fraction=0.50, node_props="glif_props/v1_node_models.json"):
             pop_size = pop_dict["ncells"]
             depth_range = -np.array(pop_dict["depth_range"], dtype=np.float)
             ei = pop_dict["ei"]
+            nsyn_lognorm_shape = pop_dict["nsyn_lognorm_shape"]
+            nsyn_lognorm_scale = pop_dict["nsyn_lognorm_scale"]
 
             for model in pop_dict["models"]:
                 if "N" not in model:
@@ -76,9 +92,22 @@ def add_nodes_v1(fraction=0.50, node_props="glif_props/v1_node_models.json"):
                     "y": positions[:, 1],
                     "z": positions[:, 2],
                     "tuning_angle": np.linspace(0.0, 360.0, N, endpoint=False),
+                    "target_sizes": generate_target_sizes(
+                        N, nsyn_lognorm_shape, nsyn_lognorm_scale
+                    ),
+                    "EPSP_unitary": model["EPSP_unitary"],
+                    "IPSP_unitary": model["IPSP_unitary"],
+                    "nsyn_size_shape": nsyn_lognorm_shape,
+                    "nsyn_size_scale": nsyn_lognorm_scale,
+                    "nsyn_size_mean": int(
+                        lognorm(
+                            s=nsyn_lognorm_shape, loc=0, scale=nsyn_lognorm_scale
+                        ).stats(moments="m")
+                    ),
+                    # "size_connectivity_correction":
                 }
                 if model["model_type"] == "biophysical":
-                    # for biophysically detailed cell-types add info about rotations and morphollogy
+                    # for biophysically detailed cell-types add info about rotations and morphology
                     node_props.update(
                         {
                             # for RTNeuron store explicity store the x-rotations (even though it should be 0 by default).
@@ -115,9 +144,93 @@ def find_direction_rule(src_label, trg_label):
         return "DirectionRule_others", 50.0
 
 
+def orientation_dependence_fns(intercept_in, grad_in):
+    intercept1 = intercept_in
+    grad = grad_in
+    y_90 = intercept1 + grad * 90.0
+    intercept2 = 2 * y_90 - intercept1
+    x = np.linspace(0, 180, 1000000)
+    my_pdf = np.piecewise(
+        x,
+        [x < 90, x >= 90],
+        [
+            lambda x: (intercept1 + x * grad)
+            / (2 * (intercept1 * 90 + grad * 90 ** 2 / 2)),
+            lambda x: (intercept2 - x * grad)
+            / (
+                2
+                * (
+                    intercept2 * 180
+                    - grad * 180 ** 2 / 2
+                    - intercept2 * 90
+                    + grad * 90 ** 2 / 2
+                )
+            ),
+        ],
+    )
+    discrete_cdf1 = np.append(integrate.cumtrapz(y=my_pdf, x=x), 1)
+    # discrete_cdf1 = np.append(discrete_cdf1_,1.)
+    pdf_out = interpolate.interp1d(x, my_pdf)
+    cdf_out = interpolate.interp1d(x, discrete_cdf1)
+    ppf_out = interpolate.interp1d(discrete_cdf1, x)
+    return pdf_out, cdf_out, ppf_out
+
+
+def syn_weight_by_experimental_distribution(
+    source,
+    target,
+    src_type,
+    trg_type,
+    PSP_correction,
+    PSP_lognorm_shape,
+    PSP_lognorm_scale,
+    connection_params,
+    delta_theta_dist,
+):
+    src_ei = "e" if src_type.startswith("e") or src_type.startswith("LIFe") else "i"
+    trg_ei = "e" if trg_type.startswith("e") or trg_type.startswith("LIFe") else "i"
+    src_tuning = source["tuning_angle"]
+    tar_tuning = target["tuning_angle"]
+
+    delta_tuning_180 = np.abs(
+        np.abs(np.mod(np.abs(tar_tuning - src_tuning), 360.0) - 180.0) - 180.0
+    )
+
+    #
+    if PSP_lognorm_shape < target["nsyn_size_shape"]:
+        weight_shape = 0
+    else:
+        weight_shape = sqrt(PSP_lognorm_shape ** 2 - target["nsyn_size_shape"] ** 2)
+    weight_scale = exp(
+        log(PSP_lognorm_scale)
+        + log(target["nsyn_size_scale"])
+        - log(target["nsyn_size_mean"])
+    )
+    weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
+
+    # To set syn_weight, use the PPF with the orientation difference:
+    if src_ei == "e" and trg_ei == "e" and not type(delta_theta_dist) == float:
+        # For e-to-e, there is a non-uniform distribution of delta_orientations.
+        # These need to be ordered and mapped uniformly over [0,1] using the cdf:
+        delta_theta_pctile = delta_theta_dist.cdf(delta_tuning_180)
+        syn_weight = weight_rv.ppf(1 - delta_theta_pctile)
+        n_syns_ = 1
+    else:
+        # If there was no like-to-like connection rule for the population, we can use
+        # delta_orientation directly with the PPF
+        syn_weight = weight_rv.ppf(1 - delta_tuning_180 / 180)
+        n_syns_ = 1
+
+    return syn_weight, n_syns_
+
+
 def add_edges_v1(net):
-    cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
-    conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
+    # pop to pop parameters:
+    cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
+    # pop to specific model parameters:
+    conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
+    # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
+    # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
     conn_weight_df = conn_weight_df[~(conn_weight_df["source_label"] == "LGN")]
     for _, row in conn_weight_df.iterrows():
@@ -129,45 +242,86 @@ def add_edges_v1(net):
 
         weight_fnc, weight_sigma = find_direction_rule(src_type, trg_type)
         if src_trg_params["A_new"] > 0.0:
-            if src_type.startswith("LIF"):
-                net.add_edges(
-                    source={"pop_name": src_type},
-                    target={"node_type_id": node_type_id},
-                    iterator="all_to_one",
-                    connection_rule=connect_cells,
-                    connection_params={"params": src_trg_params},
-                    dynamics_params=row["params_file"],
-                    syn_weight=row["weight_max"],
-                    delay=row["delay"],
-                    weight_function=weight_fnc,
-                    weight_sigma=weight_sigma,
+            # if src_type.startswith("LIF"):
+            #     net.add_edges(
+            #         source={"pop_name": src_type},
+            #         target={"node_type_id": node_type_id},
+            #         iterator="all_to_one",
+            #         connection_rule=connect_cells,
+            #         connection_params={"params": src_trg_params},
+            #         dynamics_params=row["params_file"],
+            #         syn_weight=row["weight_max"],
+            #         delay=row["delay"],
+            #         weight_function=weight_fnc,
+            #         weight_sigma=weight_sigma,
+            #     )
+            # else:
+            cm = net.add_edges(
+                source={"pop_name": src_type},
+                target={"node_type_id": node_type_id},
+                iterator="all_to_one",
+                connection_rule=connect_cells,
+                connection_params={"params": src_trg_params},
+                dynamics_params=row["params_file"],
+                # syn_weight_max=row["weight_max"],
+                delay=row["delay"],
+                # weight_function=weight_fnc,
+                # weight_sigma=weight_sigma,
+                # distance_range=row["distance_range"],
+                # target_sections=row["target_sections"],
+                PSP_correction=row["PSP_scale_factor"],
+                PSP_lognorm_shape=row["lognorm_shape"],
+                PSP_lognorm_scale=row["lognorm_scale"],
+                model_template="static_synapse",
+            )
+            if not np.isnan(src_trg_params["gradient"]):
+                pdf1, cdf1, ppf1 = orientation_dependence_fns(
+                    src_trg_params["intercept"], src_trg_params["gradient"]
                 )
+
+                class orientation_dependence_dist(rv_continuous):
+                    def _pdf(self, x):
+                        return pdf1(x)
+
+                    def _cdf(self, x):
+                        return cdf1(x)
+
+                    def _ppf(self, x):
+                        return ppf1(x)
+
+                delta_theta_dist = orientation_dependence_dist()
             else:
-                net.add_edges(
-                    source={"pop_name": src_type},
-                    target={"node_type_id": node_type_id},
-                    iterator="all_to_one",
-                    connection_rule=connect_cells,
-                    connection_params={"params": src_trg_params},
-                    dynamics_params=row["params_file"],
-                    syn_weight=row["weight_max"],
-                    delay=row["delay"],
-                    weight_function=weight_fnc,
-                    weight_sigma=weight_sigma,
-                    distance_range=row["distance_range"],
-                    target_sections=row["target_sections"],
-                )
+                delta_theta_dist = np.NaN
+
+            cm.add_properties(
+                ["syn_weight", "n_syns_"],
+                rule=syn_weight_by_experimental_distribution,
+                rule_params={
+                    "src_type": src_type,
+                    "trg_type": trg_type,
+                    "PSP_correction": row["PSP_scale_factor"],
+                    "PSP_lognorm_shape": row["lognorm_shape"],
+                    "PSP_lognorm_scale": row["lognorm_scale"],
+                    "connection_params": src_trg_params,
+                    "delta_theta_dist": delta_theta_dist,
+                    # "lognorm_shape": row["lognorm_shape"],
+                    # "lognorm_scale": row["lognorm_scale"],
+                },
+                dtypes=[np.float, np.int],
+            )
+    net.build()
+
     return net
 
 
-def add_nodes_lgn():
+def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0):
     lgn_models = json.load(open("base_props/lgn_models.json", "r"))
 
     lgn = NetworkBuilder("lgn")
-    X_grids = 15  # 15#15      #15
-    Y_grids = 10  # 10#10#10      #10
-    X_len = 240.0  # In linear degrees
-    Y_len = 120.0  # In linear degrees
+    # X_grids = 15  # 15#15      #15
+    # Y_grids = 10  # 10#10#10      #10
+    X_len = x_block * X_grids  # 240.0  # In linear degrees
+    Y_len = y_block * Y_grids  # 120.0  # In linear degrees
 
     xcoords = []
     ycoords = []
@@ -220,6 +374,91 @@ def add_nodes_lgn():
         )
 
     return lgn
+
+
+def add_lgn_v1_edges_experimental(
+    v1_net, lgn_net, x_len=240.0, y_len=120.0, miniature=False
+):
+    if miniature:
+        node_props = "glif_props/v1_node_models_miniature.json"
+    else:
+        node_props = "glif_props/v1_node_models.json"
+    v1_models = json.load(open(node_props, "r"))
+    v1_models_pop = {}
+    for l in v1_models["locations"]:
+        v1_models_pop.update(v1_models["locations"][l])
+
+    # conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv", sep=" ")
+    conn_weight_df = pd.read_csv("glif_props/lgn_weights_model.csv", sep=" ")
+    lgn_mean = (x_len / 2.0, y_len / 2.0)
+    lgn_models = pd.read_json("base_props/lgn_models.json", orient="index")
+
+    prop_query = ["node_id", "x", "y", "pop_name", "tuning_angle"]
+    lgn_nodes = pd.DataFrame([{q: s[q] for q in prop_query} for s in lgn_net.nodes()])
+
+    # this regular expression is picking up a number after TF
+    lgn_nodes["temporal_freq"] = lgn_nodes["pop_name"].str.extract("TF(\d+)")
+    # make a complex version beforehand for easy shift/rotation
+    lgn_nodes["xy_complex"] = lgn_nodes["x"] + 1j * lgn_nodes["y"]
+
+    for _, row in conn_weight_df.iterrows():
+        target_pop_name = row["population"]
+        target_model_id = row["model_id"]
+        e_or_i = target_pop_name[0]
+        if e_or_i == "e":
+            sigma = [0.0, 150.0]
+        elif e_or_i == "i":
+            sigma = [0.0, 1e20]
+        else:
+            # Additional care for LIF will be necessary if applied for Biophysical
+            raise (f"Unknown e_or_i value: {e_or_i} from {target_pop_name}")
+
+        targetpool = v1_net.nodes(node_type_id=target_model_id)
+        targetlist = list(targetpool)
+        target_sizes = np.array([n["target_sizes"] for n in targetlist])
+        lognorm_shape = v1_models_pop[target_pop_name]["lognorm_shape"]
+        lognorm_scale = v1_models_pop[target_pop_name]["lognorm_scale"]
+        mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape ** 2) / 2)
+        syn_weight_normalization = target_sizes / mean_size
+
+        edge_params = {
+            "source": lgn_net.nodes(),
+            # "target": v1_net.nodes(pop_name=target_pop_name),
+            "target": targetpool,
+            "iterator": "all_to_one",
+            "connection_rule": select_lgn_sources_powerlaw,
+            "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
+            # "dynamics_params": row["params_file"],
+            "dynamics_params": f"e2{e_or_i}.json",
+            # "syn_weight": row["weight_max"],
+            # "syn_weight": row["syn_weight_psp"] / syn_weight_normalization,
+            # "delay": row["delay"],
+            "delay": 1.7,
+            # "weight_function": row["weight_func"],
+            "weight_function": "",
+            # "weight_function": "DendriticConstancy_LGN",
+            "weight_sigma": sigma,
+            "model_template": "static_synapse",
+        }
+
+        cm = lgn_net.add_edges(**edge_params)
+        cm.add_properties(
+            "syn_weight",
+            rule=lgn_synaptic_weight_rule,
+            rule_params={"base_weight": row["syn_weight_psp"], "mean_size": mean_size},
+            dtypes=np.float,
+        )
+        # cm.add_properties("nsyns", rule=fake, dtypes=np.uint32) # a hack
+
+    return lgn_net
+
+
+def fake(source, target):
+    return 0
+
+
+def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
+    return base_weight / mean_size * target["target_sizes"]
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
@@ -368,6 +607,12 @@ def check_files_exists(output_dir, src_net, trg_net, force_overwrite):
             )
 
 
+def generate_target_sizes(N, ln_shape, ln_scale):
+    ln_rv = lognorm(s=ln_shape, loc=0, scale=ln_scale)
+    ln_rvs = ln_rv.rvs(N).round()
+    return ln_rvs
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Build the (GLIF) V1 (and lgn/background inputs) SONATA network files"
@@ -401,12 +646,41 @@ if __name__ == "__main__":
         default=1.0,
         help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes",
     )
+    parser.add_argument(
+        "--miniature",
+        action="store_true",
+        default=False,
+        help="Make a miniture network with with a small LGN. Only for debugging",
+    )
+    parser.add_argument(
+        "--feed-forward-v2",
+        action="store_true",
+        default=False,
+        help="use a version 2 of the feed-forward thalamocortical connection",
+    )
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
     args = parser.parse_args()
 
     # set random number seed for reproducibility
-    random.seed(53)
-    np.random.seed(53)
+    # The strategy is to use the common seed for all MPI ranks for nodes, and use
+    # separate ones for edges. Though this may not be optimal, I reset the seed
+    # multiple times for that reason.
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    seed_v1_nodes = 153
+    seed_v1_edges = 154 + rank
+    seed_lgn_nodes = 253
+    seed_lgn_edges = 254 + rank
+
+    def set_seed(seed):
+        random.seed(seed)
+        np.random.seed(seed)
+
+    # print(rank)
+    # exit()
+    # seed = 153 + rank  # modified for MPI running (Please use 8 cores)
+    # random.seed(seed)
+    # np.random.seed(seed)
 
     nets = set(args.networks)
     if nets - {"v1", "lgn", "bkg"}:
@@ -417,15 +691,19 @@ if __name__ == "__main__":
             )
         )
 
-    if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+    # if not os.path.exists(args.output_dir):
+    #     os.mkdir(args.output_dir)
+    # changed to better handled with MPI (requires python >= 3.5)
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     v1 = None
     if "v1" in nets:
         print("Building v1 network")
         # check_files_exists(args.output_dir, 'v1', 'v1', args.force_overwrite)
-        v1 = add_nodes_v1(fraction=args.fraction)
+        set_seed(seed_v1_nodes)
+        v1 = add_nodes_v1(fraction=args.fraction, miniature=args.miniature)
         if not args.no_recurrent:
+            set_seed(seed_v1_edges)
             v1 = add_edges_v1(v1)
         v1.build()
         print("Saving v1 network")
@@ -448,8 +726,39 @@ if __name__ == "__main__":
     if "lgn" in nets:
         print("Building lgn network")
         check_files_exists(args.output_dir, "lgn", "v1", args.force_overwrite)
-        lgn = add_nodes_lgn()
-        lgn = add_lgn_v1_edges(v1, lgn)
+
+        if args.feed_forward_v2:
+            lgn_v1_edge_func = add_lgn_v1_edges_experimental
+            x_block_unit = 8.0  # spherical coordinate
+            y_block_unit = 8.0
+        else:
+            lgn_v1_edge_func = add_lgn_v1_edges
+            x_block_unit = 16.0
+            y_block_unit = 12.0
+
+        if args.miniature:
+            set_seed(seed_lgn_nodes)
+            lgn = add_nodes_lgn(
+                X_grids=15, Y_grids=10, x_block=x_block_unit, y_block=y_block_unit
+            )
+            set_seed(seed_lgn_edges)
+            lgn = lgn_v1_edge_func(
+                v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
+            )
+
+            # if args.feed_forward_v2:
+            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+            #     lgn = add_lgn_v1_edges_experimental(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
+            # else:
+            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0)
+            #     lgn = add_lgn_v1_edges(v1, lgn, x_len=15 * 16.0, y_len=10 * 12.0)
+            # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+            # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
+        else:
+            set_seed(seed_lgn_nodes)
+            lgn = add_nodes_lgn()
+            set_seed(seed_lgn_edges)
+            lgn = lgn_v1_edge_func(v1, lgn)
         lgn.build()
         lgn.save(args.output_dir)
         print("  done.")
@@ -462,4 +771,3 @@ if __name__ == "__main__":
         bkg.build()
         bkg.save(args.output_dir)
         print("  done.")
-
