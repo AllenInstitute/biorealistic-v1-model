@@ -99,6 +99,7 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
         model_dict["model_type"] = "point_process"
         model_dict["model_template"] = "nest:glif_lif_asc_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
+
         # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)
         if row["ei"] == "e":
             model_dict["EPSP_unitary"] = v1_synapse_amps["e2e"][
@@ -114,6 +115,7 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
             model_dict["IPSP_unitary"] = v1_synapse_amps["i2i"][
                 str(poprow["specimen__id"])
             ]
+
         models.append(model_dict)
 
     return models
@@ -177,7 +179,6 @@ def make_v1_node_models(miniature=False):
         location_dict = {}
         for pop_id, row in subdf.iterrows():
             pop_dict = extract_info(row)
-
             models = pick_glif_models(glif_models_df, row, v1_synapse_amps)
             pop_dict["models"] = models
             location_dict[pop_name_change(row["pop_name"])] = pop_dict
