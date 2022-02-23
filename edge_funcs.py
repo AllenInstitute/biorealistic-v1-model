@@ -657,21 +657,30 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     total_prob = gaussian_prob * subunit_prob
     total_prob = total_prob / sum(total_prob)  # normalize
     # num_cons = np.random.randint(100, 700)
-    original_exp = lgn_params[pop_name]["probability"] * lgn_params[pop_name]["N_syn"]
-    num_syns_mean = 500 / 80 * original_exp  # so that e4 becomes 500
-    logn_sigma = 0.66  # from data
-    yule_param = lgn_params[pop_name]["yuleParameter"]
-    num_cons_mean = num_syns_mean * (yule_param - 1) / yule_param
-    logn_mu = np.log(num_cons_mean) - logn_sigma ** 2 / 2
+    # original_exp = lgn_params[pop_name]["probability"] * lgn_params[pop_name]["N_syn"]
 
-    num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
+    # fraction of LGN synapses in e4's synapses. fixed parameter for this model
+    e4_lgn_fraction = 0.2
+    num_syns_orig = (
+        target["target_sizes"]
+        * e4_lgn_fraction
+        * lgn_params[pop_name]["synapse_ratio_against_e4"]
+    )
+
+    # num_syns_mean = 500 / 80 * original_exp  # so that e4 becomes 500
+    # logn_sigma = 0.66  # from data
+    yule_param = lgn_params[pop_name]["yuleParameter"]
+    num_cons = int(np.round(num_syns_orig * (yule_param - 1) / yule_param))
+    # logn_mu = np.log(num_cons_mean) - logn_sigma ** 2 / 2
+
+    # num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
 
     # num_cons = int(np.random.lognormal(5.8, 0.661))  # from LGN statistics.
     # num_cons = int(np.random.lognormal(5.8, 0.2))  # more realistic value...
     # num_cons = 400
 
+    # num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
     # this line avoid crashing when you don't have sufficinet number of source LGN neurons
-    num_cons = int(np.random.lognormal(logn_mu, logn_sigma))
     num_cons = min(num_cons, sum(total_prob > 0))
     selected_locs = pick_from_probs(num_cons, total_prob)
 

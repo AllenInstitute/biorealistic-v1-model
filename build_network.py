@@ -376,7 +376,18 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0):
     return lgn
 
 
-def add_lgn_v1_edges_experimental(v1_net, lgn_net, x_len=240.0, y_len=120.0):
+def add_lgn_v1_edges_experimental(
+    v1_net, lgn_net, x_len=240.0, y_len=120.0, miniature=False
+):
+    if miniature:
+        node_props = "glif_props/v1_node_models_miniature.json"
+    else:
+        node_props = "glif_props/v1_node_models.json"
+    v1_models = json.load(open(node_props, "r"))
+    v1_models_pop = {}
+    for l in v1_models["locations"]:
+        v1_models_pop.update(v1_models["locations"][l])
+
     # conn_weight_df = pd.read_csv("base_props/lgn_weights_population.csv", sep=" ")
     conn_weight_df = pd.read_csv("glif_props/lgn_weights_model.csv", sep=" ")
     lgn_mean = (x_len / 2.0, y_len / 2.0)
@@ -402,29 +413,52 @@ def add_lgn_v1_edges_experimental(v1_net, lgn_net, x_len=240.0, y_len=120.0):
             # Additional care for LIF will be necessary if applied for Biophysical
             raise (f"Unknown e_or_i value: {e_or_i} from {target_pop_name}")
 
+        targetpool = v1_net.nodes(node_type_id=target_model_id)
+        targetlist = list(targetpool)
+        target_sizes = np.array([n["target_sizes"] for n in targetlist])
+        lognorm_shape = v1_models_pop[target_pop_name]["lognorm_shape"]
+        lognorm_scale = v1_models_pop[target_pop_name]["lognorm_scale"]
+        mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape ** 2) / 2)
+        syn_weight_normalization = target_sizes / mean_size
+
         edge_params = {
             "source": lgn_net.nodes(),
             # "target": v1_net.nodes(pop_name=target_pop_name),
-            "target": v1_net.nodes(node_type_id=target_model_id),
+            "target": targetpool,
             "iterator": "all_to_one",
             "connection_rule": select_lgn_sources_powerlaw,
             "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
             # "dynamics_params": row["params_file"],
             "dynamics_params": f"e2{e_or_i}.json",
             # "syn_weight": row["weight_max"],
-            "syn_weight": row["syn_weight_psp"],
+            # "syn_weight": row["syn_weight_psp"] / syn_weight_normalization,
             # "delay": row["delay"],
             "delay": 1.7,
             # "weight_function": row["weight_func"],
-            # "weight_function": "",
-            "weight_function": "DendriticConstancy_LGN",
+            "weight_function": "",
+            # "weight_function": "DendriticConstancy_LGN",
             "weight_sigma": sigma,
             "model_template": "static_synapse",
         }
 
-        lgn_net.add_edges(**edge_params)
+        cm = lgn_net.add_edges(**edge_params)
+        cm.add_properties(
+            "syn_weight",
+            rule=lgn_synaptic_weight_rule,
+            rule_params={"base_weight": row["syn_weight_psp"], "mean_size": mean_size},
+            dtypes=np.float,
+        )
+        # cm.add_properties("nsyns", rule=fake, dtypes=np.uint32) # a hack
 
     return lgn_net
+
+
+def fake(source, target):
+    return 0
+
+
+def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
+    return base_weight / mean_size * target["target_sizes"]
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):

@@ -206,6 +206,7 @@ def make_v1_node_models(miniature=False):
 
 
 def pop_name_change(pop_name):
+    # handles two exceptions in pop_name
     if pop_name == "VisL2/3":
         return "VisL23"
     if pop_name == "VisL6a":
