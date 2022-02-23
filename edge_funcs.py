@@ -47,7 +47,7 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     # P = A * exp(-r^2 / sigma^2)
     # Since papers reported probabilities of connection having measured from 50um to 100um intersomatic distance
     # we had to normalize ensure A. In short, A had to be set such that the integral from 0 to 75um of the above
-    # function was equal to the reported A in the lietature. Please see accompanying documentation for the derivation
+    # function was equal to the reported A in the literature. Please see accompanying documentation for the derivation
     # of equations which should explain how A_new is determined.
     # Note we intergrate upto 75um as an approximate mid-point from the reported literature.
 
@@ -170,8 +170,8 @@ def connect_cells(sources, target, params):
     #     print('target {}'.format(tid))
 
     # size of target cell (total syn number) will modulate connection probability
-    target_size = target.target_sizes
-    target_pop_mean_size = target.pop_size_mean
+    target_size = target["target_sizes"]
+    target_pop_mean_size = target["nsyn_size_mean"]
 
     # Read parameter values needed for distance and orientation dependence
     A_new = params["A_new"]
@@ -212,7 +212,10 @@ def connect_cells(sources, target, params):
 
     # # Sanity check warning
     # if p_connect > 1:
-    #     print 'WARNING WARNING WARNING: p_connect is greater that 1.0 it is: ', p_connect
+    #    print(
+    #        "WARNING WARNING WARNING: p_connect is greater that 1.0 it is: "
+    #        + str(p_connect)
+    #    )
 
     # If not the same cell (no self-connections)
     if 0.0 in intersomatic_distance:
@@ -221,11 +224,15 @@ def connect_cells(sources, target, params):
     # Connection p proportional to target cell synapse number relative to population average:
     p_connect = p_connect * target_size / target_pop_mean_size
 
+    # If p_connect > 1 set to 1:
+    p_connect[p_connect > 1] = 1
+
     # Decide which cells get a connection based on the p_connect value calculated
     p_connected = np.random.binomial(1, p_connect)
 
     # Synapse number only used for calculating numbers of "leftover" syns to assign as background; N_syn_ will be added through 'add_properties'
-    p_connected[p_connected == 1] = 1
+    # p_connected[p_connected == 1] = 1
+
     # p_connected[p_connected == 1] = np.random.randint(
     #    nsyn_range[0], nsyn_range[1], len(p_connected[p_connected == 1])
     # )

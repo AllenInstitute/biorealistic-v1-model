@@ -4,8 +4,10 @@ import numpy as np
 import pandas as pd
 import argparse
 import random
-from scipy.stats import lognorm
+from scipy import interpolate, integrate
+from scipy.stats import lognorm, rv_continuous
 from pathlib import Path
+from math import sqrt, exp, log
 
 from mpi4py import MPI
 
@@ -52,8 +54,8 @@ def add_nodes_v1(fraction=0.50, miniature=False):
             pop_size = pop_dict["ncells"]
             depth_range = -np.array(pop_dict["depth_range"], dtype=np.float)
             ei = pop_dict["ei"]
-            lognorm_shape = pop_dict["lognorm_shape"]
-            lognorm_scale = pop_dict["lognorm_scale"]
+            nsyn_lognorm_shape = pop_dict["nsyn_lognorm_shape"]
+            nsyn_lognorm_scale = pop_dict["nsyn_lognorm_scale"]
 
             for model in pop_dict["models"]:
                 if "N" not in model:
@@ -91,16 +93,16 @@ def add_nodes_v1(fraction=0.50, miniature=False):
                     "z": positions[:, 2],
                     "tuning_angle": np.linspace(0.0, 360.0, N, endpoint=False),
                     "target_sizes": generate_target_sizes(
-                        N, lognorm_shape, lognorm_scale
+                        N, nsyn_lognorm_shape, nsyn_lognorm_scale
                     ),
                     "EPSP_unitary": model["EPSP_unitary"],
                     "IPSP_unitary": model["IPSP_unitary"],
-                    "pop_size_shape": lognorm_shape,
-                    "pop_size_scale": lognorm_scale,
-                    "pop_size_mean": int(
-                        lognorm(s=lognorm_shape, loc=0, scale=lognorm_scale).stats(
-                            moments="m"
-                        )
+                    "nsyn_size_shape": nsyn_lognorm_shape,
+                    "nsyn_size_scale": nsyn_lognorm_scale,
+                    "nsyn_size_mean": int(
+                        lognorm(
+                            s=nsyn_lognorm_shape, loc=0, scale=nsyn_lognorm_scale
+                        ).stats(moments="m")
                     ),
                     # "size_connectivity_correction":
                 }
@@ -142,14 +144,90 @@ def find_direction_rule(src_label, trg_label):
         return "DirectionRule_others", 50.0
 
 
-def syn_weight_by_experimental_distribution(source, target):
-    syn_weight = 0
-    n_syns_ = 1
+def orientation_dependence_fns(intercept_in, grad_in):
+    intercept1 = intercept_in
+    grad = grad_in
+    y_90 = intercept1 + grad * 90.0
+    intercept2 = 2 * y_90 - intercept1
+    x = np.linspace(0, 180, 1000000)
+    my_pdf = np.piecewise(
+        x,
+        [x < 90, x >= 90],
+        [
+            lambda x: (intercept1 + x * grad)
+            / (2 * (intercept1 * 90 + grad * 90 ** 2 / 2)),
+            lambda x: (intercept2 - x * grad)
+            / (
+                2
+                * (
+                    intercept2 * 180
+                    - grad * 180 ** 2 / 2
+                    - intercept2 * 90
+                    + grad * 90 ** 2 / 2
+                )
+            ),
+        ],
+    )
+    discrete_cdf1 = np.append(integrate.cumtrapz(y=my_pdf, x=x), 1)
+    # discrete_cdf1 = np.append(discrete_cdf1_,1.)
+    pdf_out = interpolate.interp1d(x, my_pdf)
+    cdf_out = interpolate.interp1d(x, discrete_cdf1)
+    ppf_out = interpolate.interp1d(discrete_cdf1, x)
+    return pdf_out, cdf_out, ppf_out
+
+
+def syn_weight_by_experimental_distribution(
+    source,
+    target,
+    src_type,
+    trg_type,
+    PSP_correction,
+    PSP_lognorm_shape,
+    PSP_lognorm_scale,
+    connection_params,
+    delta_theta_dist,
+):
+    src_ei = "e" if src_type.startswith("e") or src_type.startswith("LIFe") else "i"
+    trg_ei = "e" if trg_type.startswith("e") or trg_type.startswith("LIFe") else "i"
+    src_tuning = source["tuning_angle"]
+    tar_tuning = target["tuning_angle"]
+
+    delta_tuning_180 = np.abs(
+        np.abs(np.mod(np.abs(tar_tuning - src_tuning), 360.0) - 180.0) - 180.0
+    )
+
+    #
+    if PSP_lognorm_shape < target["nsyn_size_shape"]:
+        weight_shape = 0
+    else:
+        weight_shape = sqrt(PSP_lognorm_shape ** 2 - target["nsyn_size_shape"] ** 2)
+    weight_scale = exp(
+        log(PSP_lognorm_scale)
+        + log(target["nsyn_size_scale"])
+        - log(target["nsyn_size_mean"])
+    )
+    weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
+
+    # To set syn_weight, use the PPF with the orientation difference:
+    if src_ei == "e" and trg_ei == "e" and not type(delta_theta_dist) == float:
+        # For e-to-e, there is a non-uniform distribution of delta_orientations.
+        # These need to be ordered and mapped uniformly over [0,1] using the cdf:
+        delta_theta_pctile = delta_theta_dist.cdf(delta_tuning_180)
+        syn_weight = weight_rv.ppf(1 - delta_theta_pctile)
+        n_syns_ = 1
+    else:
+        # If there was no like-to-like connection rule for the population, we can use
+        # delta_orientation directly with the PPF
+        syn_weight = weight_rv.ppf(1 - delta_tuning_180 / 180)
+        n_syns_ = 1
+
     return syn_weight, n_syns_
 
 
 def add_edges_v1(net):
+    # pop to pop parameters:
     cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
+    # pop to specific model parameters:
     conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
     # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
     # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
@@ -164,49 +242,75 @@ def add_edges_v1(net):
 
         weight_fnc, weight_sigma = find_direction_rule(src_type, trg_type)
         if src_trg_params["A_new"] > 0.0:
-            if src_type.startswith("LIF"):
-                net.add_edges(
-                    source={"pop_name": src_type},
-                    target={"node_type_id": node_type_id},
-                    iterator="all_to_one",
-                    connection_rule=connect_cells,
-                    connection_params={"params": src_trg_params},
-                    dynamics_params=row["params_file"],
-                    syn_weight=row["weight_max"],
-                    delay=row["delay"],
-                    weight_function=weight_fnc,
-                    weight_sigma=weight_sigma,
+            # if src_type.startswith("LIF"):
+            #     net.add_edges(
+            #         source={"pop_name": src_type},
+            #         target={"node_type_id": node_type_id},
+            #         iterator="all_to_one",
+            #         connection_rule=connect_cells,
+            #         connection_params={"params": src_trg_params},
+            #         dynamics_params=row["params_file"],
+            #         syn_weight=row["weight_max"],
+            #         delay=row["delay"],
+            #         weight_function=weight_fnc,
+            #         weight_sigma=weight_sigma,
+            #     )
+            # else:
+            cm = net.add_edges(
+                source={"pop_name": src_type},
+                target={"node_type_id": node_type_id},
+                iterator="all_to_one",
+                connection_rule=connect_cells,
+                connection_params={"params": src_trg_params},
+                dynamics_params=row["params_file"],
+                # syn_weight_max=row["weight_max"],
+                delay=row["delay"],
+                # weight_function=weight_fnc,
+                # weight_sigma=weight_sigma,
+                # distance_range=row["distance_range"],
+                # target_sections=row["target_sections"],
+                PSP_correction=row["PSP_scale_factor"],
+                PSP_lognorm_shape=row["lognorm_shape"],
+                PSP_lognorm_scale=row["lognorm_scale"],
+                model_template="static_synapse",
+            )
+            if not np.isnan(src_trg_params["gradient"]):
+                pdf1, cdf1, ppf1 = orientation_dependence_fns(
+                    src_trg_params["intercept"], src_trg_params["gradient"]
                 )
+
+                class orientation_dependence_dist(rv_continuous):
+                    def _pdf(self, x):
+                        return pdf1(x)
+
+                    def _cdf(self, x):
+                        return cdf1(x)
+
+                    def _ppf(self, x):
+                        return ppf1(x)
+
+                delta_theta_dist = orientation_dependence_dist()
             else:
-                cm = net.add_edges(
-                    source={"pop_name": src_type},
-                    target={"node_type_id": node_type_id},
-                    iterator="all_to_one",
-                    connection_rule=connect_cells,
-                    connection_params={"params": src_trg_params},
-                    dynamics_params=row["params_file"],
-                    syn_weight=row["weight_max"],
-                    delay=row["delay"],
-                    # weight_function=weight_fnc,
-                    # weight_sigma=weight_sigma,
-                    # distance_range=row["distance_range"],
-                    # target_sections=row["target_sections"],
-                    PSP_correction=row["PSP_scale_factor"],
-                    lognorm_shape=row["lognorm_shape"],
-                    lognorm_scale=row["lognorm_scale"],
-                    model_template="static_synapse",
-                )
-                cm.add_properties(
-                    ["syn_weight", "n_syns_"],
-                    rule=syn_weight_by_experimental_distribution,
-                    rule_params={
-                        "PSP_correction": row["PSP_scale_factor"],
-                        "connection_params": src_trg_params,
-                        "lognorm_shape": row["lognorm_shape"],
-                        "lognorm_scale": row["lognorm_scale"],
-                    },
-                    dtypes=[np.float, np.int],
-                )
+                delta_theta_dist = np.NaN
+
+            cm.add_properties(
+                ["syn_weight", "n_syns_"],
+                rule=syn_weight_by_experimental_distribution,
+                rule_params={
+                    "src_type": src_type,
+                    "trg_type": trg_type,
+                    "PSP_correction": row["PSP_scale_factor"],
+                    "PSP_lognorm_shape": row["lognorm_shape"],
+                    "PSP_lognorm_scale": row["lognorm_scale"],
+                    "connection_params": src_trg_params,
+                    "delta_theta_dist": delta_theta_dist,
+                    # "lognorm_shape": row["lognorm_shape"],
+                    # "lognorm_scale": row["lognorm_scale"],
+                },
+                dtypes=[np.float, np.int],
+            )
+    net.build()
+
     return net
 
 

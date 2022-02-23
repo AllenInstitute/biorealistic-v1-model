@@ -46,8 +46,8 @@ def extract_info(row):
     d["ei"] = row["ei"]
     d["depth_range"] = [row["upper_bound"], row["lower_bound"]]
     # Adding lognormal parameters for distribution of "size"/synapse numbers
-    d["lognorm_shape"] = row["lognorm_shape"]
-    d["lognorm_scale"] = row["lognorm_scale"]
+    d["nsyn_lognorm_shape"] = row["nsyn_lognorm_shape"]
+    d["nsyn_lognorm_scale"] = row["nsyn_lognorm_scale"]
     return d
 
 
@@ -99,13 +99,21 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
         model_dict["model_type"] = "point_process"
         model_dict["model_template"] = "nest:glif_lif_asc_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
-         # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)
-        if row["ei"]=='e':
-            model_dict['EPSP_unitary'] = v1_synapse_amps['e2e'][str(poprow["specimen__id"])]
-            model_dict['IPSP_unitary'] =v1_synapse_amps['i2e'][str(poprow["specimen__id"])]
-        if row["ei"]=='i':
-            model_dict['EPSP_unitary'] = v1_synapse_amps['e2i'][str(poprow["specimen__id"])]
-            model_dict['IPSP_unitary'] =v1_synapse_amps['i2i'][str(poprow["specimen__id"])]
+        # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)
+        if row["ei"] == "e":
+            model_dict["EPSP_unitary"] = v1_synapse_amps["e2e"][
+                str(poprow["specimen__id"])
+            ]
+            model_dict["IPSP_unitary"] = v1_synapse_amps["i2e"][
+                str(poprow["specimen__id"])
+            ]
+        if row["ei"] == "i":
+            model_dict["EPSP_unitary"] = v1_synapse_amps["e2i"][
+                str(poprow["specimen__id"])
+            ]
+            model_dict["IPSP_unitary"] = v1_synapse_amps["i2i"][
+                str(poprow["specimen__id"])
+            ]
         models.append(model_dict)
 
     return models
@@ -163,7 +171,7 @@ def make_v1_node_models(miniature=False):
     seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
     glif_models_df = pd.read_csv("glif_requisite/glif_models_prop.csv", sep=" ")
     node_models = {"locations": {}}
-     # Load unitary v1 synapse amps:
+    # Load unitary v1 synapse amps:
     v1_synapse_amps = json.load(open("base_props/v1_synapse_amps.json", "r"))
     for location, subdf in seed_df.groupby("location"):
         location_dict = {}
@@ -205,8 +213,6 @@ def pop_name_change(pop_name):
     return pop_name
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Make a required node definition file for the GLIF model"
@@ -216,9 +222,8 @@ if __name__ == "__main__":
         "--miniature",
         action="store_true",
         default=False,
-        help="make a miniature version of the simualtion for debugging"
+        help="make a miniature version of the simualtion for debugging",
     )
     args = parser.parse_args()
 
     make_v1_node_models(args.miniature)
-
