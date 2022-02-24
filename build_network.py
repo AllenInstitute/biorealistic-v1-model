@@ -416,8 +416,8 @@ def add_lgn_v1_edges_experimental(
         targetpool = v1_net.nodes(node_type_id=target_model_id)
         targetlist = list(targetpool)
         target_sizes = np.array([n["target_sizes"] for n in targetlist])
-        lognorm_shape = v1_models_pop[target_pop_name]["lognorm_shape"]
-        lognorm_scale = v1_models_pop[target_pop_name]["lognorm_scale"]
+        lognorm_shape = v1_models_pop[target_pop_name]["nsyn_lognorm_shape"]
+        lognorm_scale = v1_models_pop[target_pop_name]["nsyn_lognorm_scale"]
         mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape ** 2) / 2)
         syn_weight_normalization = target_sizes / mean_size
 
