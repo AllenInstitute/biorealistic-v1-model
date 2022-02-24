@@ -221,6 +221,7 @@ def syn_weight_by_experimental_distribution(
         syn_weight = weight_rv.ppf(1 - delta_tuning_180 / 180)
         n_syns_ = 1
 
+    syn_weight = syn_weight / PSP_correction
     return syn_weight, n_syns_
 
 
