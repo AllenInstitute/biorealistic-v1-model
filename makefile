@@ -91,7 +91,7 @@ test: $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o test
 	
 profile: $(mainscripts)
-	python -m cProfile -o out.prof build_network.py -f --fraction 0.01 -o profile --no-recurrent --feed-forward-v2
+	python -m cProfile -o out.prof build_network.py -f --fraction 0.1 -o profile --feed-forward-v2
 	
 glif_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv base_props/synaptic_models
 	python prepare_glif_models.py
