@@ -192,10 +192,6 @@ def syn_weight_by_experimental_distribution(
     src_tuning = source["tuning_angle"]
     tar_tuning = target["tuning_angle"]
 
-    delta_tuning_180 = np.abs(
-        np.abs(np.mod(np.abs(tar_tuning - src_tuning), 360.0) - 180.0) - 180.0
-    )
-
     #
     if PSP_lognorm_shape < target["nsyn_size_shape"]:
         weight_shape = 0
@@ -209,16 +205,76 @@ def syn_weight_by_experimental_distribution(
     weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
 
     # To set syn_weight, use the PPF with the orientation difference:
-    if src_ei == "e" and trg_ei == "e" and not type(delta_theta_dist) == float:
+    if src_ei == "e" and trg_ei == "e" and (not type(delta_theta_dist) == float):
         # For e-to-e, there is a non-uniform distribution of delta_orientations.
         # These need to be ordered and mapped uniformly over [0,1] using the cdf:
-        delta_theta_pctile = delta_theta_dist.cdf(delta_tuning_180)
-        syn_weight = weight_rv.ppf(1 - delta_theta_pctile)
+
+        # adds some randomization to like-to-like and avoids 0-degree delta
+        tuning_rnd = float(np.random.randn(1) * 5)
+
+        delta_tuning_180 = np.abs(
+            np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
+            - 180.0
+        )
+
+        orient_temp = 1 - delta_theta_dist.cdf(delta_tuning_180)
+        orient_temp = np.min([0.999, orient_temp])
+        orient_temp = np.max([0.001, orient_temp])
+        syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
+
+    elif (src_ei == "e" and trg_ei == "i") or (src_ei == "i" and trg_ei == "e"):
+        # If there was no like-to-like connection rule for the population, we can use
+        # delta_orientation directly with the PPF
+
+        # adds some randomization to like-to-like and avoids 0-degree delta
+        tuning_rnd = float(np.random.randn(1) * 15)
+
+        delta_tuning_180 = np.abs(
+            np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
+            - 180.0
+        )
+
+        orient_temp = 1 - (delta_tuning_180 / 180)
+        orient_temp = np.min([0.999, orient_temp])
+        orient_temp = np.max([0.001, orient_temp])
+        syn_weight = weight_rv.ppf(orient_temp)
+        n_syns_ = 1
+
+    elif src_ei == "i" and trg_ei == "i":
+        # If there was no like-to-like connection rule for the population, we can use
+        # delta_orientation directly with the PPF
+
+        # adds some randomization to like-to-like and avoids 0-degree delta
+        tuning_rnd = float(np.random.randn(1) * 25)
+
+        delta_tuning_180 = np.abs(
+            np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
+            - 180.0
+        )
+
+        orient_temp = 1 - (delta_tuning_180 / 180)
+        orient_temp = np.min([0.999, orient_temp])
+        orient_temp = np.max([0.001, orient_temp])
+        syn_weight = weight_rv.ppf(orient_temp)
+        n_syns_ = 1
+
     else:
         # If there was no like-to-like connection rule for the population, we can use
         # delta_orientation directly with the PPF
-        syn_weight = weight_rv.ppf(1 - delta_tuning_180 / 180)
+
+        # adds some randomization to like-to-like and avoids 0-degree delta
+        tuning_rnd = float(np.random.randn(1) * 5)
+
+        delta_tuning_180 = np.abs(
+            np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
+            - 180.0
+        )
+
+        orient_temp = 1 - (delta_tuning_180 / 180)
+        orient_temp = np.min([0.999, orient_temp])
+        orient_temp = np.max([0.001, orient_temp])
+        syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
     syn_weight = syn_weight / PSP_correction
@@ -310,8 +366,6 @@ def add_edges_v1(net):
                 },
                 dtypes=[np.float, np.int],
             )
-    net.build()
-
     return net
 
 
