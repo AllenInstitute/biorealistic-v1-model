@@ -54,7 +54,7 @@ $(get_figures_targets): %/figures: %/figures/OSI_DSI.png
 
 original_mini/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p original_mini
-	mpirun -np 8 python build_network.py -f -o original_mini/network --no-recurrent --miniature
+	mpirun -np 4 python build_network.py -f -o original_mini/network --no-recurrent --miniature
 
 # override the config settings for the original network
 original_mini/configs/config_filternet.json: config_templates/config_filternet.json
