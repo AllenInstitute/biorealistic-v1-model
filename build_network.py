@@ -310,7 +310,6 @@ def add_edges_v1(net):
                 },
                 dtypes=[np.float, np.int],
             )
-    net.build()
 
     return net
 
@@ -417,8 +416,11 @@ def add_lgn_v1_edges_experimental(
         targetpool = v1_net.nodes(node_type_id=target_model_id)
         targetlist = list(targetpool)
         target_sizes = np.array([n["target_sizes"] for n in targetlist])
-        lognorm_shape = v1_models_pop[target_pop_name]["nsyn_lognorm_shape"]
-        lognorm_scale = v1_models_pop[target_pop_name]["nsyn_lognorm_scale"]
+        # lognorm_shape = v1_models_pop[target_pop_name]["nsyn_lognorm_shape"]
+        # lognorm_scale = v1_models_pop[target_pop_name]["nsyn_lognorm_scale"]
+        # pop could be any valid e4 type. The values should be the same
+        lognorm_shape = v1_models_pop["e4other"]["nsyn_lognorm_shape"]
+        lognorm_scale = v1_models_pop["e4other"]["nsyn_lognorm_scale"]
         mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape ** 2) / 2)
         syn_weight_normalization = target_sizes / mean_size
 
@@ -459,7 +461,7 @@ def fake(source, target):
 
 
 def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
-    return base_weight / mean_size * target["target_sizes"]
+    return base_weight * mean_size / target["target_sizes"]
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):

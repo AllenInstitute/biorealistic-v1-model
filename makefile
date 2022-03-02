@@ -38,10 +38,10 @@ $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config_filternet.json mak
 	python make_filternet_jobs.py $*
 
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5 
-	ssh -t hpc-login 'cd realistic-model/glif_builder; sbatch --wait $*/jobs/filternet_8dir_10trials.sh'
+	ssh -t hpc-login 'cd realistic-model/glif_builder_test/biorealistic-v1-model; sbatch --wait $*/jobs/filternet_8dir_10trials.sh'
 
-$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/network/lgn_v1_edge_types.csv %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py
-	ssh -t hpc-login 'cd realistic-model/glif_builder; sbatch --wait $*/jobs/8dir_10trials.sh'
+$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py
+	ssh -t hpc-login 'cd realistic-model/glif_builder_test/biorealistic-v1-model; sbatch --wait $*/jobs/8dir_10trials.sh'
 
 $(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.csv calculate_odsi.py
 	python calculate_odsi.py $*
@@ -54,7 +54,7 @@ $(get_figures_targets): %/figures: %/figures/OSI_DSI.png
 
 original_mini/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p original_mini
-	mpirun -np 4 python build_network.py -f -o original_mini/network --no-recurrent --miniature
+	mpirun -np 8 python build_network.py -f -o original_mini/network --no-recurrent --miniature
 
 # override the config settings for the original network
 original_mini/configs/config_filternet.json: config_templates/config_filternet.json
@@ -73,7 +73,7 @@ miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_
 	mkdir -p miniature/network_nomod
 	cp miniature/network/*.csv miniature/network_nomod/
 	# remove the file to update... (pretty ad-hoc)
-	rm miniature/network/lgn_v1_edge_types.csv
+	# rm miniature/network/lgn_v1_edge_types.csv
 
 no_recurrent: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o no_recurrent --no-recurrent
