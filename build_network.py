@@ -518,8 +518,6 @@ def fake(source, target):
 
 def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
     return base_weight * mean_size / target["target_sizes"]
-    # return base_weight / mean_size * target["target_sizes"]
-    return base_weight / target["target_sizes"] * mean_size
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
