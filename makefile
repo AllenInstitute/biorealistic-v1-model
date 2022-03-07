@@ -34,7 +34,7 @@ $(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/co
 $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
 	
-$(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
+$(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
 	python make_filternet_jobs.py $*
 
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5 
