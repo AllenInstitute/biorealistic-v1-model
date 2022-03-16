@@ -612,25 +612,27 @@ def add_nodes_bkg():
 
 
 def add_bkg_v1_edges(v1_net, bkg_net):
-    conn_weight_df = pd.read_csv("base_props/bkg_weights_population.csv", sep=" ")
+    # conn_weight_df = pd.read_csv("base_props/bkg_weights_population.csv", sep=" ")
+    conn_weight_df = pd.read_csv("glif_props/bkg_weights_model_init.csv", sep=" ")
 
     for _, row in conn_weight_df.iterrows():
         # src_type = row['source_label']
         # trg_type = row["target_label"]
         # target_node_type = row["target_model_id"]
+        target_node_type = row["model_id"]
         target_pop_name = row["population"]
         nsyns = row.get("nsyns")
 
         edge_params = {
             "source": bkg_net.nodes(),
-            # "target": v1_net.nodes(node_type_id=target_node_type),
-            "target": v1_net.nodes(pop_name=target_pop_name),
+            "target": v1_net.nodes(node_type_id=target_node_type),
+            # "target": v1_net.nodes(pop_name=target_pop_name),
             "connection_rule": lambda s, t, n: n,
             "connection_params": {"n": nsyns},
             # "connection_params": {"nsyns": 1},
             # "dynamics_params": row["dynamics_params"],
             "dynamics_params": f"e2{target_pop_name[0]}.json",
-            "syn_weight": row["syn_weight"],
+            "syn_weight": row["syn_weight_psp"],
             # "delay": row["delay"],
             "delay": 1.0,
             "model_template": "static_synapse",

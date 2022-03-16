@@ -67,7 +67,6 @@ original_mini/configs/config_filternet.json: config_templates/config_filternet.j
 	
 miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p miniature
-	# it fails saving if more than 4 cores are used... Let's ask Kael.
 	mpirun -np 8 python build_network.py -f -o miniature/network --miniature --feed-forward-v2
 	# duplicate the node/edge type files so that we can adjust the weight retroactively
 	mkdir -p miniature/network_nomod
@@ -86,6 +85,9 @@ v1nodes: glif_props/v1_node_models.json $(mainscripts)
 	
 glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv base_props/v1_synapse_amps.json make_lgn_weights.py
 	python make_lgn_weights.py
+
+glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv base_props/v1_synapse_amps.json make_bkg_weights.py
+	python make_bkg_weights.py
 
 test: $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o test
