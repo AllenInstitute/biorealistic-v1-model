@@ -71,8 +71,8 @@ miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_
 	# duplicate the node/edge type files so that we can adjust the weight retroactively
 	mkdir -p miniature/network_nomod
 	cp miniature/network/*.csv miniature/network_nomod/
-	# remove the file to update... (pretty ad-hoc)
-	# rm miniature/network/lgn_v1_edge_types.csv
+	# copy optimized background connections
+	cp base_props/bkg_v1_edge_types_optimized.csv miniature/network/bkg_v1_edge_types.csv
 
 no_recurrent: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o no_recurrent --no-recurrent

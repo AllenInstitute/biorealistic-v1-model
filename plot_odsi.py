@@ -41,6 +41,8 @@ if __name__ == "__main__":
     ax[3].set_xscale("log")
     # sns.scatterplot(data=df_core, x="max_mean_rate(Hz)", y="DSI", s=4)
     # ax[3].set_xscale("log")
+    for i in range(3):
+        ax[i].set_xticklabels(ax[i].get_xticklabels(), rotation=30)
 
     plt.tight_layout()
     pathlib.Path(basedir + "/figures").mkdir(parents=True, exist_ok=True)

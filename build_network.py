@@ -194,7 +194,7 @@ def syn_weight_by_experimental_distribution(
 
     #
     if PSP_lognorm_shape < target["nsyn_size_shape"]:
-        weight_shape = 0
+        weight_shape = 0.001
     else:
         weight_shape = sqrt(PSP_lognorm_shape ** 2 - target["nsyn_size_shape"] ** 2)
     weight_scale = exp(
