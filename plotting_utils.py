@@ -82,6 +82,11 @@ def plot_raster(config_file, s=1, **kwarg):
 # %%
 # %%time
 if __name__ == "__main__":
+    config_file = "fullmodel56/output/config_plain.json"
+    plt.figure(figsize=(15, 10))
+    ax = plot_raster(config_file, s=1)
+
+    """
     config_file = "miniature/output/config_plain.json"
     fig, axs = plt.subplots(2, 1, figsize=(15, 10))
     ax = plot_raster(config_file, ax=axs[0])
@@ -97,6 +102,7 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     # plt.savefig("nice_ratser.png")
+    """
 
 
 # %% development block

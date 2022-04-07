@@ -16,8 +16,8 @@ import subprocess
 # get the spike dataframe
 
 
-def get_spike_df(basedir, query="timestamps < 500"):
-    outputdir = basedir + "/output_lgnbkg"
+def get_spike_df(basedir, query="timestamps < 10000"):
+    outputdir = basedir + "/output_bkgtune"
     spike_df = pd.read_csv(outputdir + "/spikes.csv", sep=" ")
     spike_df = spike_df.query(query)
     return spike_df
@@ -37,7 +37,7 @@ def get_model_fr(basedir):
 
     v1df["node_ids"] = v1df["node_id"]
     spike_df = spike_df.merge(v1df[["node_ids", "node_type_id"]], on="node_ids")
-    v1df["spike_rate"] = spike_df.value_counts("node_ids") / 0.5
+    v1df["spike_rate"] = spike_df.value_counts("node_ids") / 10.0
     v1df["spike_rate"][np.isnan(v1df["spike_rate"])] = 0
     model_fr = v1df.groupby("node_type_id")["spike_rate"].mean()
     return model_fr
@@ -128,9 +128,13 @@ def get_target_fr(basedir):
     target_pop = pd.read_csv("base_props/bkg_weights_population_init.csv", sep=" ")
     v1df = get_v1_dfs(basedir)
     model_to_pop = v1df[["node_type_id", "pop_name"]].drop_duplicates()
-    model_to_fr = model_to_pop.merge(target_pop[['population', 'target_mean_fr']], left_on='pop_name', right_on='population')
-    model_to_fr.index = model_to_fr['node_type_id']
-    target_fr = model_to_fr['target_mean_fr']
+    model_to_fr = model_to_pop.merge(
+        target_pop[["population", "target_mean_fr"]],
+        left_on="pop_name",
+        right_on="population",
+    )
+    model_to_fr.index = model_to_fr["node_type_id"]
+    target_fr = model_to_fr["target_mean_fr"]
     return target_fr
 
 
@@ -158,7 +162,7 @@ def update_bkg_weights(basedir, new_weight):
 
 
 def run_simulation(basedir, ncore=8):
-    config_file = basedir + "/configs/config_lgnbkg.json"
+    config_file = basedir + "/configs/config_bkgtune.json"
     command = f"mpirun -np {ncore} python run_pointnet.py {config_file}"
     print("running the command below...")
     print(command)
@@ -173,42 +177,46 @@ def run_simulation(basedir, ncore=8):
 
 # %% let's write the main function
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     # start with forming the problem.
 
-basedir = "miniature"
-v1df = get_v1_dfs(basedir)
-tfr = get_target_fr(basedir)
+    basedir = "miniature"
+    v1df = get_v1_dfs(basedir)
+    tfr = get_target_fr(basedir)
 
-tfr.keys()[0]
-solvers = {nid: BisectionSolver(0, 100, tfr[nid]) for nid in tfr.keys()}
+    tfr.keys()[0]
+    solvers = {nid: BisectionSolver(0, 100, tfr[nid]) for nid in tfr.keys()}
 
-weight = tfr.copy()
-weight[:] = 0.0
-weight.name = 'syn_weight'
+    weight = tfr.copy()
+    weight[:] = 0.0
+    weight.name = "syn_weight"
 
-for i in range (1000):
-    print(weight)
-    update_bkg_weights(basedir, weight)
-    run_simulation(basedir)
-    model_fr = get_model_fr(basedir)
-    
-    new_weight = weight.copy()
-    for i, v in model_fr.items():
-        new_weight[i] = solvers[i].step(v)
-        if new_weight[i] >= 0:
-            weight[i] = new_weight[i]
+    for i in range(1000):
+        print(weight)
+        update_bkg_weights(basedir, weight)
+        run_simulation(basedir)
+        model_fr = get_model_fr(basedir)
 
-    if all(new_weight < 0): # solution achieved
-        break
+        new_weight = weight.copy()
+        for i, v in model_fr.items():
+            new_weight[i] = solvers[i].step(v)
+            if new_weight[i] >= 0:
+                weight[i] = new_weight[i]
+
+        if all(new_weight < 0):  # solution achieved
+            break
 
 # %%
 # (new_weight>0).sum()
 
 
-
-
 # %%
+
+
+run_simulation(basedir)
+df = get_spike_df(basedir)
+fr = get_model_fr(basedir)
+
 
 """
 def func(x):
@@ -224,4 +232,10 @@ for i in range(100):
         break
 # OK. it works.
 """
+
+
+# %% looking at the raster
+from plotting_utils import plot_raster
+
+plot_raster("miniature/output_bkgtune/config_bkgtune.json")
 
