@@ -49,6 +49,14 @@ def determine_sort_position(v1df):
     return sort_position
 
 
+def determine_layer_divisions(v1df):
+    """ Given the dataframe, determine the layer divisions """
+    layers = ["", "L1", "L2/3", "L4", "L5", "L6"]
+    divisions = list(np.cumsum(v1df.value_counts("location").sort_index()))
+    divisions = [0] + divisions
+    return dict(zip(layers, divisions))
+
+
 def plot_raster(config_file, s=1, **kwarg):
     config_js = read_config(config_file)
     net = form_network(config_js)
@@ -58,14 +66,17 @@ def plot_raster(config_file, s=1, **kwarg):
     v1df["Sort Position"] = determine_sort_position(v1df)
     v1df["Cell Type"] = v1df["pop_name"].apply(identify_cell_type)
 
+    layer_divisions = determine_layer_divisions(v1df)
+
     spike_df["Sorted ID"] = v1df["Sort Position"].loc[spike_df.index]
     spike_df["Cell Type"] = v1df["Cell Type"].loc[spike_df.index]
 
     hue_order = ["Exc", "Pvalb", "Sst", "Vip", "Htr3a"]
     color_order = ["tab:red", "tab:blue", "tab:olive", "tab:purple", "tab:purple"]
+    # color_order = ["tab:red", "tab:blue", "yellowgreen", "violet", "violet"]
     color_dict = dict(zip(hue_order, color_order))
 
-    ax2 = sns.scatterplot(
+    ax = sns.scatterplot(
         data=spike_df,
         x="timestamps",
         y="Sorted ID",
@@ -75,34 +86,50 @@ def plot_raster(config_file, s=1, **kwarg):
         palette=color_dict,
         **kwarg
     )
-    ax2.invert_yaxis()
-    return ax2
+    ax.invert_yaxis()
+    for name, div in layer_divisions.items():
+        ax.axhline(y=div, color="black", linestyle="-", linewidth=0.3)
+        ax.text(
+            0,
+            div,
+            name,
+            horizontalalignment="left",
+            verticalalignment="bottom",
+            fontsize=9,
+        )
+
+    ax.legend(loc="upper right")
+
+    return ax
 
 
 # %%
 # %%time
 if __name__ == "__main__":
-    config_file = "fullmodel56/output/config_plain.json"
-    plt.figure(figsize=(15, 10))
-    ax = plot_raster(config_file, s=1)
+    simple = False
+    if simple:
+        # config_file = "fullmodel56/output/config_plain.json"
+        config_file = "miniature/output/config_plain.json"
+        plt.figure(figsize=(15, 10))
+        ax = plot_raster(config_file, s=1)
+    else:
+        config_file = "miniature/output/config_plain.json"
+        fig, axs = plt.subplots(2, 1, figsize=(15, 10))
+        ax = plot_raster(config_file, ax=axs[0])
+        ax.set_xlim([0, 1000])
+        ax.legend(loc="upper right")
+        ax.set_title("With Recurrent")
 
-    """
-    config_file = "miniature/output/config_plain.json"
-    fig, axs = plt.subplots(2, 1, figsize=(15, 10))
-    ax = plot_raster(config_file, ax=axs[0])
-    ax.set_xlim([0, 1000])
-    ax.legend(loc="upper right")
-    ax.set_title("With Recurrent")
+        config_file = "miniature/output_lgnbkg/config_lgnbkg.json"
+        ax = plot_raster(config_file, ax=axs[1])
+        ax.set_xlim([0, 1000])
+        ax.legend(loc="upper right")
+        ax.set_title("Without Recurrent")
 
-    config_file = "miniature/output_lgnbkg/config_lgnbkg.json"
-    ax = plot_raster(config_file, ax=axs[1])
-    ax.set_xlim([0, 1000])
-    ax.legend(loc="upper right")
-    ax.set_title("Without Recurrent")
-
-    plt.tight_layout()
-    # plt.savefig("nice_ratser.png")
-    """
+        plt.tight_layout()
+        plt.savefig("nice_ratser_reoptim.png")
 
 
 # %% development block
+v1df.value_counts("location").sort_index()
+

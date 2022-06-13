@@ -6,8 +6,8 @@ import numpy as np
 from sonata.circuit import File
 import h5py
 
-d = "miniature/"
-# d = "original_mini/"
+# d = "miniature/"
+d = "original_mini/"
 dnet = d + "network/"
 dout = d + "output/"
 dfiles = [dnet + "lgn_nodes.h5", dnet + "v1_nodes.h5", dnet + "lgn_v1_edges.h5"]
@@ -147,7 +147,7 @@ v1df_sub["evoked I"] = stim_I - spont_I
 v1df_sub["f1 I"] = f1_I
 v1df_sub["f1/evoked"] = f1_I / (stim_I - spont_I)
 
-v1df_sub['evoked I'].mean()
+v1df_sub["evoked I"].mean()
 
 
 v1df_sub.plot.scatter("tuning_angle", "evoked I")
@@ -193,7 +193,7 @@ def plot_one(df_e4, df_lgn, nid=None, nsyn_th=3):
     sources = [
         edge.source_node_id
         for edge in net.edges["lgn_to_v1"].get_target(nid)
-        if edge["nsyns"] >= nsyn_th
+        # if edge["nsyns"] >= nsyn_th
     ]
     # nsyns = [edge["nsyns"] for edge in net.edges["lgn_to_v1"].get_target(nid)]
     # plot them
@@ -203,15 +203,15 @@ def plot_one(df_e4, df_lgn, nid=None, nsyn_th=3):
     # sus = sus | df_lgnsub["pop_name"].str.contains("sON_")
     others = np.logical_not(toff | sus)
 
-    plt.plot(df_lgnsub[toff]["x"], df_lgnsub[toff]["y"], "r.", markersize=4)
-    plt.plot(df_lgnsub[sus]["x"], df_lgnsub[sus]["y"], "g.", markersize=4)
-    plt.plot(df_lgnsub[others]["x"], df_lgnsub[others]["y"], "b.", markersize=4)
+    plt.plot(df_lgnsub[toff]["x"], df_lgnsub[toff]["y"], "r.", markersize=2)
+    plt.plot(df_lgnsub[sus]["x"], df_lgnsub[sus]["y"], "g.", markersize=2)
+    plt.plot(df_lgnsub[others]["x"], df_lgnsub[others]["y"], "b.", markersize=2)
     plt.axis("equal")
 
     # locx = pltticker.MultipleLocator(base=16.0)
     # locy = pltticker.MultipleLocator(base=12.0)
-    locx = pltticker.MultipleLocator(base=8.0)
-    locy = pltticker.MultipleLocator(base=8.0)
+    locx = pltticker.MultipleLocator(base=40.0)
+    locy = pltticker.MultipleLocator(base=40.0)
     plt.gca().xaxis.set_major_locator(locx)
     plt.gca().yaxis.set_major_locator(locy)
     plt.gca().grid(which="major", axis="both")
@@ -221,7 +221,7 @@ def plot_one(df_e4, df_lgn, nid=None, nsyn_th=3):
 
 
 lgndf = net.nodes["lgn"].to_dataframe()
-np.random.seed(0)
+# np.random.seed(0)
 df_sources = pd.DataFrame()
 fig = plt.figure(figsize=(10, 6))
 for i in range(1, 10):
