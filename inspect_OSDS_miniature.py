@@ -9,7 +9,7 @@ import h5py
 d = "miniature/"
 # d = "original_mini/"
 dnet = d + "network/"
-dout = d + "output/"
+dout = d + "output_multimeter/"
 dfiles = [dnet + "lgn_nodes.h5", dnet + "v1_nodes.h5", dnet + "lgn_v1_edges.h5"]
 dtfiles = [
     dnet + "lgn_node_types.csv",
@@ -118,7 +118,7 @@ def get_np_data(filename):
         return (time, npd)
 
 
-time, npd = get_np_data("miniature/output/cai_traces.h5")
+time, npd = get_np_data("miniature/output_multimeter/cai_traces.h5")
 
 # plt.plot(time, npd[:, [276, 284, 300]])
 # plt.plot(time, npd[:, [276]])
@@ -160,7 +160,7 @@ v1df_sub.plot.scatter("tuning_angle", "f1 I")
 v1df_sub.plot.scatter("tuning_angle", "f1/evoked")
 plt.ylim([0.0, 1.5])
 
-(stim_I - spont_I).mean()
+print((stim_I - spont_I).mean())
 (spont_I).mean()
 (stim_I).mean()
 

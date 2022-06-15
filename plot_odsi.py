@@ -9,10 +9,26 @@ import sys
 import pathlib
 
 
+billeh_compare = False # mode to compare with billeh et al (for e4)
+keys = ["whislo", "q1", "med", "q3", "whishi"]
+billeh_rate = [dict(zip(keys, [0, 0.5, 2, 3, 8]))]
+billeh_DSI = [dict(zip(keys, [0, 0.08, 0.14, 0.24, 0.4]))]
+# billeh_DSI = [0, 0.08, 0.14, 0.24, 0.4]
+# colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+colors = ["black", "blue", "green", "blue", "black"]
+lengths = [0.1, 0.2, 0.2, 0.2, 0.1]
+
+
+def draw_billeh_line(ax, x, y, color, length):
+    # draw a horizontal line at the specified x and y
+    ax.plot([x - length, x + length], [y, y], color=color)
+    return
+
+
 if __name__ == "__main__":
-    # basedir = sys.argv[1]
+    basedir = sys.argv[1]
     # basedir = "original_mini"
-    basedir = "miniature"
+    # basedir = "miniature"
 
     net = File(basedir + "/network/v1_nodes.h5", basedir + "/network/v1_node_types.csv")
     v1df = net.nodes["v1"].to_dataframe()
@@ -27,14 +43,31 @@ if __name__ == "__main__":
 
     f, ax = plt.subplots(4, 1, figsize=(10, 15))
 
-    df_core.boxplot("max_mean_rate(Hz)", "pop_name", ax=ax[0])
+    if billeh_compare:
+        df_core.boxplot("max_mean_rate(Hz)", ax=ax[0])
+        x = ax[0].get_xlim()[1] + 0.5
+        ax[0].bxp(billeh_rate, showfliers=False, positions=[x])
+        # add billeh tickmark
+        ax[0].get_xticklabels()[int(x - 1)].set_text("Billeh2020")
+    else:
+        df_core.boxplot("max_mean_rate(Hz)", "pop_name", ax=ax[0])
     ax[0].set_ylim([0, 35])
 
-    df_core[resp].boxplot("DSI", "pop_name", ax=ax[1])
-    ax[1].set_ylim([0, 1])
-    # sns.boxplot(data=df_core[resp], x="pop_name", y="DSI", hue=None, ax=ax[1])
 
-    df_core[resp].boxplot("OSI", "pop_name", ax=ax[2])
+    if billeh_compare:
+        df_core[resp].boxplot("DSI", ax=ax[1])
+        ax[1].bxp(billeh_DSI, showfliers=False, positions=[x])
+        ax[1].get_xticklabels()[int(x - 1)].set_text("Billeh2020")
+    else:
+        df_core[resp].boxplot("DSI", "pop_name", ax=ax[1])
+    ax[1].set_ylim([0, 1])
+        
+
+    if billeh_compare:
+        df_core[resp].boxplot("OSI", ax=ax[2])
+        ax[2].set_xlim([0, x + 0.5])
+    else:
+        df_core[resp].boxplot("OSI", "pop_name", ax=ax[2])
     ax[2].set_ylim([0, 1])
 
     df_core.plot.scatter(x="max_mean_rate(Hz)", y="DSI", s=0.3, ax=ax[3])
