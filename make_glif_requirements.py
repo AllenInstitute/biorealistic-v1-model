@@ -97,7 +97,7 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
         model_dict["N"] = int(model_cell_count[i])
         model_dict["node_type_id"] = int(poprow["specimen__id"])
         model_dict["model_type"] = "point_process"
-        model_dict["model_template"] = "nest:glif_lif_asc_psc"
+        model_dict["model_template"] = "nest:glif_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
 
         # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)

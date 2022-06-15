@@ -52,7 +52,7 @@ def add_nodes_v1(fraction=0.50, miniature=False):
     for location, loc_dict in v1_models["locations"].items():
         for pop_name, pop_dict in loc_dict.items():
             pop_size = pop_dict["ncells"]
-            depth_range = -np.array(pop_dict["depth_range"], dtype=np.float)
+            depth_range = -np.array(pop_dict["depth_range"], dtype=float)
             ei = pop_dict["ei"]
             nsyn_lognorm_shape = pop_dict["nsyn_lognorm_shape"]
             nsyn_lognorm_scale = pop_dict["nsyn_lognorm_scale"]
@@ -365,7 +365,7 @@ def add_edges_v1(net):
                     # "lognorm_shape": row["lognorm_shape"],
                     # "lognorm_scale": row["lognorm_scale"],
                 },
-                dtypes=[np.float, np.int],
+                dtypes=[float, np.int64],
             )
     return net
 
@@ -495,7 +495,8 @@ def add_lgn_v1_edges_experimental(
             # "delay": row["delay"],
             "delay": 1.7,
             # "weight_function": row["weight_func"],
-            "weight_function": "",
+            # "weight_function": "",
+            "weight_function": "ConstantMultiplier_LGN",
             # "weight_function": "DendriticConstancy_LGN",
             "weight_sigma": sigma,
             "model_template": "static_synapse",
@@ -506,7 +507,7 @@ def add_lgn_v1_edges_experimental(
             "syn_weight",
             rule=lgn_synaptic_weight_rule,
             rule_params={"base_weight": row["syn_weight_psp"], "mean_size": mean_size},
-            dtypes=np.float,
+            dtypes=float,
         )
         # cm.add_properties("nsyns", rule=fake, dtypes=np.uint32) # a hack
 
