@@ -488,7 +488,8 @@ def add_lgn_v1_edges_experimental(
             "connection_rule": select_lgn_sources_powerlaw,
             "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
             # "dynamics_params": row["params_file"],
-            "dynamics_params": f"e2{e_or_i}.json",
+            "dynamics_params": specify_lgn_dynamics_params(target_pop_name),
+            # "dynamics_params": f"e2{e_or_i}.json",
             # "syn_weight": row["weight_max"],
             # "syn_weight": row["syn_weight_psp"] / syn_weight_normalization,
             # "delay": row["delay"],
@@ -518,6 +519,33 @@ def fake(source, target):
 
 def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
     return base_weight * mean_size / target["target_sizes"]
+
+
+def specify_lgn_dynamics_params(target_pop_name):
+    """specify the name of the synaptic dynamics parameters file based on the target population name"""
+    basename = "lgn_2_"
+    ext = ".json"
+    e_or_i = target_pop_name[0]
+    if e_or_i == "e":
+        # see the next character as well
+        layer = target_pop_name[1]
+        if layer == "2":
+            return basename + "e23" + ext
+        if layer == "5":
+            if target_pop_name in ["e5ET", "e5IT", "e5NP"]:
+                return basename + target_pop_name.lower() + ext
+            else:
+                return basename + "e5ET" + ext
+        else:
+            return basename + "e" + layer + ext
+    else:  # inhibitory neurons, layer independent.
+        last_letter = target_pop_name[-1]
+        if last_letter == "b":  # Pvalb
+            return basename + "pv" + ext
+        elif last_letter == "t":  # Sst
+            return basename + "sst" + ext
+        else:  # Vip or Htr3a
+            return basename + "vip" + ext
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
