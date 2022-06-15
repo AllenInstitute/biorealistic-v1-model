@@ -13,6 +13,7 @@ except Exception as e:
     pass
 
 
+"""
 @synaptic_weight
 def DendriticConstancy_LGN(edges, src_nodes, trg_nodes):
     # normalize by the total amount of inputs of the target cells
@@ -24,7 +25,15 @@ def DendriticConstancy_LGN(edges, src_nodes, trg_nodes):
     nsyns = edges["nsyns"].values
     syn_weight = edges["syn_weight"].values
     return syn_weight * nsyns / nsyns_correction
+"""
 
+@synaptic_weight
+def ConstantMultiplier_LGN(edges, src_nodes, trg_nodes):
+    """
+    Multiply a constant for all the LGN connections.
+    """
+    return edges['syn_weight'].values * 5.0
+    
 
 @synaptic_weight
 def DirectionRule_others(edges, src_nodes, trg_nodes):
