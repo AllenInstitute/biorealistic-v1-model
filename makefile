@@ -67,12 +67,13 @@ original_mini/configs/config_filternet.json: config_templates/config_filternet.j
 	
 miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p miniature
-	mpirun -np 8 python build_network.py -f -o miniature/network --miniature --feed-forward-v2
+	mpirun -np 4 python build_network.py -f -o miniature/network --miniature --feed-forward-v2
 	# duplicate the node/edge type files so that we can adjust the weight retroactively
-	mkdir -p miniature/network_nomod
-	cp miniature/network/*.csv miniature/network_nomod/
+	# This is no longer valid as we swtiched to store weights in h5 files.
+	#mkdir -p miniature/network_nomod 
+	#cp miniature/network/*.csv miniature/network_nomod/
 	# copy optimized background connections
-	cp base_props/bkg_v1_edge_types_optimized.csv miniature/network/bkg_v1_edge_types.csv
+	#cp base_props/bkg_v1_edge_types_optimized.csv miniature/network/bkg_v1_edge_types.csv
 
 no_recurrent: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
 	python build_network.py -f --fraction 0.001 -o no_recurrent --no-recurrent
