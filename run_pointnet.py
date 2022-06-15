@@ -35,6 +35,13 @@ def ConstantMultiplier_LGN(edges, src_nodes, trg_nodes):
     """
     return edges["syn_weight"].values * 1.0
 
+@synaptic_weight
+def ConstantMultiplier_LGN(edges, src_nodes, trg_nodes):
+    """
+    Multiply a constant for all the LGN connections.
+    """
+    return edges['syn_weight'].values * 5.0
+    
 
 @synaptic_weight
 def DirectionRule_others(edges, src_nodes, trg_nodes):
