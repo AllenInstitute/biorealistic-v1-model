@@ -6,8 +6,8 @@ import numpy as np
 from sonata.circuit import File
 import h5py
 
-# d = "miniature/"
-d = "original_mini/"
+d = "miniature/"
+# d = "original_mini/"
 dnet = d + "network/"
 dout = d + "output/"
 dfiles = [dnet + "lgn_nodes.h5", dnet + "v1_nodes.h5", dnet + "lgn_v1_edges.h5"]
@@ -140,7 +140,10 @@ f1_I = np.abs(f1_I[:, stim_time].mean(axis=1))
 # plt.plot(spont_I)
 # plt.plot(stim_I)
 # plt.plot(f1_I)
-v1df_sub = v1df.loc[range(0, 17001, 100)]
+# v1df_sub = v1df.loc[range(0, 17001, 100)]
+
+# v1df_sub = v1df.query("ei=='e' and location=='VisL4'")
+v1df_sub = v1df
 
 
 v1df_sub["evoked I"] = stim_I - spont_I
@@ -148,6 +151,8 @@ v1df_sub["f1 I"] = f1_I
 v1df_sub["f1/evoked"] = f1_I / (stim_I - spont_I)
 
 v1df_sub["evoked I"].mean()
+
+v1df_sub.query("ei=='e' and location=='VisL4'")["evoked I"].mean()
 
 
 v1df_sub.plot.scatter("tuning_angle", "evoked I")

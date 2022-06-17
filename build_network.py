@@ -52,7 +52,7 @@ def add_nodes_v1(fraction=0.50, miniature=False):
     for location, loc_dict in v1_models["locations"].items():
         for pop_name, pop_dict in loc_dict.items():
             pop_size = pop_dict["ncells"]
-            depth_range = -np.array(pop_dict["depth_range"], dtype=np.float)
+            depth_range = -np.array(pop_dict["depth_range"], dtype=float)
             ei = pop_dict["ei"]
             nsyn_lognorm_shape = pop_dict["nsyn_lognorm_shape"]
             nsyn_lognorm_scale = pop_dict["nsyn_lognorm_scale"]
@@ -365,7 +365,7 @@ def add_edges_v1(net):
                     # "lognorm_shape": row["lognorm_shape"],
                     # "lognorm_scale": row["lognorm_scale"],
                 },
-                dtypes=[np.float, np.int],
+                dtypes=[float, np.int64],
             )
     return net
 
@@ -488,13 +488,15 @@ def add_lgn_v1_edges_experimental(
             "connection_rule": select_lgn_sources_powerlaw,
             "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
             # "dynamics_params": row["params_file"],
-            "dynamics_params": f"e2{e_or_i}.json",
+            "dynamics_params": specify_lgn_dynamics_params(target_pop_name),
+            # "dynamics_params": f"e2{e_or_i}.json",
             # "syn_weight": row["weight_max"],
             # "syn_weight": row["syn_weight_psp"] / syn_weight_normalization,
             # "delay": row["delay"],
             "delay": 1.7,
             # "weight_function": row["weight_func"],
-            "weight_function": "",
+            # "weight_function": "",
+            "weight_function": "ConstantMultiplier_LGN",
             # "weight_function": "DendriticConstancy_LGN",
             "weight_sigma": sigma,
             "model_template": "static_synapse",
@@ -505,7 +507,7 @@ def add_lgn_v1_edges_experimental(
             "syn_weight",
             rule=lgn_synaptic_weight_rule,
             rule_params={"base_weight": row["syn_weight_psp"], "mean_size": mean_size},
-            dtypes=np.float,
+            dtypes=float,
         )
         # cm.add_properties("nsyns", rule=fake, dtypes=np.uint32) # a hack
 
@@ -518,6 +520,33 @@ def fake(source, target):
 
 def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
     return base_weight * mean_size / target["target_sizes"]
+
+
+def specify_lgn_dynamics_params(target_pop_name):
+    """specify the name of the synaptic dynamics parameters file based on the target population name"""
+    basename = "lgn_2_"
+    ext = ".json"
+    e_or_i = target_pop_name[0]
+    if e_or_i == "e":
+        # see the next character as well
+        layer = target_pop_name[1]
+        if layer == "2":
+            return basename + "e23" + ext
+        if layer == "5":
+            if target_pop_name in ["e5ET", "e5IT", "e5NP"]:
+                return basename + target_pop_name.lower() + ext
+            else:
+                return basename + "e5ET" + ext
+        else:
+            return basename + "e" + layer + ext
+    else:  # inhibitory neurons, layer independent.
+        last_letter = target_pop_name[-1]
+        if last_letter == "b":  # Pvalb
+            return basename + "pv" + ext
+        elif last_letter == "t":  # Sst
+            return basename + "sst" + ext
+        else:  # Vip or Htr3a
+            return basename + "vip" + ext
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
