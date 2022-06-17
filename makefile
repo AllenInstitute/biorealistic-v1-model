@@ -17,6 +17,7 @@ odsi_figure_targets = $(addsuffix /figures/OSI_DSI.png, $(networks))
 get_figures_targets = $(addsuffix /figures, $(networks))
 components_targets = $(addsuffix /components/synaptic_models/lgn_2_vip.json, $(networks))
 
+mini_run: miniature/output/spikes.h5
 components: miniature/components/synaptic_models/lgn_2_vip.json
 build: miniature/network/lgn_nodes.h5
 
