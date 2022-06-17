@@ -1,9 +1,9 @@
 mainscripts := build_network.py edge_funcs.py node_funcs.py
 buildfiles := glif_props/v1_node_models.json glif_props/lgn_weights_model.csv
-networks = original_mini miniature
+networks = miniature fullmodel
 
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
-config_targets = $(addsuffix /configs/config_filternet.json, $(networks))
+config_targets = $(addsuffix /configs/config.json, $(networks))
 filternet_targets = $(addsuffix /filternet/spikes.h5, $(networks))
 run_targets = $(addsuffix /output/spikes.h5, $(networks))
 run_lgn_targets = $(addsuffix /output_lgn/spikes.h5, $(networks))
@@ -15,48 +15,45 @@ run_8d_targets = $(addsuffix /8dir_10trials/angle0_trial0/spikes.csv, $(networks
 odsi_targets = $(addsuffix /metrics/OSI_DSI_DF.csv, $(networks))
 odsi_figure_targets = $(addsuffix /figures/OSI_DSI.png, $(networks))
 get_figures_targets = $(addsuffix /figures, $(networks))
-# lgn_weight_targets = $(addsuffix /network/lgn_v1_edge_types.csv, $(networks))
 components_targets = $(addsuffix /components/synaptic_models/lgn_2_vip.json, $(networks))
 
 components: miniature/components/synaptic_models/lgn_2_vip.json
 build: miniature/network/lgn_nodes.h5
 
-$(config_targets): %/configs/config_filternet.json: config_templates/config_filternet.json
+$(config_targets): %/configs/config.json: config_templates/config_plain.json
 	mkdir -p $*/configs
-	cp config_templates/lgn_v1_population_multiplier.csv $*/configs/
-	cp config_templates/config_multimeter.json $*/configs/
-	cp config_templates/config_plain.json $*/configs/
+	cp config_templates/*.json $*/configs
+	#cp config_templates/lgn_v1_population_multiplier.csv $*/configs/
+	#cp config_templates/config_multimeter.json $*/configs/
+	#cp config_templates/config_plain.json $*/configs/
+	#cp config_templates/config_filternet.json $*/configs/
 	ln -s config_plain.json $*/configs/config.json
-	cp config_templates/config_filternet.json $*/configs/
-
-# $(lgn_weight_targets): %/network/lgn_v1_edge_types.csv: %/network/lgn_nodes.h5 %/configs/config_filternet.json modulate_edge_weight.py 
-#	python modulate_edge_weight.py $*
 
 $(components_targets): %/components/synaptic_models/lgn_2_vip.json: %/network/lgn_nodes.h5
 	python convert_models.py $*
 
-$(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_filternet.json
-	mpirun -np 8 python run_filternet.py $*/configs/config_filternet.json
+$(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json
+	mpirun -np 8 python run_filternet.py $*/configs/config.json
 	
-$(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json
+$(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_2_vip.json
 	mpirun -np 8 python run_pointnet.py $*/configs/config.json
 
-$(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_lgn.json
+$(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_2_vip.json
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgn.json
 
-$(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_lgnbkg.json
+$(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_2_vip.json
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
 
-$(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
+$(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
 	
 $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
 	python make_filternet_jobs.py $*
 
-$(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5 
+$(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/filternet_8dir_10trials.sh'
 
-$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py
+$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py %/components/synaptic_models/lgn_2_vip.json
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/8dir_10trials.sh'
 
 $(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.csv calculate_odsi.py
@@ -68,19 +65,6 @@ $(odsi_figure_targets): %/figures/OSI_DSI.png: %/metrics/OSI_DSI_DF.csv plot_ods
 $(get_figures_targets): %/figures: %/figures/OSI_DSI.png
 	echo done.
 
-original_mini/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
-	mkdir -p original_mini
-	mpirun -np 4 python build_network.py -f -o original_mini/network --no-recurrent --miniature
-
-# override the config settings for the original network
-original_mini/configs/config_filternet.json: config_templates/config_filternet.json
-	mkdir -p $*/configs
-	cp config_templates/lgn_v1_population_multiplier_original.csv $*/configs/lgn_v1_population_multiplier.csv
-	cp config_templates/config_multimeter.json $*/configs
-	cp config_templates/config_plain.json $*/configs
-	ln -s config_plain.json $*/configs/config.json
-	cp config_templates/config_filternet_original.json $*/configs/config_filternet.json
-	
 miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p miniature
 	mpirun -np 4 python build_network.py -f -o miniature/network --miniature --feed-forward-v2
@@ -91,15 +75,6 @@ miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_
 	# copy optimized background connections
 	#cp base_props/bkg_v1_edge_types_optimized.csv miniature/network/bkg_v1_edge_types.csv
 
-no_recurrent: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
-	python build_network.py -f --fraction 0.001 -o no_recurrent --no-recurrent
-
-no_recurrent_full: glif_props/v1_node_models.json glif_props/bkg_v1_edge_types.csv $(mainscripts)
-	python build_network.py -f --fraction 1 -o no_recurrent_full --no-recurrent
-
-v1nodes: glif_props/v1_node_models.json $(mainscripts)
-	python build_network.py -f --fraction 0.001 -o v1nodes --no-recurrent v1
-	
 glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv base_props/v1_synapse_amps.json make_lgn_weights.py
 	python make_lgn_weights.py
 
