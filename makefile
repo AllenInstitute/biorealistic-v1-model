@@ -2,10 +2,12 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 buildfiles := glif_props/v1_node_models.json glif_props/lgn_weights_model.csv
 networks = original_mini miniature
 
-# this may not be necessary
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config_filternet.json, $(networks))
 filternet_targets = $(addsuffix /filternet/spikes.h5, $(networks))
+run_targets = $(addsuffix /output/spikes.h5, $(networks))
+run_lgn_targets = $(addsuffix /output_lgn/spikes.h5, $(networks))
+run_lgnbkg_targets = $(addsuffix /output_lgnbkg/spikes.h5, $(networks))
 jobs_8dfilternet_targets = $(addsuffix /jobs/filternet_8dir_10trials.sh, $(networks))
 jobs_8d_targets = $(addsuffix /jobs/8dir_10trials.sh, $(networks))
 run_8dfilternet_targets = $(addsuffix /filternet_8dir_10trials/angle0_trial0/spikes.csv, $(networks))
@@ -13,8 +15,10 @@ run_8d_targets = $(addsuffix /8dir_10trials/angle0_trial0/spikes.csv, $(networks
 odsi_targets = $(addsuffix /metrics/OSI_DSI_DF.csv, $(networks))
 odsi_figure_targets = $(addsuffix /figures/OSI_DSI.png, $(networks))
 get_figures_targets = $(addsuffix /figures, $(networks))
-lgn_weight_targets = $(addsuffix /network/lgn_v1_edge_types.csv, $(networks))
+# lgn_weight_targets = $(addsuffix /network/lgn_v1_edge_types.csv, $(networks))
+components_targets = $(addsuffix /components/synaptic_models/lgn_2_vip.json, $(networks))
 
+components: miniature/components/synaptic_models/lgn_2_vip.json
 build: miniature/network/lgn_nodes.h5
 
 $(config_targets): %/configs/config_filternet.json: config_templates/config_filternet.json
@@ -25,12 +29,24 @@ $(config_targets): %/configs/config_filternet.json: config_templates/config_filt
 	ln -s config_plain.json $*/configs/config.json
 	cp config_templates/config_filternet.json $*/configs/
 
-$(lgn_weight_targets): %/network/lgn_v1_edge_types.csv: %/network/lgn_nodes.h5 %/network_nomod/lgn_v1_edge_types.csv %/configs/config_filternet.json modulate_edge_weight.py 
-	python modulate_edge_weight.py $*
+# $(lgn_weight_targets): %/network/lgn_v1_edge_types.csv: %/network/lgn_nodes.h5 %/configs/config_filternet.json modulate_edge_weight.py 
+#	python modulate_edge_weight.py $*
+
+$(components_targets): %/components/synaptic_models/lgn_2_vip.json: %/network/lgn_nodes.h5
+	python convert_models.py $*
 
 $(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_filternet.json
 	mpirun -np 8 python run_filternet.py $*/configs/config_filternet.json
 	
+$(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json
+	mpirun -np 8 python run_pointnet.py $*/configs/config.json
+
+$(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_lgn.json
+	mpirun -np 8 python run_pointnet.py $*/configs/config_lgn.json
+
+$(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_lgnbkg.json
+	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
+
 $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
 	

@@ -2,8 +2,8 @@
   "manifest": {
     "$BASE_DIR": "${configdir}/..",
     "$NETWORK_DIR": "$BASE_DIR/network",
-    "$MODELS_DIR": "$BASE_DIR/../glif_models",
-    "$OUTPUT_DIR": "$BASE_DIR/output",
+    "$MODELS_DIR": "$BASE_DIR/components",
+    "$OUTPUT_DIR": "$BASE_DIR/output_multimeter",
     "$LGNINPUT_DIR": "$BASE_DIR/filternet"
   },
   "run": {

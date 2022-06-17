@@ -27,13 +27,14 @@ def DendriticConstancy_LGN(edges, src_nodes, trg_nodes):
     return syn_weight * nsyns / nsyns_correction
 """
 
+
 @synaptic_weight
 def ConstantMultiplier_LGN(edges, src_nodes, trg_nodes):
     """
     Multiply a constant for all the LGN connections.
     """
-    return edges['syn_weight'].values * 5.0
-    
+    return edges["syn_weight"].values * 3.0
+
 
 @synaptic_weight
 def DirectionRule_others(edges, src_nodes, trg_nodes):
