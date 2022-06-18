@@ -36,7 +36,7 @@ from bmtk.builder import NetworkBuilder  # NetworkBuilder
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=0.50, miniature=False):
+def add_nodes_v1(fraction=1.00, miniature=False):
     if miniature:
         node_props = "glif_props/v1_node_models_miniature.json"
     else:
@@ -44,7 +44,7 @@ def add_nodes_v1(fraction=0.50, miniature=False):
     v1_models = json.load(open(node_props, "r"))
 
     min_radius = 1.0  # to avoid diverging density near 0
-    radius = v1_models["radius"]
+    radius = v1_models["radius"] * np.sqrt(fraction)
     radial_range = [min_radius, radius]
 
     net = NetworkBuilder("v1")
@@ -735,7 +735,7 @@ if __name__ == "__main__":
         "--fraction",
         type=float,
         default=1.0,
-        help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes",
+        help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes (radius is reduced; density is kept)",
     )
     parser.add_argument(
         "--miniature",

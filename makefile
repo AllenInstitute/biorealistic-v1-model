@@ -73,6 +73,15 @@ $(get_figures_targets): %/figures: %/figures/OSI_DSI.png
 miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p miniature
 	mpirun -np 4 python build_network.py -f -o miniature/network --miniature --feed-forward-v2
+<<<<<<< HEAD
+=======
+	# duplicate the node/edge type files so that we can adjust the weight retroactively
+	# This is no longer valid as we swtiched to store weights in h5 files.
+	#mkdir -p miniature/network_nomod 
+	#cp miniature/network/*.csv miniature/network_nomod/
+	# copy optimized background connections
+	#cp base_props/bkg_v1_edge_types_optimized.csv miniature/network/bkg_v1_edge_types.csv
+>>>>>>> Changing the behavior of --fraction option
 	
 tiny/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p tiny
@@ -133,8 +142,10 @@ clean:
 	rm -rf v1nodes
 	rm -rf no_recurrent
 	rm -rf miniature
-	rm -rf original_mini
 	rm -rf no_recurrent_full
 	rm -rf profile
 	rm -rf out.prof
 	
+.PHONY: list  # to list all the files. from stackoverflow question # 4219255
+list:
+	@LC_ALL=C $(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
