@@ -286,7 +286,8 @@ def add_edges_v1(net):
     # pop to pop parameters:
     cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
     # pop to specific model parameters:
-    conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
+    # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
+    conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_June_20_2022.csv")
     # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
     # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
@@ -524,7 +525,7 @@ def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
 
 def specify_lgn_dynamics_params(target_pop_name):
     """specify the name of the synaptic dynamics parameters file based on the target population name"""
-    basename = "lgn_2_"
+    basename = "lgn_to_"
     ext = ".json"
     e_or_i = target_pop_name[0]
     if e_or_i == "e":
