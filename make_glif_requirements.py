@@ -81,45 +81,45 @@ def distribute_nums(n, m):
     return counts
 
 
-def pick_glif_models(models_df, row):
-    # # Need short names for indexing (leaving these here temporarily in case they are needed elsewhere)
-    # pop_name_long2short = {
-    #     "i1Htr3a": "vip",
-    #     "e23Cux2": "e23",
-    #     "i23Vip": "vip",
-    #     "i23Pvalb": "pv",
-    #     "i23Sst": "sst",
-    #     "e4Nr5a1": "e4",
-    #     "e4Rorb": "e4",
-    #     "e4Scnn1a": "e4",
-    #     "e4other": "e4",
-    #     "i4Vip": "vip",
-    #     "i4Pvalb": "pv",
-    #     "i4Sst": "sst",
-    #     "e5IT": "e5it",
-    #     "e5ET": "e5et",
-    #     "e5NP": "e5np",
-    #     "i5Vip": "vip",
-    #     "i5Pvalb": "pv",
-    #     "i5Sst": "sst",
-    #     "e6Ntsr1": "e6",
-    #     "i6Vip": "vip",
-    #     "i6Pvalb": "pv",
-    #     "i6Sst": "sst",
-    # }
-    # cell_pops_pre = [
-    #     "e23",
-    #     "e4",
-    #     "e5et",
-    #     "e5it",
-    #     "e5np",
-    #     "e6",
-    #     "pv",
-    #     "sst",
-    #     "vip",
-    #     "lgn",
-    # ]
-    # cell_pops_post = ["e23", "e4", "e5et", "e5it", "e5np", "e6", "pv", "sst", "vip"]
+def pick_glif_models(models_df, row, v1_synapse_amps):
+    # Need short names for indexing:
+    pop_name_long2short = {
+        "i1Htr3a": "vip",
+        "e23Cux2": "e23",
+        "i23Vip": "vip",
+        "i23Pvalb": "pv",
+        "i23Sst": "sst",
+        "e4Nr5a1": "e4",
+        "e4Rorb": "e4",
+        "e4Scnn1a": "e4",
+        "e4other": "e4",
+        "i4Vip": "vip",
+        "i4Pvalb": "pv",
+        "i4Sst": "sst",
+        "e5IT": "e5it",
+        "e5ET": "e5et",
+        "e5NP": "e5np",
+        "i5Vip": "vip",
+        "i5Pvalb": "pv",
+        "i5Sst": "sst",
+        "e6Ntsr1": "e6",
+        "i6Vip": "vip",
+        "i6Pvalb": "pv",
+        "i6Sst": "sst",
+    }
+    cell_pops_pre = [
+        "e23",
+        "e4",
+        "e5et",
+        "e5it",
+        "e5np",
+        "e6",
+        "pv",
+        "sst",
+        "vip",
+        "lgn",
+    ]
+    cell_pops_post = ["e23", "e4", "e5et", "e5it", "e5np", "e6", "pv", "sst", "vip"]
 
     # models are pre-selected, so you can directly search with pop_name
     selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
