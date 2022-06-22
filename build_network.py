@@ -95,8 +95,8 @@ def add_nodes_v1(fraction=0.50, miniature=False):
                     "target_sizes": generate_target_sizes(
                         N, nsyn_lognorm_shape, nsyn_lognorm_scale
                     ),
-                    "EPSP_unitary": model["EPSP_unitary"],
-                    "IPSP_unitary": model["IPSP_unitary"],
+                    # "EPSP_unitary": model["EPSP_unitary"],
+                    # "IPSP_unitary": model["IPSP_unitary"],
                     "nsyn_size_shape": nsyn_lognorm_shape,
                     "nsyn_size_scale": nsyn_lognorm_scale,
                     "nsyn_size_mean": int(
@@ -660,8 +660,8 @@ def add_bkg_v1_edges(v1_net, bkg_net):
             "connection_rule": lambda s, t, n: n,
             "connection_params": {"n": nsyns},
             # "connection_params": {"nsyns": 1},
-            # "dynamics_params": row["dynamics_params"],
-            "dynamics_params": f"e2{target_pop_name[0]}.json",
+            "dynamics_params": row["dynamics_params"],
+            # "dynamics_params": f"e2{target_pop_name[0]}.json",
             "syn_weight": row["syn_weight_psp"],
             # "delay": row["delay"],
             "delay": 1.0,
