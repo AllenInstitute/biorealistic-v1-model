@@ -82,6 +82,45 @@ def distribute_nums(n, m):
 
 
 def pick_glif_models(models_df, row, v1_synapse_amps):
+    # Need short names for indexing:
+    pop_name_long2short = {
+        "i1Htr3a": "vip",
+        "e23Cux2": "e23",
+        "i23Vip": "vip",
+        "i23Pvalb": "pv",
+        "i23Sst": "sst",
+        "e4Nr5a1": "e4",
+        "e4Rorb": "e4",
+        "e4Scnn1a": "e4",
+        "e4other": "e4",
+        "i4Vip": "vip",
+        "i4Pvalb": "pv",
+        "i4Sst": "sst",
+        "e5IT": "e5it",
+        "e5ET": "e5et",
+        "e5NP": "e5np",
+        "i5Vip": "vip",
+        "i5Pvalb": "pv",
+        "i5Sst": "sst",
+        "e6Ntsr1": "e6",
+        "i6Vip": "vip",
+        "i6Pvalb": "pv",
+        "i6Sst": "sst",
+    }
+    cell_pops_pre = [
+        "e23",
+        "e4",
+        "e5et",
+        "e5it",
+        "e5np",
+        "e6",
+        "pv",
+        "sst",
+        "vip",
+        "lgn",
+    ]
+    cell_pops_post = ["e23", "e4", "e5et", "e5it", "e5np", "e6", "pv", "sst", "vip"]
+
     # models are pre-selected, so you can directly search with pop_name
     selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
 
@@ -90,6 +129,7 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
     assert n_models > 0
     model_cell_count = distribute_nums(ncell_all, n_models)
 
+    post_pop = row["pop_name"]
     models = []
     for i in range(n_models):
         poprow = selected_df.iloc[i]
@@ -100,21 +140,33 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
         model_dict["model_template"] = "nest:glif_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
 
-        # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)
-        if row["ei"] == "e":
-            model_dict["EPSP_unitary"] = v1_synapse_amps["e2e"][
-                str(poprow["specimen__id"])
-            ]
-            model_dict["IPSP_unitary"] = v1_synapse_amps["i2e"][
-                str(poprow["specimen__id"])
-            ]
-        if row["ei"] == "i":
-            model_dict["EPSP_unitary"] = v1_synapse_amps["e2i"][
-                str(poprow["specimen__id"])
-            ]
-            model_dict["IPSP_unitary"] = v1_synapse_amps["i2i"][
-                str(poprow["specimen__id"])
-            ]
+        # add unitary PSP info for possible connection types onto post-synaptic cell:
+        for pre_pop in cell_pops_pre:
+            syn_type = pre_pop + "_to_" + post_pop
+            unitary_PSP_key = syn_type + "_unitary"
+            if row["ei"] == "e":
+                model_dict[unitary_PSP_key] = v1_synapse_amps[syn_type][
+                    str(poprow["specimen__id"])
+                ]
+            else:
+                model_dict[unitary_PSP_key] = -v1_synapse_amps[syn_type][
+                    str(poprow["specimen__id"])
+                ]
+        # # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)
+        # if row["ei"] == "e":
+        #     model_dict["EPSP_unitary"] = v1_synapse_amps["e2e"][
+        #         str(poprow["specimen__id"])
+        #     ]
+        #     model_dict["IPSP_unitary"] = v1_synapse_amps["i2e"][
+        #         str(poprow["specimen__id"])
+        #     ]
+        # if row["ei"] == "i":
+        #     model_dict["EPSP_unitary"] = v1_synapse_amps["e2i"][
+        #         str(poprow["specimen__id"])
+        #     ]
+        #     model_dict["IPSP_unitary"] = v1_synapse_amps["i2i"][
+        #         str(poprow["specimen__id"])
+        #     ]
 
         models.append(model_dict)
 
