@@ -3,7 +3,6 @@
 import pandas as pd
 import json
 import numpy as np
-import pop_names
 
 
 v1unitary = json.load(open("precomputed_props/v1_synapse_amps.json", "r"))
@@ -43,8 +42,6 @@ v1unitary_ser = pd.concat(
 )
 
 # also load up population weight
-
-
 pop_weights = pd.read_csv("base_props/bkg_weights_population_init.csv", sep=" ")
 v1_node_model = json.load(open("glif_props/v1_node_models.json"))
 
