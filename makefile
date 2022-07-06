@@ -1,5 +1,7 @@
 mainscripts := build_network.py edge_funcs.py node_funcs.py
-buildfiles := glif_props/v1_node_models.json glif_props/lgn_weights_model.csv
+
+#whatever is needed for above should go here:
+buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv
 networks = miniature fullmodel
 
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
@@ -76,10 +78,10 @@ miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_
 	# copy optimized background connections
 	#cp base_props/bkg_v1_edge_types_optimized.csv miniature/network/bkg_v1_edge_types.csv
 
-glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv base_props/v1_synapse_amps.json make_lgn_weights.py
+glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv precomputed_props/v1_synapse_amps.json make_lgn_weights.py
 	python make_lgn_weights.py
 
-glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv base_props/v1_synapse_amps.json make_bkg_weights.py
+glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv precomputed_props/v1_synapse_amps.json make_bkg_weights.py
 	python make_bkg_weights.py
 
 test: $(mainscripts)
@@ -104,8 +106,6 @@ glif_props/v1_node_models.json: make_glif_requirements.py base_props/V1model_see
 glif_props/v1_node_models_miniature.json: make_glif_requirements.py base_props/V1model_seed_file_miniature.xlsx glif_requisite/glif_models_prop.csv
 	python make_glif_requirements.py --miniature
 
-glif_props/bkg_v1_edge_types.csv: base_props/bkg_weights_population.csv glif_props/v1_node_models.json
-	python make_bkg_weights.py
 	
 cell_types/cells_with_glif_pop_name.csv: pick_glif_all.py base_props/V1model_seed_file.xlsx cell_types/glif_explained_variance_ratio.csv
 	python pick_glif_all.py

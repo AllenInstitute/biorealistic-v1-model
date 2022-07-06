@@ -4,9 +4,9 @@ import numpy as np
 import os
 
 
-syn_types = pd.read_csv("syn_types_table.csv", index_col=0)
-syn_types_syn_tau = pd.read_csv("syn_types_syn_tau.csv", index_col=0)
-syn_models_dir = "syn_models_new_May31/"
+syn_types = pd.read_csv("base_props/syn_types_table.csv", index_col=0)
+syn_types_syn_tau = pd.read_csv("base_props/syn_types_syn_tau.csv", index_col=0)
+syn_models_dir = "glif_models/synaptic_models/"
 
 os.mkdir(syn_models_dir)
 

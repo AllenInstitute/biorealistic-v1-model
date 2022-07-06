@@ -81,7 +81,7 @@ def distribute_nums(n, m):
     return counts
 
 
-def pick_glif_models(models_df, row, v1_synapse_amps):
+def pick_glif_models(models_df, row):
     # # Need short names for indexing (leaving these here temporarily in case they are needed elsewhere)
     # pop_name_long2short = {
     #     "i1Htr3a": "vip",
@@ -197,12 +197,12 @@ def make_v1_node_models(miniature=False):
     glif_models_df = pd.read_csv("glif_requisite/glif_models_prop.csv", sep=" ")
     node_models = {"locations": {}}
     # Load unitary v1 synapse amps:
-    v1_synapse_amps = json.load(open("base_props/v1_synapse_amps.json", "r"))
+
     for location, subdf in seed_df.groupby("location"):
         location_dict = {}
         for pop_id, row in subdf.iterrows():
             pop_dict = extract_info(row)
-            models = pick_glif_models(glif_models_df, row, v1_synapse_amps)
+            models = pick_glif_models(glif_models_df, row)
             pop_dict["models"] = models
             location_dict[pop_name_change(row["pop_name"])] = pop_dict
 
