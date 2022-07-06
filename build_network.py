@@ -488,8 +488,8 @@ def add_lgn_v1_edges_experimental(
             "iterator": "all_to_one",
             "connection_rule": select_lgn_sources_powerlaw,
             "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
-            # "dynamics_params": row["params_file"],
-            "dynamics_params": specify_lgn_dynamics_params(target_pop_name),
+            "dynamics_params": row["dynamics_params"],
+            # "dynamics_params": specify_lgn_dynamics_params(target_pop_name),
             # "dynamics_params": f"e2{e_or_i}.json",
             # "syn_weight": row["weight_max"],
             # "syn_weight": row["syn_weight_psp"] / syn_weight_normalization,
@@ -603,7 +603,8 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
                 "cell_type_dict": cell_type_dict,
             },
             # "dynamics_params": row["params_file"],
-            "dynamics_params": f"e2{e_or_i}.json",
+            # "dynamics_params": f"e2{e_or_i}.json",
+            "dynamics_params": row["dynamics_params"],
             # "syn_weight": row["weight_max"],
             "syn_weight": row["syn_weight"],
             # "delay": row["delay"],
@@ -745,7 +746,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--feed-forward-v2",
         action="store_true",
-        default=False,
+        default=True,
         help="use a version 2 of the feed-forward thalamocortical connection",
     )
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])

@@ -1,25 +1,23 @@
-population syn_weight
-e23Cux2 3.0
-e4Nr5a1 3.0
-e4Rorb 3.0
-e4Scnn1a 3.0
-e4other 3.0
-e5ET 3.0
-e5IT 3.0
-e5NP 3.0
-e5Rbp4 3.0
-e5noRbp4 3.0
-e6Ntsr1 3.0
-i1Htr3a 3.0
-i23Vip 3.0
-i23Pvalb 3.0
-i23Sst 3.0
-i4Vip 3.0
-i4Pvalb 3.0
-i4Sst 3.0
-i5Vip 3.0
-i5Pvalb 3.0
-i5Sst 3.0
-i6Vip 3.0
-i6Pvalb 3.0
-i6Sst 3.0
+population syn_weight dynamics_params
+e23Cux2 3 lgn_to_e23.json
+e4Nr5a1 3 lgn_to_e4.json
+e4Rorb 3 lgn_to_e4.json
+e4Scnn1a 3 lgn_to_e4.json
+e4other 3 lgn_to_e4.json
+e5ET 3 lgn_to_e5et.json
+e5IT 3 lgn_to_e5it.json
+e5NP 3 lgn_to_e5np.json
+e6Ntsr1 3 lgn_to_e6.json
+i1Htr3a 3 lgn_to_vip.json
+i23Vip 3 lgn_to_vip.json
+i23Pvalb 3 lgn_to_pv.json
+i23Sst 3 lgn_to_sst.json
+i4Vip 3 lgn_to_vip.json
+i4Pvalb 3 lgn_to_pv.json
+i4Sst 3 lgn_to_sst.json
+i5Vip 3 lgn_to_vip.json
+i5Pvalb 3 lgn_to_pv.json
+i5Sst 3 lgn_to_sst.json
+i6Vip 3 lgn_to_vip.json
+i6Pvalb 3 lgn_to_pv.json
+i6Sst 3 lgn_to_sst.json
