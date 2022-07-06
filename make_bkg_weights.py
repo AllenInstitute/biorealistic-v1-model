@@ -1,4 +1,4 @@
-# read bkg_weights_population.csv and write bkg_v1_edge_types.csv
+# read bkg_weights_population.csv and write bkg_weights_model.csv
 # %%
 import pandas as pd
 import json
@@ -15,8 +15,7 @@ v1unitary_ser_both = v1unitary_ser.append(v1unitary_ser_i)
 # also load up population weight
 
 
-# pop_weights = pd.read_csv("base_props/bkg_weights_population_init.csv", sep=" ")
-pop_weights = pd.read_csv("base_props/bkg_weights_population.csv", sep=" ")
+pop_weights = pd.read_csv("base_props/bkg_weights_population_init.csv", sep=" ")
 v1_node_model = json.load(open("glif_props/v1_node_models.json"))
 
 pop_model_dict = {}
@@ -46,7 +45,7 @@ pop_bkg["syn_weight_psp"] = pop_bkg["syn_weight"] * pop_bkg["PSP coef"]
 pop_bkg.index = pop_bkg["model_id"]
 del pop_bkg["model_id"]
 
-pop_bkg.to_csv("glif_props/bkg_weights_model_init.csv", sep=" ")
+pop_bkg.to_csv("glif_props/bkg_weights_model.csv", sep=" ")
 
 
 pop_bkg
