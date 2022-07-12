@@ -73,15 +73,6 @@ $(get_figures_targets): %/figures: %/figures/OSI_DSI.png
 miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p miniature
 	mpirun -np 4 python build_network.py -f -o miniature/network --miniature --feed-forward-v2
-<<<<<<< HEAD
-=======
-	# duplicate the node/edge type files so that we can adjust the weight retroactively
-	# This is no longer valid as we swtiched to store weights in h5 files.
-	#mkdir -p miniature/network_nomod 
-	#cp miniature/network/*.csv miniature/network_nomod/
-	# copy optimized background connections
-	#cp base_props/bkg_v1_edge_types_optimized.csv miniature/network/bkg_v1_edge_types.csv
->>>>>>> Changing the behavior of --fraction option
 	
 tiny/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p tiny

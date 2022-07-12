@@ -82,45 +82,6 @@ def distribute_nums(n, m):
 
 
 def pick_glif_models(models_df, row, v1_synapse_amps):
-    # Need short names for indexing:
-    pop_name_long2short = {
-        "i1Htr3a": "vip",
-        "e23Cux2": "e23",
-        "i23Vip": "vip",
-        "i23Pvalb": "pv",
-        "i23Sst": "sst",
-        "e4Nr5a1": "e4",
-        "e4Rorb": "e4",
-        "e4Scnn1a": "e4",
-        "e4other": "e4",
-        "i4Vip": "vip",
-        "i4Pvalb": "pv",
-        "i4Sst": "sst",
-        "e5IT": "e5it",
-        "e5ET": "e5et",
-        "e5NP": "e5np",
-        "i5Vip": "vip",
-        "i5Pvalb": "pv",
-        "i5Sst": "sst",
-        "e6Ntsr1": "e6",
-        "i6Vip": "vip",
-        "i6Pvalb": "pv",
-        "i6Sst": "sst",
-    }
-    cell_pops_pre = [
-        "e23",
-        "e4",
-        "e5et",
-        "e5it",
-        "e5np",
-        "e6",
-        "pv",
-        "sst",
-        "vip",
-        "lgn",
-    ]
-    cell_pops_post = ["e23", "e4", "e5et", "e5it", "e5np", "e6", "pv", "sst", "vip"]
-
     # models are pre-selected, so you can directly search with pop_name
     selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
 
@@ -129,7 +90,6 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
     assert n_models > 0
     model_cell_count = distribute_nums(ncell_all, n_models)
 
-    post_pop = row["pop_name"]
     models = []
     for i in range(n_models):
         poprow = selected_df.iloc[i]
@@ -137,8 +97,25 @@ def pick_glif_models(models_df, row, v1_synapse_amps):
         model_dict["N"] = int(model_cell_count[i])
         model_dict["node_type_id"] = int(poprow["specimen__id"])
         model_dict["model_type"] = "point_process"
-        model_dict["model_template"] = "nest:glif_psc"
+        model_dict["model_template"] = "nest:glif_lif_asc_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
+
+        # Adding unitary PSP info (the connection strength that gives and I/E-PSP a max amp of 1mV)
+        if row["ei"] == "e":
+            model_dict["EPSP_unitary"] = v1_synapse_amps["e2e"][
+                str(poprow["specimen__id"])
+            ]
+            model_dict["IPSP_unitary"] = v1_synapse_amps["i2e"][
+                str(poprow["specimen__id"])
+            ]
+        if row["ei"] == "i":
+            model_dict["EPSP_unitary"] = v1_synapse_amps["e2i"][
+                str(poprow["specimen__id"])
+            ]
+            model_dict["IPSP_unitary"] = v1_synapse_amps["i2i"][
+                str(poprow["specimen__id"])
+            ]
+
         models.append(model_dict)
 
     return models
@@ -197,12 +174,12 @@ def make_v1_node_models(miniature=False):
     glif_models_df = pd.read_csv("glif_requisite/glif_models_prop.csv", sep=" ")
     node_models = {"locations": {}}
     # Load unitary v1 synapse amps:
-
+    v1_synapse_amps = json.load(open("base_props/v1_synapse_amps.json", "r"))
     for location, subdf in seed_df.groupby("location"):
         location_dict = {}
         for pop_id, row in subdf.iterrows():
             pop_dict = extract_info(row)
-            models = pick_glif_models(glif_models_df, row)
+            models = pick_glif_models(glif_models_df, row, v1_synapse_amps)
             pop_dict["models"] = models
             location_dict[pop_name_change(row["pop_name"])] = pop_dict
 
