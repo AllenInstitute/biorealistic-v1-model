@@ -7,6 +7,7 @@ networks = miniature full small tiny
 
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config.json, $(networks))
+config_filternet_targets = $(addsuffix /configs/config_filternet.json, $(networks))
 filternet_targets = $(addsuffix /filternet/spikes.h5, $(networks))
 run_targets = $(addsuffix /output/spikes.h5, $(networks))
 run_lgn_targets = $(addsuffix /output_lgn/spikes.h5, $(networks))
@@ -31,10 +32,15 @@ $(config_targets): %/configs/config.json: config_templates/config_plain.json
 	cp config_templates/*.json $*/configs
 	ln -s config_plain.json $*/configs/config.json
 
+$(config_filternet_targets): %/configs/config_filternet.json: config_templates/config_filternet.json
+	# this may not do anything special, but convenient not to rerun filternet everytime
+	# when config.json is updated.
+	cp config_templates/config_filternet.json config_templates/config_filternet.json
+
 $(components_targets): %/components/synaptic_models/lgn_to_e4.json: %/network/lgn_nodes.h5 glif_models/synaptic_models/e4_to_e4.json
 	python convert_models.py $*
 
-$(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json
+$(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_filternet.json
 	mpirun -np 8 python run_filternet.py $*/configs/config_filternet.json
 	
 $(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
@@ -49,7 +55,7 @@ $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/confi
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
 	mpirun -np 8 python run_pointnet.py $*/configs/config_multimeter.json
 
-$(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
+$(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
 	
 $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
@@ -118,12 +124,17 @@ glif_props/v1_node_models.json: make_glif_requirements.py base_props/V1model_see
 glif_props/v1_node_models_miniature.json: make_glif_requirements.py base_props/V1model_seed_file_miniature.xlsx glif_requisite/glif_models_prop.csv
 	python make_glif_requirements.py --miniature
 
-	
 cell_types/cells_with_glif_pop_name.csv: pick_glif_all.py base_props/V1model_seed_file.xlsx cell_types/glif_explained_variance_ratio.csv
 	python pick_glif_all.py
 
 cell_types/glif_explained_variance_ratio.csv: query_glif_expvar.py
 	python query_glif_expvar.py
+	
+
+# for background tuning	in small network
+small/bkg/bkg_spikes_tuning_1khz_10s.h5: bkg_spike_generation.py
+	python bkg_spike_generation.py
+
 	
 clean:
 	rm -rf cell_types

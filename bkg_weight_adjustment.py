@@ -55,6 +55,7 @@ class BisectionSolver:
         self.tolerance = tolerance
         self.ly = np.nan
         self.ry = np.nan
+        self.force_solved = False
 
     def mid(self):
         return (self.lx + self.rx) / 2
@@ -63,7 +64,7 @@ class BisectionSolver:
         # solution is within tolerance
         cond1 = new_y > self.target_fr * (1 - self.tolerance)
         cond2 = new_y < self.target_fr * (1 + self.tolerance)
-        return cond1 & cond2
+        return (cond1 and cond2) or self.force_solved
 
     def step(self, new_y):
         if np.isnan(new_y):
@@ -72,13 +73,20 @@ class BisectionSolver:
         if np.isnan(self.ly):  # initial condition
             if (new_y - self.target_fr) > 0:  # ill initial condition
                 # raise ValueError("Starting left edge is already positive")
-                print("Starting left edge is already positive")
+                diff = new_y - self.target_fr
+                print(f"Starting left edge is already positive, exceeding by {diff}")
+                print("The weight is set to 0, and considered solved.")
+                self.force_solved = True
+                self.ry = new_y
+                self.ly = new_y
+                return 0
             self.ly = new_y
             return self.rx
         elif np.isnan(self.ry):  # next condition
             if (new_y - self.target_fr) < 0:  # ill initial condition
                 # raise ValueError("Starting right edge is already negative")
-                print("Starting right edge is already negative")
+                diff = new_y - self.target_fr
+                print(f"Starting right edge is already negative by {diff}")
             self.ry = new_y  # now we collected all initial conditions, so return the mid point)
             return self.mid()
         else:  # normal interation
@@ -138,11 +146,19 @@ def get_target_fr(basedir):
     return target_fr
 
 
-basedir = "miniature"
+basedir = "small"
 get_target_fr(basedir)
 # %% update the parameters
-basedir = "miniature"
+basedir = "small"
 
+def run_command(command):
+    print("running the command below...")
+    print(command)
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    process.wait()
+    print(f"Return code: {process.returncode}")
+    return process.returncode
+ 
 
 def update_bkg_weights(basedir, new_weight):
     bkg_edge_name = basedir + "/network/bkg_v1_edge_types.csv"
@@ -158,18 +174,32 @@ def update_bkg_weights(basedir, new_weight):
     return 0
 
 
+# this is a new version after synaptic weight dynamics change
+# def update_bkg_weights2(basedir, new_weight):
+
+
+# write the new weights to a temporary file
+def write_new_weights(new_weight):
+    # first, update the temporay file for the new weights
+    orig_filename = "base_props/bkg_weights_population_init.csv"
+    tmp_filename = "bkg_weights_population_tmp.csv"
+
+    bkg_pop_df = pd.read_csv(orig_filename, sep=" ")
+    bkg_pop_df['syn_weight'] = new_weight
+    
+    bkg_pop_df.to_csv(tmp_filename, sep=" ", index=False)
+    return
+    
+    
+
 # %% run simulation with the existing configuration
 
+  
 
 def run_simulation(basedir, ncore=8):
     config_file = basedir + "/configs/config_bkgtune.json"
     command = f"mpirun -np {ncore} python run_pointnet.py {config_file}"
-    print("running the command below...")
-    print(command)
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    process.wait()
-    print(process.returncode)
-    return process.returncode
+    return run_command(command)
 
 
 # run_simulation(basedir) it works.
@@ -180,12 +210,12 @@ def run_simulation(basedir, ncore=8):
 if __name__ == "__main__":
     # start with forming the problem.
 
-    basedir = "miniature"
+    basedir = "small"
     v1df = get_v1_dfs(basedir)
     tfr = get_target_fr(basedir)
 
     tfr.keys()[0]
-    solvers = {nid: BisectionSolver(0, 100, tfr[nid]) for nid in tfr.keys()}
+    solvers = {nid: BisectionSolver(0, 256, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
     weight[:] = 0.0
@@ -209,33 +239,37 @@ if __name__ == "__main__":
 # %%
 # (new_weight>0).sum()
 
+solvers
+model_fr
+
 
 # %%
 
+# model_fr
+# run_simulation(basedir)
+# df = get_spike_df(basedir)
+# fr = get_model_fr(basedir)
 
-run_simulation(basedir)
-df = get_spike_df(basedir)
-fr = get_model_fr(basedir)
+# fr.plot()
 
 
-"""
 def func(x):
     return x**2
 
-bs = BisectionSolver(0, 1, 4, 0.00001)
+bs = BisectionSolver(0, 10, 4, 0.00001)
 x = 0
 for i in range(100):
+    print(x, val)
     val = func(x)
     x = bs.step(val)
-    print(x)
     if x < 0:
         break
 # OK. it works.
-"""
+
 
 
 # %% looking at the raster
-from plotting_utils import plot_raster
+# from plotting_utils import plot_raster
 
-plot_raster("miniature/output_bkgtune/config_bkgtune.json")
+# plot_raster("small/output_bkgtune/config_bkgtune.json")
 

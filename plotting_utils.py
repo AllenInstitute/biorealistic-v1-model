@@ -131,5 +131,5 @@ if __name__ == "__main__":
 
 
 # %% development block
-v1df.value_counts("location").sort_index()
+# v1df.value_counts("location").sort_index()
 

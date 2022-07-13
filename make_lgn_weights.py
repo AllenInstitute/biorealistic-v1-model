@@ -27,29 +27,26 @@ v1unitary_ser, pop_model_dict = make_pop_model_dict()
 
 
 # %% make a dataframe that contains all these info
-pop_df = pd.DataFrame.from_dict(pop_model_dict, orient="index", columns=["population"])
-pop_psp = pop_df.merge(v1unitary_ser, left_index=True, right_index=True)
-pop_psp["model_id"] = pop_psp.index
+
+basename = "base_props/lgn_weights_population.csv"
+targetname = "glif_props/lgn_weights_model.csv"
+
+def mix_in_population_weights(base_name, pop_model_dict, v1unitary_ser):
+    pop_df = pd.DataFrame.from_dict(pop_model_dict, orient="index", columns=["population"])
+    pop_psp = pop_df.merge(v1unitary_ser, left_index=True, right_index=True)
+    pop_psp["model_id"] = pop_psp.index
 
 
-# load population weight and merge it
-pop_weights = pd.read_csv("base_props/lgn_weights_population.csv", sep=" ")
-pop_all = pop_psp.merge(pop_weights, on="population")
+    pop_weights = pd.read_csv(base_name, sep=" ")
+    pop_all = pop_psp.merge(pop_weights, on="population")
 
-# pop_all
-# group_ave = pop_all.groupby("population").mean()["Unitary PSP"]
-# pop_all = pop_all.merge(
-#     group_ave, left_on="population", right_index=True, suffixes=["", "_pop"]
-# )
+    # just devide by the unitary PSP
+    pop_all["syn_weight_psp"] = pop_all["syn_weight"] / pop_all["Unitary PSP"]
 
-# normalize the coefficient per population, so that we can use the same weight from
-# the old models
-# pop_all["PSP coef"] = pop_all["Unitary PSP_pop"] / pop_all["Unitary PSP"]
-# pop_all["syn_weight_psp"] = pop_all["syn_weight"] * pop_all["PSP coef"]
+    pop_all.index = pop_all["model_id"]
+    del pop_all["model_id"]
+    return pop_all
 
-# revert it. Just divide by the unitary PSP to get the final value
-pop_all["syn_weight_psp"] = pop_all["syn_weight"] / pop_all["Unitary PSP"]
-
-pop_all.index = pop_all["model_id"]
-del pop_all["model_id"]
-pop_all.to_csv("glif_props/lgn_weights_model.csv", sep=" ")
+pop_all = mix_in_population_weights(basename, pop_model_dict, v1unitary_ser)
+pop_all.to_csv(targetname, sep=" ")
+# %%

@@ -10,6 +10,7 @@ import pathlib
 
 
 billeh_compare = False # mode to compare with billeh et al (for e4)
+# billeh_compare = True
 keys = ["whislo", "q1", "med", "q3", "whishi"]
 billeh_rate = [dict(zip(keys, [0, 0.5, 2, 3, 8]))]
 billeh_DSI = [dict(zip(keys, [0, 0.08, 0.14, 0.24, 0.4]))]

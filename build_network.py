@@ -476,6 +476,10 @@ def add_lgn_v1_edges_experimental(
         # lognorm_shape = v1_models_pop[target_pop_name]["nsyn_lognorm_shape"]
         # lognorm_scale = v1_models_pop[target_pop_name]["nsyn_lognorm_scale"]
         # pop could be any valid e4 type. The values should be the same
+        # this has to be selected from e4 in order to normalize the weights correctly.
+        # If you select from each population, the synaptic inputs will be proportional
+        # to the number of synapses that goes into the population, and as a result, the
+        # population that gets large synapses will have too much inputs.
         lognorm_shape = v1_models_pop["e4other"]["nsyn_lognorm_shape"]
         lognorm_scale = v1_models_pop["e4other"]["nsyn_lognorm_scale"]
         mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape ** 2) / 2)
