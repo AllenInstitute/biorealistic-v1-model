@@ -38,7 +38,7 @@ if __name__ == "__main__":
     for i in range(8):
         for j in range(10):
             seed = start_seed + i * 10 + j
-            dirname = f"{basedir}/bkg_8dir_10trials/angle{i}_trial{j}"
+            dirname = f"{basedir}/bkg_8dir_10trials/angle{i*45}_trial{j}"
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
             write_bkg(f"{dirname}/bkg_spikes_1kHz_3s.h5", seed=seed)
 
