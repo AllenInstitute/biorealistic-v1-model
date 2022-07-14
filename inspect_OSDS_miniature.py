@@ -6,7 +6,8 @@ import numpy as np
 from sonata.circuit import File
 import h5py
 
-d = "miniature/"
+# d = "miniature/"
+d = "small/"
 # d = "original_mini/"
 dnet = d + "network/"
 dout = d + "output_multimeter/"
@@ -118,7 +119,7 @@ def get_np_data(filename):
         return (time, npd)
 
 
-time, npd = get_np_data("miniature/output_multimeter/cai_traces.h5")
+time, npd = get_np_data(f"{d}output_multimeter/cai_traces.h5")
 
 # plt.plot(time, npd[:, [276, 284, 300]])
 # plt.plot(time, npd[:, [276]])
@@ -128,7 +129,14 @@ time, npd = get_np_data("miniature/output_multimeter/cai_traces.h5")
 # plt.plot(time, npd[:, [370]])
 # plt.plot(time, npd[:, [394]])
 # f1 analysis
-npd.shape
+
+# pick e4 cells
+v1df_sub = v1df.query("ei=='e' and location=='VisL4'")
+# v1df_sub = v1df
+
+v1df_sub.index
+
+
 spont_time = time < 500
 stim_time = time > 1000
 spont_I = npd[spont_time, :].mean(axis=0)
@@ -142,13 +150,12 @@ f1_I = np.abs(f1_I[:, stim_time].mean(axis=1))
 # plt.plot(f1_I)
 # v1df_sub = v1df.loc[range(0, 17001, 100)]
 
-# v1df_sub = v1df.query("ei=='e' and location=='VisL4'")
-v1df_sub = v1df
 
+vi = v1df_sub.index
 
-v1df_sub["evoked I"] = stim_I - spont_I
-v1df_sub["f1 I"] = f1_I
-v1df_sub["f1/evoked"] = f1_I / (stim_I - spont_I)
+v1df_sub["evoked I"] = stim_I[vi] - spont_I[vi]
+v1df_sub["f1 I"] = f1_I[vi]
+v1df_sub["f1/evoked"] = f1_I[vi] / (stim_I[vi] - spont_I[vi])
 
 v1df_sub["evoked I"].mean()
 
