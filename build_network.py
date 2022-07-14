@@ -831,29 +831,37 @@ if __name__ == "__main__":
             x_block_unit = 16.0
             y_block_unit = 12.0
 
-        if args.miniature:
-            set_seed(seed_lgn_nodes)
-            lgn = add_nodes_lgn(
-                X_grids=15, Y_grids=10, x_block=x_block_unit, y_block=y_block_unit
-            )
-            set_seed(seed_lgn_edges)
-            lgn = lgn_v1_edge_func(
-                v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
-            )
+        # now regardless of settings, LGN models are the same
+        set_seed(seed_lgn_nodes)
+        lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
+        set_seed(seed_lgn_edges)
+        lgn = lgn_v1_edge_func(
+            v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
+        )
 
-            # if args.feed_forward_v2:
-            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
-            #     lgn = add_lgn_v1_edges_experimental(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
-            # else:
-            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0)
-            #     lgn = add_lgn_v1_edges(v1, lgn, x_len=15 * 16.0, y_len=10 * 12.0)
-            # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
-            # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
-        else:
-            set_seed(seed_lgn_nodes)
-            lgn = add_nodes_lgn()
-            set_seed(seed_lgn_edges)
-            lgn = lgn_v1_edge_func(v1, lgn)
+        # if args.miniature:
+        #     set_seed(seed_lgn_nodes)
+        #     lgn = add_nodes_lgn(
+        #         X_grids=15, Y_grids=10, x_block=x_block_unit, y_block=y_block_unit
+        #     )
+        #     set_seed(seed_lgn_edges)
+        #     lgn = lgn_v1_edge_func(
+        #         v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
+        #     )
+
+        #     # if args.feed_forward_v2:
+        #     #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+        #     #     lgn = add_lgn_v1_edges_experimental(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
+        #     # else:
+        #     #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0)
+        #     #     lgn = add_lgn_v1_edges(v1, lgn, x_len=15 * 16.0, y_len=10 * 12.0)
+        #     # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+        #     # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
+        # else:
+        #     set_seed(seed_lgn_nodes)
+        #     lgn = add_nodes_lgn()
+        #     set_seed(seed_lgn_edges)
+        #     lgn = lgn_v1_edge_func(v1, lgn)
         lgn.build()
         lgn.save(args.output_dir)
         print("  done.")
