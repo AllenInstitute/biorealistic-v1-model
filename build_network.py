@@ -36,7 +36,7 @@ from bmtk.builder import NetworkBuilder  # NetworkBuilder
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=0.50, miniature=False):
+def add_nodes_v1(fraction=1.00, miniature=False):
     if miniature:
         node_props = "glif_props/v1_node_models_miniature.json"
     else:
@@ -44,7 +44,7 @@ def add_nodes_v1(fraction=0.50, miniature=False):
     v1_models = json.load(open(node_props, "r"))
 
     min_radius = 1.0  # to avoid diverging density near 0
-    radius = v1_models["radius"]
+    radius = v1_models["radius"] * np.sqrt(fraction)
     radial_range = [min_radius, radius]
 
     net = NetworkBuilder("v1")
@@ -476,6 +476,10 @@ def add_lgn_v1_edges_experimental(
         # lognorm_shape = v1_models_pop[target_pop_name]["nsyn_lognorm_shape"]
         # lognorm_scale = v1_models_pop[target_pop_name]["nsyn_lognorm_scale"]
         # pop could be any valid e4 type. The values should be the same
+        # this has to be selected from e4 in order to normalize the weights correctly.
+        # If you select from each population, the synaptic inputs will be proportional
+        # to the number of synapses that goes into the population, and as a result, the
+        # population that gets large synapses will have too much inputs.
         lognorm_shape = v1_models_pop["e4other"]["nsyn_lognorm_shape"]
         lognorm_scale = v1_models_pop["e4other"]["nsyn_lognorm_scale"]
         mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape ** 2) / 2)
@@ -735,7 +739,7 @@ if __name__ == "__main__":
         "--fraction",
         type=float,
         default=1.0,
-        help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes",
+        help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes (radius is reduced; density is kept)",
     )
     parser.add_argument(
         "--miniature",
@@ -827,29 +831,37 @@ if __name__ == "__main__":
             x_block_unit = 16.0
             y_block_unit = 12.0
 
-        if args.miniature:
-            set_seed(seed_lgn_nodes)
-            lgn = add_nodes_lgn(
-                X_grids=15, Y_grids=10, x_block=x_block_unit, y_block=y_block_unit
-            )
-            set_seed(seed_lgn_edges)
-            lgn = lgn_v1_edge_func(
-                v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
-            )
+        # now regardless of settings, LGN models are the same
+        set_seed(seed_lgn_nodes)
+        lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
+        set_seed(seed_lgn_edges)
+        lgn = lgn_v1_edge_func(
+            v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
+        )
 
-            # if args.feed_forward_v2:
-            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
-            #     lgn = add_lgn_v1_edges_experimental(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
-            # else:
-            #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0)
-            #     lgn = add_lgn_v1_edges(v1, lgn, x_len=15 * 16.0, y_len=10 * 12.0)
-            # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
-            # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
-        else:
-            set_seed(seed_lgn_nodes)
-            lgn = add_nodes_lgn()
-            set_seed(seed_lgn_edges)
-            lgn = lgn_v1_edge_func(v1, lgn)
+        # if args.miniature:
+        #     set_seed(seed_lgn_nodes)
+        #     lgn = add_nodes_lgn(
+        #         X_grids=15, Y_grids=10, x_block=x_block_unit, y_block=y_block_unit
+        #     )
+        #     set_seed(seed_lgn_edges)
+        #     lgn = lgn_v1_edge_func(
+        #         v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
+        #     )
+
+        #     # if args.feed_forward_v2:
+        #     #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+        #     #     lgn = add_lgn_v1_edges_experimental(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
+        #     # else:
+        #     #     lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=16.0, y_block=12.0)
+        #     #     lgn = add_lgn_v1_edges(v1, lgn, x_len=15 * 16.0, y_len=10 * 12.0)
+        #     # lgn = add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0)
+        #     # lgn = lgn_v1_edge_func(v1, lgn, x_len=15 * 8.0, y_len=10 * 8.0)
+        # else:
+        #     set_seed(seed_lgn_nodes)
+        #     lgn = add_nodes_lgn()
+        #     set_seed(seed_lgn_edges)
+        #     lgn = lgn_v1_edge_func(v1, lgn)
         lgn.build()
         lgn.save(args.output_dir)
         print("  done.")

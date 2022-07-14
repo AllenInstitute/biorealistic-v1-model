@@ -1,23 +1,23 @@
-population syn_weight nsyns dynamics_params
-i1Htr3a 4.678465901004 1 lgn_to_vip.json
-e23Cux2 3.976659363085 1 lgn_to_e23.json
-i23Vip 2.469383327728 1 lgn_to_vip.json
-i23Pvalb 2.06360632416 1 lgn_to_pv.json
-i23Sst 4.83280828545 1 lgn_to_sst.json
-e4Nr5a1 3.334693673586E-14 1 lgn_to_e4.json
-e4Rorb 7.090524410229E-08 1 lgn_to_e4.json
-e4Scnn1a 8.59391427069E-11 1 lgn_to_e4.json
-e4other 1.165568732787E-17 1 lgn_to_e4.json
-i4Vip 0.793264203462 1 lgn_to_vip.json
-i4Pvalb 7.481130099256E-26 1 lgn_to_pv.json
-i4Sst 3.657252909984 1 lgn_to_sst.json
-e5ET 3.31151020159 1 lgn_to_e5et.json
-e5IT 3.31151020159 1 lgn_to_e5it.json
-e5NP 3.31151020159 1 lgn_to_e5np.json
-i5Vip 0.01970275024068 1 lgn_to_vip.json
-i5Pvalb 3.26952542255E-18 1 lgn_to_pv.json
-i5Sst 1.757218084128 1 lgn_to_sst.json
-e6Ntsr1 6.552053732565 1 lgn_to_e6.json
-i6Vip 2.632469083272 1 lgn_to_vip.json
-i6Pvalb 1.91467447012E-20 1 lgn_to_pv.json
-i6Sst 3.15562589751 1 lgn_to_sst.json
+population syn_weight nsyns dynamics_params target_mean_fr
+i1Htr3a 4.678465901004 1 lgn_to_vip.json 0.83
+e23Cux2 3.976659363085 1 lgn_to_e23.json 0.27
+i23Vip 2.469383327728 1 lgn_to_vip.json 7.97
+i23Pvalb 2.06360632416 1 lgn_to_pv.json 3.10
+i23Sst 4.83280828545 1 lgn_to_sst.json 3.63
+e4Nr5a1 3.334693673586E-14 1 lgn_to_e4.json 1.06
+e4Rorb 7.090524410229E-08 1 lgn_to_e4.json 1.06
+e4Scnn1a 8.59391427069E-11 1 lgn_to_e4.json 1.06
+e4other 1.165568732787E-17 1 lgn_to_e4.json 1.06
+i4Vip 0.793264203462 1 lgn_to_vip.json 0.85
+i4Pvalb 7.481130099256E-26 1 lgn_to_pv.json 3.89
+i4Sst 3.657252909984 1 lgn_to_sst.json 1.89
+e5ET 3.31151020159 1 lgn_to_e5et.json 2.22
+e5IT 3.31151020159 1 lgn_to_e5it.json 2.22
+e5NP 3.31151020159 1 lgn_to_e5np.json 2.22
+i5Vip 0.01970275024068 1 lgn_to_vip.json 6.50
+i5Pvalb 3.26952542255E-18 1 lgn_to_pv.json 4.58
+i5Sst 1.757218084128 1 lgn_to_sst.json 3.78
+e6Ntsr1 6.552053732565 1 lgn_to_e6.json 0.93
+i6Vip 2.632469083272 1 lgn_to_vip.json 2.90
+i6Pvalb 1.91467447012E-20 1 lgn_to_pv.json 4.61
+i6Sst 3.15562589751 1 lgn_to_sst.json 6.30

@@ -34,7 +34,7 @@ def sbatch_boilerplate(file, logdir, config_counts):
     file.write("#!/bin/bash\n")
     file.write("#SBATCH -N1 -c1 -n8\n")
     file.write("#SBATCH --partition=braintv\n")
-    file.write("#SBATCH --mem-per-cpu=2G\n")
+    file.write("#SBATCH --mem-per-cpu=4G\n")
     file.write("#SBATCH -t1:00:00\n")
     file.write("#SBATCH --qos=braintv\n")
     file.write(f"#SBATCH --output={logdir}/slurm-%A_%a.out\n")
@@ -119,10 +119,14 @@ if __name__ == "__main__":
                 js["inputs"]["LGN_spikes"]["trial"] = trial
                 js["manifest"]["$OUTPUT_DIR"] = filterdir_indv
                 config_name = configdir + f"/config_filternet_{config_counts}.json"
-            else:
+            else:  # main job
                 js["manifest"]["$LGNINPUT_DIR"] = filterdir_indv
                 js["manifest"]["$OUTPUT_DIR"] = outdir_indv
                 config_name = configdir + f"/config_{config_counts}.json"
+                # if the config file contains background input, change the input file
+                if "$BKGINPUT_DIR" in js["manifest"].keys():
+                    bkgdir_indv = f"$BASE_DIR/bkg_8dir_10trials/angle{int(angle)}_trial{trial}"
+                    js["manifest"]["$BKGINPUT_DIR"] = bkgdir_indv
             config_counts += 1
 
             json.dump(js, open(config_name, "w"), indent=2)
