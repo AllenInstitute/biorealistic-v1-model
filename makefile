@@ -15,6 +15,7 @@ run_lgnbkg_targets = $(addsuffix /output_lgnbkg/spikes.h5, $(networks))
 run_multimeter_targets = $(addsuffix /output_multimeter/spikes.h5, $(networks))
 jobs_8dfilternet_targets = $(addsuffix /jobs/filternet_8dir_10trials.sh, $(networks))
 jobs_8d_targets = $(addsuffix /jobs/8dir_10trials.sh, $(networks))
+bkg_spikes_targets = $(addsuffix /network/bkg/bkg_spikes_1kHz_3s.h5, $(networks))
 run_8dfilternet_targets = $(addsuffix /filternet_8dir_10trials/angle0_trial0/spikes.csv, $(networks))
 run_8d_targets = $(addsuffix /8dir_10trials/angle0_trial0/spikes.csv, $(networks))
 odsi_targets = $(addsuffix /metrics/OSI_DSI_DF.csv, $(networks))
@@ -49,7 +50,7 @@ $(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json
 $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgn.json
 
-$(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
+$(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
 
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
@@ -61,10 +62,13 @@ $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config
 $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
 	python make_filternet_jobs.py $*
 
+$(bkg_spikes_targets): %/network/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
+	python bkg_spike_generation.py $*
+
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/filternet_8dir_10trials.sh'
 
-$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py %/components/synaptic_models/lgn_to_e4.json
+$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py %/components/synaptic_models/lgn_to_e4.json %/network/bkg/bkg_spikes_1kHz_3s.h5
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/8dir_10trials.sh'
 
 $(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.csv calculate_odsi.py

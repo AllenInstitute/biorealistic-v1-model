@@ -23,7 +23,7 @@
     "BKG_spikes": {
       "input_type": "spikes",
       "module": "h5",
-      "input_file": "$BKGINPUT_DIR/bkg_spikes_n1_fr1000_dt0.25_2.trial_0.h5",
+      "input_file": "$BKGINPUT_DIR/bkg_spikes_1kHz_3s.h5",
       "node_set": "bkg"
     }
   },
