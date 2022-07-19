@@ -81,20 +81,20 @@ $(get_figures_targets): %/figures: %/figures/OSI_DSI.png
 
 miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p miniature
-	mpirun -np 4 python build_network.py -f -o miniature/network --miniature --feed-forward-v2
+	mpirun -np 4 python build_network.py -f -o miniature/network --miniature 
 	
 tiny/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p tiny
-	mpirun -np 4 python build_network.py -f -o tiny/network --feed-forward-v2 --fraction 0.005
+	mpirun -np 4 python build_network.py -f -o tiny/network --fraction 0.005
 
 small/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
-	mpirun -np 4 python build_network.py -f -o small/network --feed-forward-v2 --fraction 0.05
+	mpirun -np 4 python build_network.py -f -o small/network --fraction 0.05
 
 # full model will not be built without a cluster
 full/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)  # most likely this will fail
 	mkdir -p full
-	# mpirun -np 4 python build_network.py -f -o full/network --feed-forward-v2 --fraction 1.00
+	# mpirun -np 4 python build_network.py -f -o full/network --fraction 1.00
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait full_build.sh'
 	
 
@@ -104,11 +104,11 @@ glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv precompu
 glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv precomputed_props/v1_synapse_amps.json make_bkg_weights.py
 	python make_bkg_weights.py
 
-test: $(mainscripts)
+test: $(mainscripts) $(buildfiles)
 	python build_network.py -f --fraction 0.001 -o test
 	
-profile: $(mainscripts)
-	python -m cProfile -o out.prof build_network.py -f --fraction 0.1 -o profile --feed-forward-v2
+profile: $(mainscripts) $(buildfiles)
+	python -m cProfile -o out.prof build_network.py -f --fraction 0.001 -o profile 
 	
 glif_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv base_props/synaptic_models
 	python prepare_glif_models.py

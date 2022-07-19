@@ -5,7 +5,7 @@ import numpy as np
 import pathlib
 
 
-syn_types = pd.read_csv("base_props/syn_types_table.csv", index_col=0)
+# syn_types = pd.read_csv("base_props/syn_types_table.csv", index_col=0)
 syn_types_syn_tau = pd.read_csv("base_props/syn_types_syn_tau.csv", index_col=0)
 syn_models_dir = "glif_models/synaptic_models/"
 
@@ -20,7 +20,8 @@ cell_pops_post = ["e23", "e4", "e5et", "e5it", "e5np", "e6", "pv", "sst", "vip"]
 
 for pre_pop in cell_pops_pre:
     for post_pop in cell_pops_post:
-        syn_name = syn_types[post_pop].loc[pre_pop]
+        # syn_name = syn_types[post_pop].loc[pre_pop]
+        syn_name = f"{pre_pop}_to_{post_pop}"
         syn = {"tau_syn": float(syn_types_syn_tau[post_pop].loc[pre_pop])}
         with open(syn_models_dir + str(syn_name) + ".json", "w") as f:
             json.dump(syn, f)
