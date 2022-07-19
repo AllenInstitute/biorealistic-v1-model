@@ -34,7 +34,8 @@ $(config_targets): %/configs/config.json: config_templates/config_plain.json
 $(config_filternet_targets): %/configs/config_filternet.json: config_templates/config_filternet.json
 	# this may not do anything special, but convenient not to rerun filternet everytime
 	# when config.json is updated.
-	cp config_templates/config_filternet.json config_templates/config_filternet.json
+	mkdir -p $*/configs
+	cp config_templates/config_filternet.json $*/configs/config_filternet.json
 
 $(components_targets): %/components/synaptic_models/lgn_to_e4.json: %/network/lgn_nodes.h5 glif_models/synaptic_models/e4_to_e4.json
 	python convert_models.py $*
