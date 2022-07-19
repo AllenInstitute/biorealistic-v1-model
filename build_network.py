@@ -144,7 +144,7 @@ def orientation_dependence_fns(intercept_in, grad_in):
     grad = grad_in
     y_90 = intercept1 + grad * 90.0
     intercept2 = 2 * y_90 - intercept1
-    x = np.linspace(0, 180, 100000)
+    x = np.linspace(0, 180, 1000000)
     my_pdf = np.piecewise(
         x,
         [x < 90, x >= 90],
