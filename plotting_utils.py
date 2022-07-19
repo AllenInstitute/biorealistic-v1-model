@@ -109,22 +109,29 @@ if __name__ == "__main__":
     simple = False
     if simple:
         # config_file = "fullmodel56/output/config_plain.json"
-        config_file = "miniature/output/config_plain.json"
+        config_file = "small/output/config.json"
         plt.figure(figsize=(15, 10))
         ax = plot_raster(config_file, s=1)
+        ax.set_xlim([0, 1000])
     else:
-        config_file = "miniature/output/config_plain.json"
-        fig, axs = plt.subplots(2, 1, figsize=(15, 10))
+        config_file = "small/output_lgn/config_lgn.json"
+        fig, axs = plt.subplots(3, 1, figsize=(15, 15))
         ax = plot_raster(config_file, ax=axs[0])
         ax.set_xlim([0, 1000])
         ax.legend(loc="upper right")
-        ax.set_title("With Recurrent")
+        ax.set_title("LGN only")
 
-        config_file = "miniature/output_lgnbkg/config_lgnbkg.json"
+        config_file = "small/output_lgnbkg/config_lgnbkg.json"
         ax = plot_raster(config_file, ax=axs[1])
         ax.set_xlim([0, 1000])
         ax.legend(loc="upper right")
-        ax.set_title("Without Recurrent")
+        ax.set_title("LGN + BKG connection")
+
+        config_file = "small/output/config.json"
+        ax = plot_raster(config_file, ax=axs[2])
+        ax.set_xlim([0, 1000])
+        ax.legend(loc="upper right")
+        ax.set_title("LGN + BKG + recurrent connection")
 
         plt.tight_layout()
         plt.savefig("nice_ratser_reoptim.png")

@@ -23,9 +23,7 @@ odsi_figure_targets = $(addsuffix /figures/OSI_DSI.png, $(networks))
 get_figures_targets = $(addsuffix /figures, $(networks))
 components_targets = $(addsuffix /components/synaptic_models/lgn_to_e4.json, $(networks))
 
-mini_run: miniature/output/spikes.h5
-components: miniature/components/synaptic_models/lgn_to_e4.json
-build: miniature/network/lgn_nodes.h5
+smallfigure: small/figures
 tinybuild: tiny/network/lgn_nodes.h5
 
 $(config_targets): %/configs/config.json: config_templates/config_plain.json
@@ -92,9 +90,12 @@ small/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
 	mpirun -np 4 python build_network.py -f -o small/network --feed-forward-v2 --fraction 0.05
 
+# full model will not be built without a cluster
 full/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)  # most likely this will fail
 	mkdir -p full
-	mpirun -np 4 python build_network.py -f -o full/network --feed-forward-v2 --fraction 1.00
+	# mpirun -np 4 python build_network.py -f -o full/network --feed-forward-v2 --fraction 1.00
+	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait full_build.sh'
+	
 
 glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv precomputed_props/v1_synapse_amps.json make_lgn_weights.py
 	python make_lgn_weights.py
