@@ -8,6 +8,7 @@ from scipy import interpolate, integrate
 from scipy.stats import lognorm, rv_continuous
 from pathlib import Path
 from math import sqrt, exp, log
+from scipy.special import erfinv
 
 from mpi4py import MPI
 
@@ -24,6 +25,7 @@ from edge_funcs import (
 )
 
 from bmtk.builder import NetworkBuilder
+from numba import njit
 
 # print(NetworkBuilder)
 # exit()
@@ -196,7 +198,7 @@ def syn_weight_by_experimental_distribution(
         + log(target["nsyn_size_scale"])
         - log(target["nsyn_size_mean"])
     )
-    weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
+    # weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
 
     # To set syn_weight, use the PPF with the orientation difference:
     if src_ei == "e" and trg_ei == "e" and (not type(delta_theta_dist) == float):
@@ -211,10 +213,13 @@ def syn_weight_by_experimental_distribution(
             - 180.0
         )
 
-        orient_temp = 1 - delta_theta_dist.cdf(delta_tuning_180)
+        # orient_temp = 1 - delta_theta_dist.cdf(delta_tuning_180)
+        orient_temp = 1 - delta_theta_cdf(connection_params['intercept'], delta_tuning_180)
         orient_temp = np.min([0.999, orient_temp])
         orient_temp = np.max([0.001, orient_temp])
-        syn_weight = weight_rv.ppf(orient_temp)
+        syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
+        # weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
+        # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
     elif (src_ei == "e" and trg_ei == "i") or (src_ei == "i" and trg_ei == "e"):
@@ -232,7 +237,8 @@ def syn_weight_by_experimental_distribution(
         orient_temp = 1 - (delta_tuning_180 / 180)
         orient_temp = np.min([0.999, orient_temp])
         orient_temp = np.max([0.001, orient_temp])
-        syn_weight = weight_rv.ppf(orient_temp)
+        syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
+        # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
     elif src_ei == "i" and trg_ei == "i":
@@ -251,7 +257,8 @@ def syn_weight_by_experimental_distribution(
         orient_temp = np.min([0.999, orient_temp])
         orient_temp = np.max([0.001, orient_temp])
 
-        syn_weight = weight_rv.ppf(orient_temp)
+        syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
+        # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
     else:
@@ -269,11 +276,35 @@ def syn_weight_by_experimental_distribution(
         orient_temp = 1 - (delta_tuning_180 / 180)
         orient_temp = np.min([0.999, orient_temp])
         orient_temp = np.max([0.001, orient_temp])
-        syn_weight = weight_rv.ppf(orient_temp)
+        syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
+        # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
     syn_weight = syn_weight / PSP_correction
     return syn_weight, n_syns_
+
+
+def lognorm_ppf(x, shape, loc=0, scale=1):
+    # definition from wikipedia
+    return scale * exp(sqrt(2 * shape ** 2) * erfinv(2 * x - 1)) + loc
+
+def delta_theta_cdf(intercept, d_theta):
+    B1 = intercept
+    # B1 = 2.0 / (1.0 + Q)
+    Q = 2.0 / B1 - 1.0
+    B2 = B1 * Q
+    G = (B2 - B1) / 90.0
+    norm = 90 * (B1 + B2)  # total area for normalization
+    x = d_theta - 90
+    if d_theta < 0:
+        raise 'd_theta must be >= 0, but was {}'.format(d_theta)
+    elif d_theta < 90:
+        # analytical integration of the pdf to get this cdf
+        return (0.5 * G * x**2 + B2 * x) / norm + 0.5
+    elif d_theta <= 180:
+        return (- 0.5 * G * x**2 + B2 * x) / norm + 0.5
+    else:
+        raise 'd_theta must be <= 180, but was {}'.format(d_theta)
 
 
 def add_edges_v1(net):
