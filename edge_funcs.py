@@ -8,6 +8,23 @@ from scipy.stats import yulesimon
 
 
 lgn_params = json.load(open("base_props/lgn_params.json", "r"))
+lgn_shift_dict = {
+    "sON_TF1": -1.0,
+    "sON_TF2": -1.0,
+    "sON_TF4": -1.0,
+    "sON_TF8": -1.0,
+    "sOFF_TF1": -1.0,
+    "sOFF_TF2": -1.0,
+    "sOFF_TF4": -1.0,
+    "sOFF_TF8": -1.0,
+    "sOFF_TF15": -1.0,
+    "tOFF_TF4": 1.0,
+    "tOFF_TF8": 1.0,
+    "tOFF_TF15": 1.0,
+    "sONsOFF_001": 0,
+    "sONtOFF_001": 0,
+}
+
 
 
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
@@ -23,20 +40,21 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     :return: dictionary with the values to be used for distance dependent connectivity
              and orientation tuning dependent connectivity (when applicable, else nans populate the dictionary).
     """
-    src_new = source_type[3:] if source_type[0:3] == "LIF" else source_type
-    trg_new = target_type[3:] if target_type[0:3] == "LIF" else target_type
+    # this part is not used anymore
+    # src_new = source_type[3:] if source_type[0:3] == "LIF" else source_type
+    # trg_new = target_type[3:] if target_type[0:3] == "LIF" else target_type
 
-    src_tmp = src_new[0:2]
-    if src_new[0] == "i":
-        src_tmp = src_new[0:3]
-    if src_new[0:2] == "i2":
-        src_tmp = src_new[0:2] + src_new[3]
+    # src_tmp = src_new[0:2]
+    # if src_new[0] == "i":
+    #     src_tmp = src_new[0:3]
+    # if src_new[0:2] == "i2":
+    #     src_tmp = src_new[0:2] + src_new[3]
 
-    trg_tmp = trg_new[0:2]
-    if trg_new[0] == "i":
-        trg_tmp = trg_new[0:3]
-    if trg_new[0:2] == "i2":
-        trg_tmp = trg_new[0:2] + trg_new[3]
+    # trg_tmp = trg_new[0:2]
+    # if trg_new[0] == "i":
+    #     trg_tmp = trg_new[0:3]
+    # if trg_new[0:2] == "i2":
+    #     trg_tmp = trg_new[0:2] + trg_new[3]
 
     # cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
     cc_props = cc_prob_dict[source_type + "-" + target_type]
@@ -138,7 +156,7 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     }
 
 
-def connect_cells(sources, target, params):
+def connect_cells(sources, target, params, source_nodes):
     """This function determined which nodes are connected based on the parameters in the dictionary params. The
     function iterates through every cell pair when called and hence no for loop is seen iterating pairwise
     although this is still happening.
@@ -157,9 +175,13 @@ def connect_cells(sources, target, params):
              those two neurons
     """
 
-    sources_x = np.array([s["x"] for s in sources])
-    sources_z = np.array([s["z"] for s in sources])
-    sources_tuning_angle = [s["tuning_angle"] for s in sources]
+    # TODO: remove list comprehension
+    # sources_x = np.array([s["x"] for s in sources])
+    # sources_z = np.array([s["z"] for s in sources])
+    # sources_tuning_angle = [s["tuning_angle"] for s in sources]
+    sources_x = np.array(source_nodes['x'])
+    sources_z = np.array(source_nodes['z'])
+    sources_tuning_angle = np.array(source_nodes['tuning_angle'])
 
     # Get target id
     tid = target.node_id
@@ -234,6 +256,7 @@ def connect_cells(sources, target, params):
     #    nsyn_range[0], nsyn_range[1], len(p_connected[p_connected == 1])
     # )
 
+    # TODO: remove list comprehension
     nsyns_ret = [Nsyn if Nsyn != 0 else None for Nsyn in p_connected]
     return nsyns_ret
 
@@ -336,9 +359,11 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
         shift = 2.5  # amount to shift the RF
     else:
         shift = 2.5  # amount to shift the RF
-    lgn_complex[lgn_circle["pop_name"].str.contains("sON_")] -= rf_shift_vector * shift
-    lgn_complex[lgn_circle["pop_name"].str.contains("sOFF_")] -= rf_shift_vector * shift
-    lgn_complex[lgn_circle["pop_name"].str.contains("tOFF_")] += rf_shift_vector * shift
+    # TODO: test str.startswith
+    # lgn_complex[lgn_circle["pop_name"].str.startswith("sON_")] -= rf_shift_vector * shift
+    # lgn_complex[lgn_circle["pop_name"].str.startswith("sOFF_")] -= rf_shift_vector * shift
+    # lgn_complex[lgn_circle["pop_name"].str.startswith("tOFF_")] += rf_shift_vector * shift
+    lgn_complex += np.array(lgn_circle["pop_name"].map(lgn_shift_dict) * rf_shift_vector * shift)
 
     # next, elongate the LGN complex orthogonal to the shift vector
     # rotate by shift vector to adjust the angle, strech, and rotate back.
@@ -357,6 +382,8 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
 
     # assign relative probability calculated above
     subunit_prob = np.zeros_like(gaussian_prob)
+    subunit_dict_keys = []
+    subunit_dict_values = []
     for subname, freqs in subunit_freqs.items():
         if cell_ignore_unit in subname:
             # ignore either sON or sOFF
@@ -366,7 +393,12 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
         for i in range(len(probs)):
             # construct the name
             typename = f"{subname}_TF{freqs[i]}"
-            subunit_prob[lgn_circle["pop_name"].str.contains(typename)] = probs[i]
+            # subunit_prob[lgn_circle["pop_name"].str.startswith(typename)] = probs[i]
+            subunit_dict_keys.append(typename)
+            subunit_dict_values.append(probs[i])
+    
+    subunit_dict = dict(zip(subunit_dict_keys, subunit_dict_values))
+    subunit_prob = np.array(lgn_circle["pop_name"].map(subunit_dict).fillna(0.0))
 
     # treatments for sONsOFF and sONtOFF cells
     # tuning_angles are defined only for sONsOFF and sONtOFF cells, so this should be fine.

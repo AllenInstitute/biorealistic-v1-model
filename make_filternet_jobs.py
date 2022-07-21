@@ -30,11 +30,14 @@ import argparse
 import pathlib
 
 
-def sbatch_boilerplate(file, logdir, config_counts):
+def sbatch_boilerplate(file, logdir, config_counts, full_memory=False):
     file.write("#!/bin/bash\n")
     file.write("#SBATCH -N1 -c1 -n8\n")
     file.write("#SBATCH --partition=braintv\n")
-    file.write("#SBATCH --mem-per-cpu=4G\n")
+    if full_memory:  # full model needs a lot of memory
+        file.write("#SBATCH --mem-per-cpu=40G\n")
+    else:
+        file.write("#SBATCH --mem-per-cpu=4G\n")
     file.write("#SBATCH -t1:00:00\n")
     file.write("#SBATCH --qos=braintv\n")
     file.write(f"#SBATCH --output={logdir}/slurm-%A_%a.out\n")
@@ -57,7 +60,7 @@ def write_job(basedir, config_counts):
     logdir = jobdir + "/logs"
 
     with open(jobdir + "/8dir_10trials.sh", "w") as f:
-        sbatch_boilerplate(f, logdir, config_counts)
+        sbatch_boilerplate(f, logdir, config_counts, full_memory=('full' in basedir))
         f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_$SLURM_ARRAY_TASK_ID.json"

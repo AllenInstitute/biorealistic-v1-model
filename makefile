@@ -1,7 +1,7 @@
 mainscripts := build_network.py edge_funcs.py node_funcs.py
 
 #whatever is needed for above should go here:
-buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv
+buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv base_props/lgn_weights_population.csv
 
 networks = miniature full small tiny
 
@@ -15,7 +15,8 @@ run_lgnbkg_targets = $(addsuffix /output_lgnbkg/spikes.h5, $(networks))
 run_multimeter_targets = $(addsuffix /output_multimeter/spikes.h5, $(networks))
 jobs_8dfilternet_targets = $(addsuffix /jobs/filternet_8dir_10trials.sh, $(networks))
 jobs_8d_targets = $(addsuffix /jobs/8dir_10trials.sh, $(networks))
-bkg_spikes_targets = $(addsuffix /network/bkg/bkg_spikes_1kHz_3s.h5, $(networks))
+bkg_spikes_targets = $(addsuffix /bkg/bkg_spikes_1kHz_3s.h5, $(networks))
+bkg_edge_targets = $(addsuffix /network/bkg_v1_edge_types.csv, $(networks))
 run_8dfilternet_targets = $(addsuffix /filternet_8dir_10trials/angle0_trial0/spikes.csv, $(networks))
 run_8d_targets = $(addsuffix /8dir_10trials/angle0_trial0/spikes.csv, $(networks))
 odsi_targets = $(addsuffix /metrics/OSI_DSI_DF.csv, $(networks))
@@ -43,13 +44,13 @@ $(components_targets): %/components/synaptic_models/lgn_to_e4.json: %/network/lg
 $(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_filternet.json
 	mpirun -np 8 python run_filternet.py $*/configs/config_filternet.json
 	
-$(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
+$(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv
 	mpirun -np 8 python run_pointnet.py $*/configs/config.json
 
 $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgn.json
 
-$(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5
+$(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
 
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
@@ -61,13 +62,16 @@ $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config
 $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
 	python make_filternet_jobs.py $*
 
-$(bkg_spikes_targets): %/network/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
+$(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
 	python bkg_spike_generation.py $*
+
+$(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: %/network/lgn_nodes.h5 %/components/synaptic_models/lgn_to_e4.json 
+	cp precomputed_props/bkg_v1_edge_types.csv $*/network/bkg_v1_edge_types.csv
 
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/filternet_8dir_10trials.sh'
 
-$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py %/components/synaptic_models/lgn_to_e4.json %/network/bkg/bkg_spikes_1kHz_3s.h5
+$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py %/components/synaptic_models/lgn_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/8dir_10trials.sh'
 
 $(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.csv calculate_odsi.py
@@ -101,14 +105,14 @@ full/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)  # most likely this will
 glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv precomputed_props/v1_synapse_amps.json make_lgn_weights.py
 	python make_lgn_weights.py
 
-glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv precomputed_props/v1_synapse_amps.json make_bkg_weights.py
-	python make_bkg_weights.py
+# glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv precomputed_props/v1_synapse_amps.json make_bkg_weights.py
+	# python make_bkg_weights.py
 
 test: $(mainscripts) $(buildfiles)
 	python build_network.py -f --fraction 0.001 -o test
 	
 profile: $(mainscripts) $(buildfiles)
-	python -m cProfile -o out.prof build_network.py -f --fraction 0.05 -o profile 
+	python -m cProfile -o out.prof build_network.py -f --fraction 0.05 -o profile
 	
 glif_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv base_props/synaptic_models
 	python prepare_glif_models.py

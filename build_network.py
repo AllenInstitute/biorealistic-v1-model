@@ -25,6 +25,7 @@ from edge_funcs import (
 )
 
 from bmtk.builder import NetworkBuilder
+from bmtk.builder.node_pool import NodePool
 from numba import njit
 
 # print(NetworkBuilder)
@@ -336,7 +337,14 @@ def add_edges_v1(net):
         trg_type = row["target_label"]
         src_trg_params = compute_pair_type_parameters(src_type, trg_type, cc_prob_dict)
         # print(src_trg_params)
+        
+        prop_query = ["x", "z", "tuning_angle"]
+        src_criteria = {"pop_name": src_type}
+        net.nodes()  # this line is necessary to activate nodes... (I don't know why.)
+        source_nodes = NodePool(net, **src_criteria)
+        source_nodes_df = pd.DataFrame([{q: s[q] for q in prop_query} for s in source_nodes])
 
+        # TODO: check if these values should be used
         weight_fnc, weight_sigma = find_direction_rule(src_type, trg_type)
         if src_trg_params["A_new"] > 0.0:
             # if src_type.startswith("LIF"):
@@ -354,11 +362,11 @@ def add_edges_v1(net):
             #     )
             # else:
             cm = net.add_edges(
-                source={"pop_name": src_type},
+                source=src_criteria,
                 target={"node_type_id": node_type_id},
                 iterator="all_to_one",
                 connection_rule=connect_cells,
-                connection_params={"params": src_trg_params},
+                connection_params={"params": src_trg_params, "source_nodes": source_nodes_df},
                 dynamics_params=row["params_file"],
                 # syn_weight_max=row["weight_max"],
                 delay=row["delay"],
