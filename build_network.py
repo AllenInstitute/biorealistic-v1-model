@@ -181,7 +181,7 @@ def syn_weight_by_experimental_distribution(
     PSP_lognorm_shape,
     PSP_lognorm_scale,
     connection_params,
-    delta_theta_dist,
+    # delta_theta_dist,
 ):
     src_ei = "e" if src_type.startswith("e") or src_type.startswith("LIFe") else "i"
     trg_ei = "e" if trg_type.startswith("e") or trg_type.startswith("LIFe") else "i"
@@ -201,7 +201,12 @@ def syn_weight_by_experimental_distribution(
     # weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
 
     # To set syn_weight, use the PPF with the orientation difference:
-    if src_ei == "e" and trg_ei == "e" and (not type(delta_theta_dist) == float):
+    # if not np.isnan(src_trg_params["gradient"]):
+    
+    # Original if condition:
+    # if src_ei == "e" and trg_ei == "e" and (not type(delta_theta_dist) == float):
+    # TODO: Please make sure if I'm doing it right.
+    if src_ei == "e" and trg_ei == "e" and (not np.isnan(connection_params["gradient"])):
         # For e-to-e, there is a non-uniform distribution of delta_orientations.
         # These need to be ordered and mapped uniformly over [0,1] using the cdf:
 
@@ -215,8 +220,10 @@ def syn_weight_by_experimental_distribution(
 
         # orient_temp = 1 - delta_theta_dist.cdf(delta_tuning_180)
         orient_temp = 1 - delta_theta_cdf(connection_params['intercept'], delta_tuning_180)
-        orient_temp = np.min([0.999, orient_temp])
-        orient_temp = np.max([0.001, orient_temp])
+        # orient_temp = np.min([0.999, orient_temp])
+        # orient_temp = np.max([0.001, orient_temp])
+        orient_temp = min(0.999, orient_temp)
+        orient_temp = max(0.001, orient_temp)
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
         # weight_rv = lognorm(weight_shape, loc=0, scale=weight_scale)
         # syn_weight = weight_rv.ppf(orient_temp)
@@ -235,8 +242,10 @@ def syn_weight_by_experimental_distribution(
         )
 
         orient_temp = 1 - (delta_tuning_180 / 180)
-        orient_temp = np.min([0.999, orient_temp])
-        orient_temp = np.max([0.001, orient_temp])
+        # orient_temp = np.min([0.999, orient_temp])
+        # orient_temp = np.max([0.001, orient_temp])
+        orient_temp = min(0.999, orient_temp)
+        orient_temp = max(0.001, orient_temp)
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
         # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
@@ -254,8 +263,10 @@ def syn_weight_by_experimental_distribution(
         )
 
         orient_temp = 1 - (delta_tuning_180 / 180)
-        orient_temp = np.min([0.999, orient_temp])
-        orient_temp = np.max([0.001, orient_temp])
+        # orient_temp = np.min([0.999, orient_temp])
+        # orient_temp = np.max([0.001, orient_temp])
+        orient_temp = min(0.999, orient_temp)
+        orient_temp = max(0.001, orient_temp)
 
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
         # syn_weight = weight_rv.ppf(orient_temp)
@@ -274,8 +285,10 @@ def syn_weight_by_experimental_distribution(
         )
 
         orient_temp = 1 - (delta_tuning_180 / 180)
-        orient_temp = np.min([0.999, orient_temp])
-        orient_temp = np.max([0.001, orient_temp])
+        # orient_temp = np.min([0.999, orient_temp])
+        # orient_temp = np.max([0.001, orient_temp])
+        orient_temp = min(0.999, orient_temp)
+        orient_temp = max(0.001, orient_temp)
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
         # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
@@ -358,24 +371,25 @@ def add_edges_v1(net):
                 PSP_lognorm_scale=row["lognorm_scale"],
                 model_template="static_synapse",
             )
-            if not np.isnan(src_trg_params["gradient"]):
-                pdf1, cdf1, ppf1 = orientation_dependence_fns(
-                    src_trg_params["intercept"], src_trg_params["gradient"]
-                )
+            # replaced with custom analytic cdf function
+            # if not np.isnan(src_trg_params["gradient"]):
+            #     pdf1, cdf1, ppf1 = orientation_dependence_fns(
+            #         src_trg_params["intercept"], src_trg_params["gradient"]
+            #     )
 
-                class orientation_dependence_dist(rv_continuous):
-                    def _pdf(self, x):
-                        return pdf1(x)
+            #     class orientation_dependence_dist(rv_continuous):
+            #         def _pdf(self, x):
+            #             return pdf1(x)
 
-                    def _cdf(self, x):
-                        return cdf1(x)
+            #         def _cdf(self, x):
+            #             return cdf1(x)
 
-                    def _ppf(self, x):
-                        return ppf1(x)
+            #         def _ppf(self, x):
+            #             return ppf1(x)
 
-                delta_theta_dist = orientation_dependence_dist()
-            else:
-                delta_theta_dist = np.NaN
+            #     delta_theta_dist = orientation_dependence_dist()
+            # else:
+            #     delta_theta_dist = np.NaN
 
             cm.add_properties(
                 ["syn_weight", "n_syns_"],
@@ -387,7 +401,7 @@ def add_edges_v1(net):
                     "PSP_lognorm_shape": row["lognorm_shape"],
                     "PSP_lognorm_scale": row["lognorm_scale"],
                     "connection_params": src_trg_params,
-                    "delta_theta_dist": delta_theta_dist,
+                    # "delta_theta_dist": delta_theta_dist,
                     # "lognorm_shape": row["lognorm_shape"],
                     # "lognorm_scale": row["lognorm_scale"],
                 },
