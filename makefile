@@ -115,7 +115,7 @@ test: $(mainscripts) $(buildfiles)
 profile: $(mainscripts) $(buildfiles)
 	python -m cProfile -o out.prof build_network.py -f --fraction 0.05 -o profile
 	
-glif_models/cell_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv base_props/synaptic_models
+glif_models/cell_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv
 	python prepare_glif_models.py
 	# cp -r base_props/synaptic_models glif_models/synaptic_models
 
