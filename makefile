@@ -1,7 +1,7 @@
 mainscripts := build_network.py edge_funcs.py node_funcs.py
 
 #whatever is needed for above should go here:
-buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv
+buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
 
 networks = miniature full small tiny
 
@@ -115,7 +115,7 @@ test: $(mainscripts) $(buildfiles)
 profile: $(mainscripts) $(buildfiles)
 	python -m cProfile -o out.prof build_network.py -f --fraction 0.05 -o profile
 	
-glif_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv base_props/synaptic_models
+glif_models/cell_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv base_props/synaptic_models
 	python prepare_glif_models.py
 	# cp -r base_props/synaptic_models glif_models/synaptic_models
 
