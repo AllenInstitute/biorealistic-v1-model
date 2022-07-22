@@ -65,7 +65,7 @@ $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filterne
 $(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
 	python bkg_spike_generation.py $*
 
-$(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: %/network/lgn_nodes.h5 %/components/synaptic_models/lgn_to_e4.json 
+$(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: precomputed_props/bkg_v1_edge_types.csv %/network/lgn_nodes.h5 %/components/synaptic_models/lgn_to_e4.json 
 	cp precomputed_props/bkg_v1_edge_types.csv $*/network/bkg_v1_edge_types.csv
 
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5
@@ -95,9 +95,10 @@ small/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
 	mpirun -np 4 python build_network.py -f -o small/network --fraction 0.05
 
-# full model will not be built without a cluster
+# full model requires ~400GB RAM. Our personal workstations cannot handle it.
 full/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)  # most likely this will fail
 	mkdir -p full
+	# if you want to run it locally, turn on this option
 	# mpirun -np 4 python build_network.py -f -o full/network --fraction 1.00
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait full_build.sh'
 	

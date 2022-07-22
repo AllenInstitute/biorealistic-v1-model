@@ -42,7 +42,7 @@ v1df_s = v1df.sort_values("tuning_angle")
 # v1df_s = v1df_s[v1df_s.FR < 5]
 
 v1df
-v1df_s
+v1df_s = v1df_s.query('location == "VisL4" & ei == "e"')
 
 fig, ax = plt.subplots(1, 1, figsize=(15, 5))
 
@@ -50,7 +50,7 @@ v1df_s.plot.scatter("tuning_angle", "FR", ax=ax)
 v1df_s.rolling(100).mean().plot(
     "tuning_angle", "FR", ax=ax, color="tab:orange", linewidth=3
 )
-ax.set_ylim([0, 3])
+ax.set_ylim([0, 30])
 
 
 #  look at the traces
@@ -131,10 +131,8 @@ time, npd = get_np_data(f"{d}output_multimeter/cai_traces.h5")
 # f1 analysis
 
 # pick e4 cells
-v1df_sub = v1df.query("ei=='e' and location=='VisL4'")
+v1df_sub = v1df.query("ei=='e' and location=='VisL4'").sample(2000)
 # v1df_sub = v1df
-
-v1df_sub.index
 
 
 spont_time = time < 500
@@ -157,7 +155,7 @@ v1df_sub["evoked I"] = stim_I[vi] - spont_I[vi]
 v1df_sub["f1 I"] = f1_I[vi]
 v1df_sub["f1/evoked"] = f1_I[vi] / (stim_I[vi] - spont_I[vi])
 
-v1df_sub["evoked I"].mean()
+print(v1df_sub["evoked I"].mean())
 
 v1df_sub.query("ei=='e' and location=='VisL4'")["evoked I"].mean()
 
@@ -167,9 +165,9 @@ v1df_sub.plot.scatter("tuning_angle", "f1 I")
 v1df_sub.plot.scatter("tuning_angle", "f1/evoked")
 plt.ylim([0.0, 1.5])
 
-print((stim_I - spont_I).mean())
-(spont_I).mean()
-(stim_I).mean()
+# print((stim_I - spont_I).mean())
+# (spont_I).mean()
+# (stim_I).mean()
 
 
 # %% It'll look great if you chop off neurons with high FR.
