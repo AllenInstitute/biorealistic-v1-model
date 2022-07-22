@@ -1,7 +1,7 @@
 mainscripts := build_network.py edge_funcs.py node_funcs.py
 
 #whatever is needed for above should go here:
-buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv base_props/lgn_weights_population.csv
+buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv
 
 networks = miniature full small tiny
 
@@ -106,8 +106,8 @@ full/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)  # most likely this will
 glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv precomputed_props/v1_synapse_amps.json make_lgn_weights.py
 	python make_lgn_weights.py
 
-# glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv precomputed_props/v1_synapse_amps.json make_bkg_weights.py
-	# python make_bkg_weights.py
+glif_props/bkg_weights_model.csv: base_props/bkg_weights_population_init.csv precomputed_props/v1_synapse_amps.json make_bkg_weights.py
+	python make_bkg_weights.py
 
 test: $(mainscripts) $(buildfiles)
 	python build_network.py -f --fraction 0.001 -o test
