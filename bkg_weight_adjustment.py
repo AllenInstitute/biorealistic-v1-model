@@ -75,11 +75,12 @@ class BisectionSolver:
                 # raise ValueError("Starting left edge is already positive")
                 diff = new_y - self.target_fr
                 print(f"Starting left edge is already positive, exceeding by {diff}")
-                print("The weight is set to 0, and considered solved.")
-                self.force_solved = True
-                self.ry = new_y
-                self.ly = new_y
-                return 0
+                # print("The weight is set to 0, and considered solved.")
+                # instead, set the target firing rate to 10% more of the observed rate.
+                new_rate = new_y * 1.1
+                print(f"The target firing rate is increased by 10% to {new_rate}")
+                self.target_fr = new_rate
+                # self.force_solved = True
             self.ly = new_y
             return self.rx
         elif np.isnan(self.ry):  # next condition
@@ -239,8 +240,8 @@ if __name__ == "__main__":
 # %%
 # (new_weight>0).sum()
 
-solvers
-model_fr
+# solvers
+# model_fr
 
 
 # %%
@@ -253,18 +254,18 @@ model_fr
 # fr.plot()
 
 
-def func(x):
-    return x**2
+# def func(x):
+#     return x**2
 
-bs = BisectionSolver(0, 10, 4, 0.00001)
-x = 0
-for i in range(100):
-    print(x, val)
-    val = func(x)
-    x = bs.step(val)
-    if x < 0:
-        break
-# OK. it works.
+# bs = BisectionSolver(0, 10, 4, 0.00001)
+# x = 0
+# for i in range(100):
+#     print(x, val)
+#     val = func(x)
+#     x = bs.step(val)
+#     if x < 0:
+#         break
+# # OK. it works.
 
 
 
