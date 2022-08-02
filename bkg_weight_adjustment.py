@@ -97,6 +97,8 @@ class BisectionSolver:
                 self.lx = self.mid()
                 return self.mid()
             else:  # update the right edge
+                if abs(self.rx - self.mid()) < self.tolerance:
+                    self.force_solved = True
                 self.rx = self.mid()
                 return self.mid()
 
@@ -214,6 +216,10 @@ if __name__ == "__main__":
     basedir = "small"
     v1df = get_v1_dfs(basedir)
     tfr = get_target_fr(basedir)
+
+    # based on Reinhold et al., 2015, we try to set the background so that the
+    # spontaneous firing rates are 27% of the measured rates that include the LGN.
+    tfr = tfr * 0.27
 
     tfr.keys()[0]
     solvers = {nid: BisectionSolver(0, 256, tfr[nid]) for nid in tfr.keys()}

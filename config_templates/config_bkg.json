@@ -3,11 +3,11 @@
     "$BASE_DIR": "${configdir}/..",
     "$NETWORK_DIR": "$BASE_DIR/network",
     "$MODELS_DIR": "$BASE_DIR/components",
-    "$OUTPUT_DIR": "$BASE_DIR/output_bkgtune",
+    "$OUTPUT_DIR": "$BASE_DIR/output_bkg",
     "$BKGINPUT_DIR": "$BASE_DIR/bkg"
   },
   "run": {
-    "duration": 10000.0,
+    "duration": 3000.0,
     "dt": 0.25,
     "block_run": false,
     "block_size": 1000.0
@@ -16,7 +16,7 @@
     "BKG_spikes": {
       "input_type": "spikes",
       "module": "h5",
-      "input_file": "$BKGINPUT_DIR/bkg_spikes_1kHz_10s.h5",
+      "input_file": "$BKGINPUT_DIR/bkg_spikes_1kHz_3s.h5",
       "node_set": "bkg"
     }
   },

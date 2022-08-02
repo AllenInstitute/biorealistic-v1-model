@@ -8,8 +8,10 @@ glif_props/*
 glif_requisite/*
 *.pyc
 v1nodes/*
-fullmodel/*
 full/*
+half/*
+ten/*
+eighthundred/*
 small/*
 tiny/*
 miniature*/*
