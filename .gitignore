@@ -9,9 +9,7 @@ glif_requisite/*
 *.pyc
 v1nodes/*
 full/*
-half/*
-ten/*
-eighthundred/*
+single/*
 small/*
 tiny/*
 miniature*/*
@@ -25,8 +23,10 @@ slurm*.out
 original_mini/*
 test/*
 configs/*
+obsolete/*
 normalize_by_e4/*
 normalize_by_type/*
 Raster*.png
 Rates*.png
 .edge_types*
+images/

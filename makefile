@@ -3,7 +3,7 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 #whatever is needed for above should go here:
 buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
 
-networks = miniature full small tiny ten eighthundred half
+networks = miniature full small tiny forty single
 
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config.json, $(networks))
@@ -13,6 +13,7 @@ run_targets = $(addsuffix /output/spikes.h5, $(networks))
 run_lgn_targets = $(addsuffix /output_lgn/spikes.h5, $(networks))
 run_bkg_targets = $(addsuffix /output_bkg/spikes.h5, $(networks))
 run_lgnbkg_targets = $(addsuffix /output_lgnbkg/spikes.h5, $(networks))
+run_nolgn_targets = $(addsuffix /output_nolgn/spikes.h5, $(networks))
 run_multimeter_targets = $(addsuffix /output_multimeter/spikes.h5, $(networks))
 jobs_8dfilternet_targets = $(addsuffix /jobs/filternet_8dir_10trials.sh, $(networks))
 jobs_8d_targets = $(addsuffix /jobs/8dir_10trials.sh, $(networks))
@@ -51,11 +52,14 @@ $(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json
 $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgn.json
 
-$(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
+$(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
 	mpirun -np 8 python run_pointnet.py $*/configs/config_bkg.json
 
 $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
+
+$(run_nolgn_targets): %/output_nolgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
+	mpirun -np 8 python run_pointnet.py $*/configs/config_nolgn.json
 
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
 	mpirun -np 8 python run_pointnet.py $*/configs/config_multimeter.json
@@ -103,19 +107,17 @@ small/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
 	mpirun -np 4 python build_network.py -f -o small/network --fraction 0.05
 
-ten/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
-	mkdir -p ten
-	mpirun -np 4 python build_network.py -f -o ten/network --fraction 0.10
+forty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
+	# forty is the largest network that can run on a single core.
+	# Due to nest limitation, larger network won't run on a single core.
+	mkdir -p forty
+	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait forty_build.sh'
 
-eighthundred/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
-	mkdir -p eighthundred
-	# mpirun -np 4 python build_network.py -f -o eighthundred/network --fraction 0.8858
-	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait eighthundred_build.sh'
-
-half/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
-	mkdir -p half
-	# mpirun -np 4 python build_network.py -f -o half/network --fraction 0.5
-	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait half_build.sh'
+single/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
+	# single network contains exactly 1 neuron for each model.
+	# 201 neurons in total in the network
+	mkdir -p single
+	mpirun -np 4 python build_network.py -f -o single/network --fraction 0.00001
 
 # full model requires ~400GB RAM. Our personal workstations cannot handle it.
 full/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)  # most likely this will fail
@@ -169,10 +171,11 @@ cell_types/cells_with_glif_pop_name.csv: pick_glif_all.py base_props/V1model_see
 cell_types/glif_explained_variance_ratio.csv: query_glif_expvar.py
 	python query_glif_expvar.py
 	
-
-# for background tuning	in small network
-small/bkg/bkg_spikes_tuning_1khz_10s.h5: bkg_spike_generation.py
-	python bkg_spike_generation.py
+	
+# bkg adjustment
+bkg_adjustment: single/output_bkgtune/spikes.h5
+	# output will be generates as single/network/bkg_v1_edge_types.csv
+	python bkg_weight_adjustment.py
 
 	
 clean:
@@ -183,6 +186,9 @@ clean:
 	rm -rf v1nodes
 	rm -rf no_recurrent
 	rm -rf miniature
+	rm -rf full
+	rm -rf small
+	rm -rf forty
 	rm -rf no_recurrent_full
 	rm -rf profile
 	rm -rf out.prof

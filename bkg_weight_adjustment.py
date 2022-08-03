@@ -16,8 +16,11 @@ import subprocess
 # get the spike dataframe
 
 
-def get_spike_df(basedir, query="timestamps < 10000"):
-    outputdir = basedir + "/output_bkgtune"
+def get_spike_df(basedir, query="timestamps < 100000", recurrent=False):
+    if recurrent:
+        outputdir = basedir + "/output_bkgtune_recurrent"
+    else:
+        outputdir = basedir + "/output_bkgtune"
     spike_df = pd.read_csv(outputdir + "/spikes.csv", sep=" ")
     spike_df = spike_df.query(query)
     return spike_df
@@ -31,13 +34,13 @@ def get_v1_dfs(basedir):
     return v1df
 
 
-def get_model_fr(basedir):
-    spike_df = get_spike_df(basedir)
+def get_model_fr(basedir, recurrent=False):
+    spike_df = get_spike_df(basedir, recurrent=recurrent)
     v1df = get_v1_dfs(basedir)
 
     v1df["node_ids"] = v1df["node_id"]
     spike_df = spike_df.merge(v1df[["node_ids", "node_type_id"]], on="node_ids")
-    v1df["spike_rate"] = spike_df.value_counts("node_ids") / 10.0
+    v1df["spike_rate"] = spike_df.value_counts("node_ids") / 100.0
     v1df["spike_rate"][np.isnan(v1df["spike_rate"])] = 0
     model_fr = v1df.groupby("node_type_id")["spike_rate"].mean()
     return model_fr
@@ -149,10 +152,10 @@ def get_target_fr(basedir):
     return target_fr
 
 
-basedir = "small"
+basedir = "single"
 get_target_fr(basedir)
 # %% update the parameters
-basedir = "small"
+basedir = "single"
 
 def run_command(command):
     print("running the command below...")
@@ -199,8 +202,11 @@ def write_new_weights(new_weight):
 
   
 
-def run_simulation(basedir, ncore=8):
-    config_file = basedir + "/configs/config_bkgtune.json"
+def run_simulation(basedir, ncore=8, recurrent=False):
+    if recurrent:
+        config_file = basedir + "/configs/config_bkgtune_recurrent.json"
+    else:
+        config_file = basedir + "/configs/config_bkgtune.json"
     command = f"mpirun -np {ncore} python run_pointnet.py {config_file}"
     return run_command(command)
 
@@ -213,9 +219,11 @@ def run_simulation(basedir, ncore=8):
 if __name__ == "__main__":
     # start with forming the problem.
 
-    basedir = "small"
+    basedir = "single"
     v1df = get_v1_dfs(basedir)
     tfr = get_target_fr(basedir)
+    
+    recurrent = False
 
     # based on Reinhold et al., 2015, we try to set the background so that the
     # spontaneous firing rates are 27% of the measured rates that include the LGN.
@@ -229,10 +237,12 @@ if __name__ == "__main__":
     weight.name = "syn_weight"
 
     for i in range(1000):
-        print(weight)
         update_bkg_weights(basedir, weight)
-        run_simulation(basedir)
-        model_fr = get_model_fr(basedir)
+        run_simulation(basedir, recurrent=recurrent)
+        model_fr = get_model_fr(basedir, recurrent)
+
+        dd = pd.DataFrame([weight, tfr, model_fr]).T
+        print(dd)
 
         new_weight = weight.copy()
         for i, v in model_fr.items():
@@ -244,7 +254,31 @@ if __name__ == "__main__":
             break
 
 # %%
-# (new_weight>0).sum()
+
+if False:
+    basedir = 'single'
+    v1df = get_v1_dfs(basedir)
+    tfr = get_target_fr(basedir)
+    tfr_27 = tfr * 0.27
+
+    tuned_fr = get_model_fr(basedir)
+    tuned_fr_recurrent = get_model_fr(basedir, recurrent=True)
+
+# showing some results here
+
+    tuned_fr
+    tuned_fr_recurrent
+# %%
+    df = pd.DataFrame([tfr_27, tuned_fr]).T
+    plt.plot(df['target_mean_fr'], df['spike_rate'], 'o')
+    plt.xlim([0, 10])
+    plt.ylim([0, 10])
+    plt.axis('image')
+# %%
+    from plotting_utils import plot_raster
+    plot_raster('small/output_bkgtune_recurrent/config_bkgtune_recurrent.json')
+
+
 
 # solvers
 # model_fr
