@@ -19,8 +19,8 @@ jobs_8dfilternet_targets = $(addsuffix /jobs/filternet_8dir_10trials.sh, $(netwo
 jobs_8d_targets = $(addsuffix /jobs/8dir_10trials.sh, $(networks))
 bkg_spikes_targets = $(addsuffix /bkg/bkg_spikes_1kHz_3s.h5, $(networks))
 bkg_edge_targets = $(addsuffix /network/bkg_v1_edge_types.csv, $(networks))
-run_8dfilternet_targets = $(addsuffix /filternet_8dir_10trials/angle0_trial0/spikes.csv, $(networks))
-run_8d_targets = $(addsuffix /8dir_10trials/angle0_trial0/spikes.csv, $(networks))
+run_8dfilternet_targets = $(addsuffix /filternet_8dir_10trials/angle0_trial0/spikes.h5, $(networks))
+run_8d_targets = $(addsuffix /8dir_10trials/angle0_trial0/spikes.h5, $(networks))
 odsi_targets = $(addsuffix /metrics/OSI_DSI_DF.csv, $(networks))
 odsi_figure_targets = $(addsuffix /figures/OSI_DSI.png, $(networks))
 get_figures_targets = $(addsuffix /figures, $(networks))
@@ -76,17 +76,17 @@ $(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
 $(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: precomputed_props/bkg_v1_edge_types.csv %/network/lgn_nodes.h5 %/components/synaptic_models/lgn_to_e4.json 
 	cp precomputed_props/bkg_v1_edge_types.csv $*/network/bkg_v1_edge_types.csv
 
-$(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.csv: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5
+$(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.h5: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5
 	# WARNING: Terminaing this command won't stop the jobs running on the cluster.
 	#          Make sure you cancel the jobs manually before re-running this.
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/filternet_8dir_10trials.sh'
 
-$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.csv: %/filternet_8dir_10trials/angle0_trial0/spikes.csv %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py %/components/synaptic_models/lgn_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
+$(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.h5: %/filternet_8dir_10trials/angle0_trial0/spikes.h5 %/jobs/8dir_10trials.sh %/network/lgn_nodes.h5 run_pointnet.py %/components/synaptic_models/lgn_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
 	# WARNING: Terminaing this command won't stop the jobs running on the cluster.
 	#          Make sure you cancel the jobs manually before re-running this.
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/8dir_10trials.sh'
 
-$(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.csv calculate_odsi.py
+$(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.h5 calculate_odsi.py
 	python calculate_odsi.py $*
 
 $(odsi_figure_targets): %/figures/OSI_DSI.png: %/metrics/OSI_DSI_DF.csv plot_odsi.py
@@ -105,7 +105,7 @@ tiny/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 
 small/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
-	mpirun -np 4 python build_network.py -f -o small/network --fraction 0.05
+	mpirun -np 8 python build_network.py -f -o small/network --fraction 0.05
 
 forty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	# forty is the largest network that can run on a single core.
