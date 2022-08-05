@@ -18,7 +18,7 @@ def calculateFiringRate(gids, ts, numNrns, gray_screen=0.0):
     start_time = gray_screen
     end_time = gray_screen + 2000.0  # requires at least 2 seconds of stimulus
 
-    gids = gids[np.where(ts > start_time & ts < end_time)[0]]
+    gids = gids[np.where(np.logical_and(ts > start_time, ts <= end_time))[0]]
 
     gid_bins = np.arange(0 - 0.5, numNrns + 0.5, 1)
 

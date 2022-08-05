@@ -34,13 +34,13 @@ def get_v1_dfs(basedir):
     return v1df
 
 
-def get_model_fr(basedir, recurrent=False):
+def get_model_fr(basedir, recurrent=False, duration=100.0):
     spike_df = get_spike_df(basedir, recurrent=recurrent)
     v1df = get_v1_dfs(basedir)
 
     v1df["node_ids"] = v1df["node_id"]
     spike_df = spike_df.merge(v1df[["node_ids", "node_type_id"]], on="node_ids")
-    v1df["spike_rate"] = spike_df.value_counts("node_ids") / 100.0
+    v1df["spike_rate"] = spike_df.value_counts("node_ids") / duration
     v1df["spike_rate"][np.isnan(v1df["spike_rate"])] = 0
     model_fr = v1df.groupby("node_type_id")["spike_rate"].mean()
     return model_fr
@@ -216,10 +216,17 @@ def run_simulation(basedir, ncore=8, recurrent=False):
 
 # %% let's write the main function
 
+mode = "small_lgnbkg"
+
 if __name__ == "__main__":
     # start with forming the problem.
 
-    basedir = "single"
+    if mode == "small_lgnbkg":
+        basedir = "small"
+        duration = 10.0
+    else:
+        basedir = "single"
+        duration = 100.0
     v1df = get_v1_dfs(basedir)
     tfr = get_target_fr(basedir)
     
@@ -227,10 +234,11 @@ if __name__ == "__main__":
 
     # based on Reinhold et al., 2015, we try to set the background so that the
     # spontaneous firing rates are 27% of the measured rates that include the LGN.
-    tfr = tfr * 0.27
+    if mode != "small_lgnbkg":
+        tfr = tfr * 0.27
 
     tfr.keys()[0]
-    solvers = {nid: BisectionSolver(0, 256, tfr[nid]) for nid in tfr.keys()}
+    solvers = {nid: BisectionSolver(0, 128, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
     weight[:] = 0.0
@@ -239,10 +247,12 @@ if __name__ == "__main__":
     for i in range(1000):
         update_bkg_weights(basedir, weight)
         run_simulation(basedir, recurrent=recurrent)
-        model_fr = get_model_fr(basedir, recurrent)
+        model_fr = get_model_fr(basedir, recurrent, duration=duration)
 
         dd = pd.DataFrame([weight, tfr, model_fr]).T
-        print(dd)
+        # show the entire df
+        with pd.option_context('display.max_rows', None):
+            print(dd)
 
         new_weight = weight.copy()
         for i, v in model_fr.items():
@@ -269,11 +279,17 @@ if False:
     tuned_fr
     tuned_fr_recurrent
 # %%
+if False:
     df = pd.DataFrame([tfr_27, tuned_fr]).T
+    df = pd.DataFrame([tfr_27, tuned_fr_recurrent]).T
     plt.plot(df['target_mean_fr'], df['spike_rate'], 'o')
+    plt.plot([0, 3.5], [0, 3.5], 'k--')
     plt.xlim([0, 10])
     plt.ylim([0, 10])
     plt.axis('image')
+
+
+    tuned_fr.mean() / tuned_fr_recurrent.mean() * .27
 # %%
     from plotting_utils import plot_raster
     plot_raster('small/output_bkgtune_recurrent/config_bkgtune_recurrent.json')

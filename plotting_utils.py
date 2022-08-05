@@ -61,13 +61,13 @@ def determine_layer_divisions(v1df):
     return dict(zip(layers, divisions))
 
 
-def plot_raster(config_file, s=1, **kwarg):
+def plot_raster(config_file, s=1, radius=400.0, **kwarg):
     config_js = read_config(config_file)
     net = form_network(config_js)
     spike_df = get_spikes(config_js)
 
     v1df = net.nodes["v1"].to_dataframe()
-    v1df = pick_core(v1df)
+    v1df = pick_core(v1df, radius=radius)
     v1df["Cell Type"] = v1df["pop_name"].apply(identify_cell_type)
     v1df["Sort Position"] = determine_sort_position(v1df)
     
@@ -115,11 +115,12 @@ def plot_raster(config_file, s=1, **kwarg):
 if __name__ == "__main__":
     simple = True
     if simple:
-        config_file = "full/8dir_10trials/angle0_trial0/config_0.json"
+        # config_file = "full/8dir_10trials/angle0_trial0/config_0.json"
         # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
-        # config_file = "small/output/config.json"
+        config_file = "small/output/config.json"
         plt.figure(figsize=(15, 10))
-        ax = plot_raster(config_file, s=1)
+        # ax = plot_raster(config_file, s=1) # for full
+        ax = plot_raster(config_file, s=3, radius=100.0) # for small
         ax.set_xlim([0, 1000])
     else:
         config_file = "small/output_lgn/config_lgn.json"
