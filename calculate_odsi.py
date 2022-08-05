@@ -12,19 +12,24 @@ import sys
 from pathlib import Path
 
 
-def calculateFiringRate(gids, ts, numNrns, gray_screen=0):
+def calculateFiringRate(gids, ts, numNrns, gray_screen=0.0):
 
     # print("Calculating Firing Rate")
-    gids = gids[np.where(ts > gray_screen)[0]]
+    start_time = gray_screen
+    end_time = gray_screen + 2000.0  # requires at least 2 seconds of stimulus
+
+    gids = gids[np.where(ts > start_time & ts < end_time)[0]]
 
     gid_bins = np.arange(0 - 0.5, numNrns + 0.5, 1)
 
     hist, bins = np.histogram(gids, bins=gid_bins)
+    
+    mean_firing_rates = hist / 2.0
 
-    if gray_screen > 0:
-        mean_firing_rates = hist / ((3000.0 - gray_screen) / 1000.0)
-    else:
-        mean_firing_rates = hist / (3000.0 / 1000.0)
+    # if gray_screen > 0:
+    #     mean_firing_rates = hist / ((3000.0 - gray_screen) / 1000.0)
+    # else:
+    #     mean_firing_rates = hist / (3000.0 / 1000.0)
     return mean_firing_rates
 
 
