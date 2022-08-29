@@ -238,7 +238,7 @@ if __name__ == "__main__":
         tfr = tfr * 0.27
 
     tfr.keys()[0]
-    solvers = {nid: BisectionSolver(0, 128, tfr[nid]) for nid in tfr.keys()}
+    solvers = {nid: BisectionSolver(0, 32, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
     weight[:] = 0.0
@@ -266,7 +266,7 @@ if __name__ == "__main__":
 # %%
 
 if False:
-    basedir = 'single'
+    basedir = 'small'
     v1df = get_v1_dfs(basedir)
     tfr = get_target_fr(basedir)
     tfr_27 = tfr * 0.27

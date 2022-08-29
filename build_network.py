@@ -204,6 +204,8 @@ def syn_weight_by_experimental_distribution(
     # To set syn_weight, use the PPF with the orientation difference:
     # if not np.isnan(src_trg_params["gradient"]):
     
+    # randomizing_factor = 0.1 #  8/15/2022 after discussion, decided to weaken the randomness
+    randomizing_factor = 1.0 #  8/18/2022 reverting as it didn't affect the results much
     # Original if condition:
     # if src_ei == "e" and trg_ei == "e" and (not type(delta_theta_dist) == float):
     # TODO: Please make sure if I'm doing it right.
@@ -212,7 +214,7 @@ def syn_weight_by_experimental_distribution(
         # These need to be ordered and mapped uniformly over [0,1] using the cdf:
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 5)
+        tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -235,7 +237,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 15)
+        tuning_rnd = float(np.random.randn(1) * 15) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -256,7 +258,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 25)
+        tuning_rnd = float(np.random.randn(1) * 25) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -278,7 +280,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 5)
+        tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -294,12 +296,12 @@ def syn_weight_by_experimental_distribution(
         # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
-    syn_weight = syn_weight / PSP_correction
+    syn_weight = syn_weight * target["nsyn_size_mean"] / (PSP_correction * target["target_sizes"])
     return syn_weight, n_syns_
 
 
 def lognorm_ppf(x, shape, loc=0, scale=1):
-    # definition from wikipedia
+    # definition from wikipedia (quantile)
     return scale * exp(sqrt(2 * shape ** 2) * erfinv(2 * x - 1)) + loc
 
 def delta_theta_cdf(intercept, d_theta):

@@ -117,7 +117,9 @@ if __name__ == "__main__":
     if simple:
         # config_file = "full/8dir_10trials/angle0_trial0/config_0.json"
         # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
-        config_file = "small/output/config.json"
+        # config_file = "small/output/config.json"
+        config_file = "small/output/config_plain.json"
+        # config_file = "full/output/config_plain.json"
         plt.figure(figsize=(15, 10))
         # ax = plot_raster(config_file, s=1) # for full
         ax = plot_raster(config_file, s=3, radius=100.0) # for small

@@ -32,12 +32,22 @@ if __name__ == "__main__":
     write_bkg(bkg_name, duration=100.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_1kHz_10s.h5"
     write_bkg(bkg_name, duration=10.0)
+    bkg_name = f"{basedir}/bkg/bkg_spikes_1kHz_3s.h5"
+    write_bkg(bkg_name)
     bkg_name = f"{basedir}/bkg/bkg_spikes_2kHz_10s.h5"
     write_bkg(bkg_name, rate=2000, duration=10.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_2kHz_3s.h5"
     write_bkg(bkg_name, rate=2000, duration=3.0)
-    bkg_name = f"{basedir}/bkg/bkg_spikes_1kHz_3s.h5"
-    write_bkg(bkg_name)
+    # with 'full', all the bins are filled with spikes. i.e. no fluctuations.
+    bkg_name = f"{basedir}/bkg/bkg_spikes_full_10s.h5"
+    write_bkg(bkg_name, rate=4000, duration=10.0)
+    bkg_name = f"{basedir}/bkg/bkg_spikes_full_3s.h5"
+    write_bkg(bkg_name, rate=4000, duration=3.0)
+    # these require high resolution simulations
+    bkg_name = f"{basedir}/bkg/bkg_spikes_5kHz_3s.h5"
+    write_bkg(bkg_name, rate=5000, binsize=1.0e-5, duration=3.0)
+    bkg_name = f"{basedir}/bkg/bkg_spikes_5kHz_10s.h5"
+    write_bkg(bkg_name, rate=5000, binsize=1.0e-5, duration=10.0)
     
     # for the 8 direction stimuli (10 repetition)
     start_seed = 381583
@@ -48,6 +58,7 @@ if __name__ == "__main__":
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
             write_bkg(f"{dirname}/bkg_spikes_1kHz_3s.h5", seed=seed)
             write_bkg(f"{dirname}/bkg_spikes_2kHz_3s.h5", rate=2000, seed=seed)
+            write_bkg(f"{dirname}/bkg_spikes_full_3s.h5", rate=4000, seed=seed)
 
     
     

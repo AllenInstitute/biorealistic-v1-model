@@ -129,6 +129,8 @@ full/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)  # most likely this will
 	#          Make sure you cancel the jobs manually before re-running this.
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait full_build.sh'
 	
+full/output/spikes.h5: $(mainscripts)
+	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait fullmodel_run.sh'
 
 glif_props/lgn_weights_model.csv: base_props/lgn_weights_population.csv precomputed_props/v1_synapse_amps.json make_lgn_weights.py
 	python make_lgn_weights.py
