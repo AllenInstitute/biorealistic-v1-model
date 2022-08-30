@@ -38,7 +38,12 @@ if __name__ == "__main__":
     write_bkg(bkg_name, rate=2000, duration=10.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_2kHz_3s.h5"
     write_bkg(bkg_name, rate=2000, duration=3.0)
+
     # with 'full', all the bins are filled with spikes. i.e. no fluctuations.
+    bkg_name = f"{basedir}/bkg/bkg_spikes_full_100s.h5"
+    write_bkg(bkg_name, rate=4000, duration=100.0)
+    bkg_name = f"{basedir}/bkg/bkg_spikes_full_30s.h5"
+    write_bkg(bkg_name, rate=4000, duration=30.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_full_10s.h5"
     write_bkg(bkg_name, rate=4000, duration=10.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_full_3s.h5"

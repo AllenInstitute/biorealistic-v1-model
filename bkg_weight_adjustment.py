@@ -157,6 +157,7 @@ get_target_fr(basedir)
 # %% update the parameters
 basedir = "single"
 
+
 def run_command(command):
     print("running the command below...")
     print(command)
@@ -164,7 +165,7 @@ def run_command(command):
     process.wait()
     print(f"Return code: {process.returncode}")
     return process.returncode
- 
+
 
 def update_bkg_weights(basedir, new_weight):
     bkg_edge_name = basedir + "/network/bkg_v1_edge_types.csv"
@@ -191,16 +192,14 @@ def write_new_weights(new_weight):
     tmp_filename = "bkg_weights_population_tmp.csv"
 
     bkg_pop_df = pd.read_csv(orig_filename, sep=" ")
-    bkg_pop_df['syn_weight'] = new_weight
-    
+    bkg_pop_df["syn_weight"] = new_weight
+
     bkg_pop_df.to_csv(tmp_filename, sep=" ", index=False)
     return
-    
-    
+
 
 # %% run simulation with the existing configuration
 
-  
 
 def run_simulation(basedir, ncore=8, recurrent=False):
     if recurrent:
@@ -223,13 +222,13 @@ if __name__ == "__main__":
 
     if mode == "small_lgnbkg":
         basedir = "small"
-        duration = 10.0
+        duration = 100.0
     else:
         basedir = "single"
         duration = 100.0
     v1df = get_v1_dfs(basedir)
     tfr = get_target_fr(basedir)
-    
+
     recurrent = False
 
     # based on Reinhold et al., 2015, we try to set the background so that the
@@ -238,7 +237,7 @@ if __name__ == "__main__":
         tfr = tfr * 0.27
 
     tfr.keys()[0]
-    solvers = {nid: BisectionSolver(0, 32, tfr[nid]) for nid in tfr.keys()}
+    solvers = {nid: BisectionSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
     weight[:] = 0.0
@@ -246,12 +245,15 @@ if __name__ == "__main__":
 
     for i in range(1000):
         update_bkg_weights(basedir, weight)
-        run_simulation(basedir, recurrent=recurrent)
+        run_simulation(basedir, recurrent=recurrent, ncore=6)
         model_fr = get_model_fr(basedir, recurrent, duration=duration)
 
-        dd = pd.DataFrame([weight, tfr, model_fr]).T
+        # if new_weight does not exist, create it.
+        if "new_weight" not in locals():
+            new_weight = weight.copy()
+        dd = pd.DataFrame([weight, new_weight, tfr, model_fr]).T
         # show the entire df
-        with pd.option_context('display.max_rows', None):
+        with pd.option_context("display.max_rows", None):
             print(dd)
 
         new_weight = weight.copy()
@@ -266,7 +268,7 @@ if __name__ == "__main__":
 # %%
 
 if False:
-    basedir = 'small'
+    basedir = "small"
     v1df = get_v1_dfs(basedir)
     tfr = get_target_fr(basedir)
     tfr_27 = tfr * 0.27
@@ -274,7 +276,7 @@ if False:
     tuned_fr = get_model_fr(basedir)
     tuned_fr_recurrent = get_model_fr(basedir, recurrent=True)
 
-# showing some results here
+    # showing some results here
 
     tuned_fr
     tuned_fr_recurrent
@@ -282,18 +284,17 @@ if False:
 if False:
     df = pd.DataFrame([tfr_27, tuned_fr]).T
     df = pd.DataFrame([tfr_27, tuned_fr_recurrent]).T
-    plt.plot(df['target_mean_fr'], df['spike_rate'], 'o')
-    plt.plot([0, 3.5], [0, 3.5], 'k--')
+    plt.plot(df["target_mean_fr"], df["spike_rate"], "o")
+    plt.plot([0, 3.5], [0, 3.5], "k--")
     plt.xlim([0, 10])
     plt.ylim([0, 10])
-    plt.axis('image')
+    plt.axis("image")
 
-
-    tuned_fr.mean() / tuned_fr_recurrent.mean() * .27
-# %%
+    tuned_fr.mean() / tuned_fr_recurrent.mean() * 0.27
+    # %%
     from plotting_utils import plot_raster
-    plot_raster('small/output_bkgtune_recurrent/config_bkgtune_recurrent.json')
 
+    plot_raster("small/output_bkgtune_recurrent/config_bkgtune_recurrent.json")
 
 
 # solvers
@@ -322,7 +323,6 @@ if False:
 #     if x < 0:
 #         break
 # # OK. it works.
-
 
 
 # %% looking at the raster
