@@ -12,6 +12,10 @@ import seaborn as sns
 # in principle, if you provide the config file, you should be able to reproduce all the
 # metadata
 
+def pick_core(df, radius=400.0):
+    """ return if the neuron is at the core. """
+    lateral = np.sqrt(df['x']**2 + df['z']**2)
+    return df[lateral <= radius]
 
 def read_config(config_file):
     js = json.load(open(config_file, "r"))
@@ -44,7 +48,7 @@ def identify_cell_type(pop_name: str):
 
 # this is destructive method (adds columns to v1df)
 def determine_sort_position(v1df):
-    reset_v1 = v1df.sort_values(["location", "pop_name", "tuning_angle"]).reset_index()
+    reset_v1 = v1df.sort_values(["location", "Cell Type", "tuning_angle"]).reset_index()
     sort_position = reset_v1.sort_values("index").index
     return sort_position
 
@@ -57,14 +61,18 @@ def determine_layer_divisions(v1df):
     return dict(zip(layers, divisions))
 
 
-def plot_raster(config_file, s=1, **kwarg):
+def plot_raster(config_file, s=1, radius=400.0, **kwarg):
     config_js = read_config(config_file)
     net = form_network(config_js)
     spike_df = get_spikes(config_js)
 
     v1df = net.nodes["v1"].to_dataframe()
-    v1df["Sort Position"] = determine_sort_position(v1df)
+    v1df = pick_core(v1df, radius=radius)
     v1df["Cell Type"] = v1df["pop_name"].apply(identify_cell_type)
+    v1df["Sort Position"] = determine_sort_position(v1df)
+    
+    
+    spike_df = spike_df.loc[spike_df.index.isin(v1df.index)]
 
     layer_divisions = determine_layer_divisions(v1df)
 
@@ -103,15 +111,18 @@ def plot_raster(config_file, s=1, **kwarg):
     return ax
 
 
-# %%
 # %%time
 if __name__ == "__main__":
-    simple = False
+    simple = True
     if simple:
-        # config_file = "fullmodel56/output/config_plain.json"
-        config_file = "small/output/config.json"
+        # config_file = "full/8dir_10trials/angle0_trial0/config_0.json"
+        # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
+        # config_file = "small/output/config.json"
+        config_file = "small/output/config_plain.json"
+        # config_file = "full/output/config_plain.json"
         plt.figure(figsize=(15, 10))
-        ax = plot_raster(config_file, s=1)
+        # ax = plot_raster(config_file, s=1) # for full
+        ax = plot_raster(config_file, s=3, radius=100.0) # for small
         ax.set_xlim([0, 1000])
     else:
         config_file = "small/output_lgn/config_lgn.json"
