@@ -8,8 +8,11 @@ import h5py
 
 # d = "miniature/"
 d = "small/"
+# d = "single/"
 # d = "original_mini/"
 dnet = d + "network/"
+# dout = d + "output_multimeter_bkg/"
+# dout = d + "output_single_spikes/"
 dout = d + "output_multimeter/"
 dfiles = [dnet + "lgn_nodes.h5", dnet + "v1_nodes.h5", dnet + "lgn_v1_edges.h5"]
 dtfiles = [
@@ -119,7 +122,8 @@ def get_np_data(filename):
         return (time, npd)
 
 
-time, npd = get_np_data(f"{d}output_multimeter/cai_traces.h5")
+time, npd = get_np_data(f"{dout}cai_traces.h5")
+# time, npd = get_np_data(f"{dout}cai_traces_single.h5")
 
 # plt.plot(time, npd[:, [276, 284, 300]])
 # plt.plot(time, npd[:, [276]])
@@ -131,7 +135,8 @@ time, npd = get_np_data(f"{d}output_multimeter/cai_traces.h5")
 # f1 analysis
 
 # pick e4 cells
-v1df_sub = v1df.query("ei=='e' and location=='VisL4'").sample(2000)
+# v1df_sub = v1df.query("ei=='e' and location=='VisL4'").sample(2000)
+v1df_sub = v1df.query("ei=='e' and location=='VisL4'")
 # v1df_sub = v1df
 
 
@@ -150,7 +155,13 @@ f1_I = np.abs(f1_I[:, stim_time].mean(axis=1))
 
 
 vi = v1df_sub.index
+npd[spont_time, :][:, vi[0:5]].mean(axis=0)
+npd[stim_time, :][:, vi[0:5]].mean(axis=0)
 
+vi
+
+
+stim_I[vi].mean()
 v1df_sub["evoked I"] = stim_I[vi] - spont_I[vi]
 v1df_sub["f1 I"] = f1_I[vi]
 v1df_sub["f1/evoked"] = f1_I[vi] / (stim_I[vi] - spont_I[vi])
@@ -172,6 +183,15 @@ plt.ylim([0.0, 1.5])
 
 # %% It'll look great if you chop off neurons with high FR.
 
+plt.plot(npd[:, vi[0:5]])
+# plt.xlim([2000, 2100])
+plt.xlim([0, 100])
+
+# %%
+plt.figure(figsize=(15, 5))
+plt.plot(time, npd[:, vi[0]])
+plt.xlim([400.8, 405])
+plt.grid(True)
 
 # %% report the distribution of the number of synapses form LGN to v1
 

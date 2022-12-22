@@ -23,6 +23,18 @@ def write_bkg(output_filename, duration=3.0, binsize=2.5e-4, rate=1000, seed=0):
     return 0
 
 
+def write_regular_bkg(output_filename, duration=1.0, interval=0.1):
+    spikes_time = np.linspace(interval, duration, int(duration / interval))
+    nids = np.zeros_like(spikes_time, dtype=np.uint)
+
+    # save
+    out_file = h5py.File(output_filename, "w")
+    out_file["spikes/gids"] = nids
+    out_file["spikes/timestamps"] = spikes_time * 1000  # in ms
+    out_file.close()
+    return 0
+
+
 if __name__ == "__main__":
     # try to write the bkg (let's make all of them)
     # basedir = "small"
@@ -53,7 +65,11 @@ if __name__ == "__main__":
     write_bkg(bkg_name, rate=5000, binsize=1.0e-5, duration=3.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_5kHz_10s.h5"
     write_bkg(bkg_name, rate=5000, binsize=1.0e-5, duration=10.0)
-    
+
+    # regular bkg
+    bkg_name = f"{basedir}/bkg/bkg_spikes_regular_1s.h5"
+    write_regular_bkg(bkg_name)
+
     # for the 8 direction stimuli (10 repetition)
     start_seed = 381583
     for i in range(8):
@@ -64,8 +80,4 @@ if __name__ == "__main__":
             write_bkg(f"{dirname}/bkg_spikes_1kHz_3s.h5", seed=seed)
             write_bkg(f"{dirname}/bkg_spikes_2kHz_3s.h5", rate=2000, seed=seed)
             write_bkg(f"{dirname}/bkg_spikes_full_3s.h5", rate=4000, seed=seed)
-
-    
-    
-    
 

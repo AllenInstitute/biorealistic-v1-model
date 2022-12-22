@@ -118,8 +118,8 @@ def plot_one(ax, df, metric_name, ylim, cpal=None):
     return ax
 
 
-def plot_scat(ax, df, x, y, cpal=None):
-    sns.scatterplot(x=x, y=y, hue="data_type", data=df, ax=ax, s=1, palette=cpal)
+def plot_scat(ax, df, x, y, cpal=None, s=1):
+    sns.scatterplot(x=x, y=y, hue="data_type", data=df, ax=ax, s=s, palette=cpal)
     ax.legend(loc="upper right")
     # make x axis log scale
     ax.set_xscale("log")
@@ -147,35 +147,62 @@ color_pal = {
     "full all round1": "tab:red",
     "full, all": "tab:blue",
     "small, lgnbkg": "tab:pink",
+    "small constBKG round6": "tab:cyan",
+    "full round6": "tab:pink",
+    "full round7": "tab:blue",
+    "full round9": "tab:cyan",
+    "small round7": "tab:cyan",
+    "small round9": "tab:blue",
+    "small newest": "tab:blue",
+    "Lognorm, norecurrent": "tab:pink",
+    "New model": "tab:blue",
     #  'small, lgnonly': 'tab:olive',
     #  'small, lgn+bkg': 'tab:brown',
     #  'small, +recurrent': 'tab:red',
     "Neuropixels": "tab:gray",
+    # "Neuropixels": "k",
 }
 
 
 # Billeh, small, neuropixels set
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
 # osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_27pBKG_lgnbkg.csv", "small, lgnbkg", radius=100.0))
+
 osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
 osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels"))
+osi_dfs.append(
+    get_osi_df("flat", "OSI_DSI_DF_round9.csv", "Lognorm, norecurrent", radius=850.0)
+)
+# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round6.csv", "full round6"))
+osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round9.csv", "full round9"))
+# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round7.csv", "full round7"))
+
+osi_dfs.append(
+    get_osi_df("small", "OSI_DSI_DF_round9.csv", "small round9", radius=100.0)
+)
+# osi_dfs.append(
+#     get_osi_df("small", "OSI_DSI_DF_round7.csv", "small round7", radius=100.0)
+# )
+# osi_dfs.append(
+#     get_osi_df("full", "OSI_DSI_DF.csv", "New model")
+# )
 # osi_dfs.append(get_osi_df("small", "OSI_DSI_DF.csv", "small all round4", radius=100.0))
-osi_dfs.append(
-    get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small all round1", radius=100.0)
-)
-osi_dfs.append(
-    get_osi_df(
-        "small", "OSI_DSI_DF_normfix.csv", "small dendritic norm fix", radius=100.0
-    )
-)
-osi_dfs.append(
-    get_osi_df(
-        "small",
-        "OSI_DSI_DF.csv",
-        "small dendritic norm fix, full bkg",
-        radius=100.0,
-    )
-)
+# osi_dfs.append(
+#     get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small all round1", radius=100.0)
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "small", "OSI_DSI_DF_normfix.csv", "small dendritic norm fix", radius=100.0
+#     )
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "small",
+#         "OSI_DSI_DF.csv",
+#         "small dendritic norm fix, full bkg",
+#         radius=100.0,
+#     )
+# )
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round3_all.csv", "full all round3"))
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full all round4"))
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full all round1"))
@@ -212,16 +239,33 @@ df = pd.concat(osi_dfs)
 
 
 fig, axs = plt.subplots(4, 1, figsize=(12, 20))
-plot_one(axs[0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
-plot_one(axs[1], df, "DSI", [0, 1], color_pal)
-plot_one(axs[2], df, "OSI", [0, 1], color_pal)
-plot_scat(axs[3], df, "Rate at preferred direction (Hz)", "DSI", color_pal)
+# fig, axs = plt.subplots(3, 1, figsize=(9, 12))
+plot_one(axs[0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
+plot_one(axs[1], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
+plot_one(axs[2], df, "DSI", [0, 1], color_pal)
+plot_one(axs[3], df, "OSI", [0, 1], color_pal)
+# plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "DSI", color_pal, s=5)
+# plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
 
 plt.tight_layout()
+# plt.savefig("box_Dec12.svg", bbox="tight")
+# plt.savefig("box_Dec12.png", dpi=150)
 
 
 # %% experimenting shading
 
 # ax.fill_between(range(len(ticklabel)), 0, 1, shades, alpha=0.1, color='k', step='mid')
 
-# ax.get_xlim()
+# ax.get_xlim(
+
+a = df.query("data_type=='Neuropixels'")
+# remove nans
+# (a.query("cell_type == 'L6 Exc'")["Spont_Rate(Hz)"] == 0).sum()
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+# plot neuropixels scatter plot with different cell types highlighted.
+sns.scatterplot(
+    ax=ax, data=a, x="Rate at preferred direction (Hz)", y="OSI", s=5, hue="cell_type"
+)
+# set xscale log
+ax.set_xscale("log")

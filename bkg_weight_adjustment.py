@@ -14,7 +14,32 @@ import subprocess
 
 # %% try getting FR
 # get the spike dataframe
+def pop_name_to_cell_type(pop_name):
+    """convert pop_name in the old format to cell types.
+    for example,
+    'e4Rorb' -> 'L4 Exc'
+    'i4Pvalb' -> 'L4 PV'
+    'i23Sst' -> 'L2/3 SST'
+    """
+    shift = 0  # letter shift for L23
+    layer = pop_name[1]
+    if layer == "2":
+        layer = "2/3"
+        shift = 1
+    elif layer == "1":
+        return "L1 Htr3a"  # special case
 
+    class_name = pop_name[2 + shift :]
+    if class_name == "Pvalb":
+        subclass = "PV"
+    elif class_name == "Sst":
+        subclass = "SST"
+    elif (class_name == "Vip") or (class_name == "Htr3a"):
+        subclass = "VIP"
+    else:  # excitatory
+        subclass = "Exc"
+
+    return f"L{layer} {subclass}"
 
 def get_spike_df(basedir, query="timestamps < 100000", recurrent=False):
     if recurrent:
@@ -34,7 +59,7 @@ def get_v1_dfs(basedir):
     return v1df
 
 
-def get_model_fr(basedir, recurrent=False, duration=100.0):
+def get_model_fr(basedir, recurrent=False, duration=100.0, target="mean"):
     spike_df = get_spike_df(basedir, recurrent=recurrent)
     v1df = get_v1_dfs(basedir)
 
@@ -42,7 +67,15 @@ def get_model_fr(basedir, recurrent=False, duration=100.0):
     spike_df = spike_df.merge(v1df[["node_ids", "node_type_id"]], on="node_ids")
     v1df["spike_rate"] = spike_df.value_counts("node_ids") / duration
     v1df["spike_rate"][np.isnan(v1df["spike_rate"])] = 0
-    model_fr = v1df.groupby("node_type_id")["spike_rate"].mean()
+    if target == "mean":
+        model_fr = v1df.groupby("node_type_id")["spike_rate"].mean()
+    elif target == "median":
+        model_fr = v1df.groupby("node_type_id")["spike_rate"].median()
+    elif target == "array":
+        # return the array of firing rates
+        model_fr = v1df.groupby("node_type_id")["spike_rate"].apply(np.array)
+    else:
+        raise ValueError(f"Unknown target: {target}")
     return model_fr
 
 
@@ -138,17 +171,15 @@ def get_formatted_edge_df(basedir):
     return bkg_edge_df
 
 
-def get_target_fr(basedir):
+def get_target_fr(basedir, target="target_mean_fr"):
     target_pop = pd.read_csv("base_props/bkg_weights_population_init.csv", sep=" ")
     v1df = get_v1_dfs(basedir)
     model_to_pop = v1df[["node_type_id", "pop_name"]].drop_duplicates()
     model_to_fr = model_to_pop.merge(
-        target_pop[["population", "target_mean_fr"]],
-        left_on="pop_name",
-        right_on="population",
+        target_pop[["population", target]], left_on="pop_name", right_on="population",
     )
     model_to_fr.index = model_to_fr["node_type_id"]
-    target_fr = model_to_fr["target_mean_fr"]
+    target_fr = model_to_fr[target]
     return target_fr
 
 
@@ -216,6 +247,8 @@ def run_simulation(basedir, ncore=8, recurrent=False):
 # %% let's write the main function
 
 mode = "small_lgnbkg"
+mode = "flat_wasser"
+target = "median"
 
 if __name__ == "__main__":
     # start with forming the problem.
@@ -223,30 +256,47 @@ if __name__ == "__main__":
     if mode == "small_lgnbkg":
         basedir = "small"
         duration = 100.0
-    else:
+    elif mode == "flat_wasser":
+        # flat population (100 neurons for each model) with wasserstein distance
+        basedir = "flat"
+        duration = 100.0
+    elif mode == "single":
         basedir = "single"
         duration = 100.0
+    else:
+        raise ValueError(
+            "Unknown mode. Please choose from small_lgnbkg, flat_wasser, or single."
+        )
     v1df = get_v1_dfs(basedir)
-    tfr = get_target_fr(basedir)
+    if target == "mean":
+        tfr = get_target_fr(basedir, target="target_mean_fr")
+    elif target == "median":
+        tfr = get_target_fr(basedir, target="target_median_fr")
 
     recurrent = False
 
     # based on Reinhold et al., 2015, we try to set the background so that the
     # spontaneous firing rates are 27% of the measured rates that include the LGN.
-    if mode != "small_lgnbkg":
+    if mode == "single":
         tfr = tfr * 0.27
 
     tfr.keys()[0]
-    solvers = {nid: BisectionSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
+    if mode == "flat_wasser":
+        solvers = {nid: MinuitPipeSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
+    else:
+        solvers = {nid: BisectionSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
     weight[:] = 0.0
     weight.name = "syn_weight"
 
     for i in range(1000):
-        update_bkg_weights(basedir, weight)
+        if mode == "flat_wasser":
+            update_bkg_weights_lognormal(basedir, weight)
+        else:
+            update_bkg_weights(basedir, weight)
         run_simulation(basedir, recurrent=recurrent, ncore=6)
-        model_fr = get_model_fr(basedir, recurrent, duration=duration)
+        model_fr = get_model_fr(basedir, recurrent, duration=duration, target=target)
 
         # if new_weight does not exist, create it.
         if "new_weight" not in locals():

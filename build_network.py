@@ -34,7 +34,7 @@ from numba import njit
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=1.00, miniature=False):
+def add_nodes_v1(fraction=1.00, miniature=False, flat=False):
     if miniature:
         node_props = "glif_props/v1_node_models_miniature.json"
     else:
@@ -67,8 +67,11 @@ def add_nodes_v1(fraction=1.00, miniature=False):
                     #  with only a few initial cells they can be over-represented.
                     model["N"] = int(np.ceil(fraction * model["N"]))
 
+                if flat:
+                    N = 100
+                else:
+                    N = model["N"]
                 # create a list of randomized cell positions for each cell type
-                N = model["N"]
                 positions = generate_random_positions(N, depth_range, radial_range)
 
                 # properties used to build the cells for each cell-type
@@ -173,6 +176,7 @@ def orientation_dependence_fns(intercept_in, grad_in):
     ppf_out = interpolate.interp1d(discrete_cdf1, x)
     return pdf_out, cdf_out, ppf_out
 
+
 def syn_weight_by_experimental_distribution(
     source,
     target,
@@ -203,13 +207,19 @@ def syn_weight_by_experimental_distribution(
 
     # To set syn_weight, use the PPF with the orientation difference:
     # if not np.isnan(src_trg_params["gradient"]):
-    
+
     # randomizing_factor = 0.1 #  8/15/2022 after discussion, decided to weaken the randomness
-    randomizing_factor = 1.0 #  8/18/2022 reverting as it didn't affect the results much
+    randomizing_factor = (
+        1.0  #  8/18/2022 reverting as it didn't affect the results much
+    )
     # Original if condition:
     # if src_ei == "e" and trg_ei == "e" and (not type(delta_theta_dist) == float):
     # TODO: Please make sure if I'm doing it right.
-    if src_ei == "e" and trg_ei == "e" and (not np.isnan(connection_params["gradient"])):
+    if (
+        src_ei == "e"
+        and trg_ei == "e"
+        and (not np.isnan(connection_params["gradient"]))
+    ):
         # For e-to-e, there is a non-uniform distribution of delta_orientations.
         # These need to be ordered and mapped uniformly over [0,1] using the cdf:
 
@@ -222,7 +232,9 @@ def syn_weight_by_experimental_distribution(
         )
 
         # orient_temp = 1 - delta_theta_dist.cdf(delta_tuning_180)
-        orient_temp = 1 - delta_theta_cdf(connection_params['intercept'], delta_tuning_180)
+        orient_temp = 1 - delta_theta_cdf(
+            connection_params["intercept"], delta_tuning_180
+        )
         # orient_temp = np.min([0.999, orient_temp])
         # orient_temp = np.max([0.001, orient_temp])
         orient_temp = min(0.999, orient_temp)
@@ -296,13 +308,18 @@ def syn_weight_by_experimental_distribution(
         # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
-    syn_weight = syn_weight * target["nsyn_size_mean"] / (PSP_correction * target["target_sizes"])
+    syn_weight = (
+        syn_weight
+        * target["nsyn_size_mean"]
+        / (PSP_correction * target["target_sizes"])
+    )
     return syn_weight, n_syns_
 
 
 def lognorm_ppf(x, shape, loc=0, scale=1):
     # definition from wikipedia (quantile)
     return scale * exp(sqrt(2 * shape ** 2) * erfinv(2 * x - 1)) + loc
+
 
 def delta_theta_cdf(intercept, d_theta):
     B1 = intercept
@@ -313,14 +330,14 @@ def delta_theta_cdf(intercept, d_theta):
     norm = 90 * (B1 + B2)  # total area for normalization
     x = d_theta - 90
     if d_theta < 0:
-        raise 'd_theta must be >= 0, but was {}'.format(d_theta)
+        raise "d_theta must be >= 0, but was {}".format(d_theta)
     elif d_theta < 90:
         # analytical integration of the pdf to get this cdf
-        return (0.5 * G * x**2 + B2 * x) / norm + 0.5
+        return (0.5 * G * x ** 2 + B2 * x) / norm + 0.5
     elif d_theta <= 180:
-        return (- 0.5 * G * x**2 + B2 * x) / norm + 0.5
+        return (-0.5 * G * x ** 2 + B2 * x) / norm + 0.5
     else:
-        raise 'd_theta must be <= 180, but was {}'.format(d_theta)
+        raise "d_theta must be <= 180, but was {}".format(d_theta)
 
 
 def add_edges_v1(net):
@@ -339,12 +356,14 @@ def add_edges_v1(net):
         trg_type = row["target_label"]
         src_trg_params = compute_pair_type_parameters(src_type, trg_type, cc_prob_dict)
         # print(src_trg_params)
-        
+
         prop_query = ["x", "z", "tuning_angle"]
         src_criteria = {"pop_name": src_type}
         net.nodes()  # this line is necessary to activate nodes... (I don't know why.)
         source_nodes = NodePool(net, **src_criteria)
-        source_nodes_df = pd.DataFrame([{q: s[q] for q in prop_query} for s in source_nodes])
+        source_nodes_df = pd.DataFrame(
+            [{q: s[q] for q in prop_query} for s in source_nodes]
+        )
 
         # TODO: check if these values should be used
         weight_fnc, weight_sigma = find_direction_rule(src_type, trg_type)
@@ -368,7 +387,10 @@ def add_edges_v1(net):
                 target={"node_type_id": node_type_id},
                 iterator="all_to_one",
                 connection_rule=connect_cells,
-                connection_params={"params": src_trg_params, "source_nodes": source_nodes_df},
+                connection_params={
+                    "params": src_trg_params,
+                    "source_nodes": source_nodes_df,
+                },
                 dynamics_params=row["params_file"],
                 # syn_weight_max=row["weight_max"],
                 delay=row["delay"],
@@ -480,9 +502,7 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
     return lgn
 
 
-def add_lgn_v1_edges(
-    v1_net, lgn_net, x_len=240.0, y_len=120.0, miniature=False
-):
+def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0, miniature=False):
     if miniature:
         node_props = "glif_props/v1_node_models_miniature.json"
     else:
@@ -544,7 +564,10 @@ def add_lgn_v1_edges(
         cm.add_properties(
             "syn_weight",
             rule=lgn_synaptic_weight_rule,
-            rule_params={"base_weight": row["syn_weight_psp"], "mean_size": e4_mean_size},
+            rule_params={
+                "base_weight": row["syn_weight_psp"],
+                "mean_size": e4_mean_size,
+            },
             dtypes=float,
         )
 
@@ -579,7 +602,7 @@ def add_bkg_v1_edges(v1_net, bkg_net):
             "source": bkg_net.nodes(),
             "target": v1_net.nodes(node_type_id=row["model_id"]),
             "connection_rule": lambda s, t, n: n,
-            "connection_params": {"n": row['nsyns']},
+            "connection_params": {"n": row["nsyns"]},
             "dynamics_params": row["dynamics_params"],
             "syn_weight": row["syn_weight_psp"],
             "delay": 1.0,
@@ -655,6 +678,12 @@ if __name__ == "__main__":
         default=False,
         help="Make a miniture network with with a small LGN. Only for debugging",
     )
+    parser.add_argument(
+        "--flat",
+        action="store_true",
+        default=False,
+        help="Make the number of neurons for each population 100. For BKG tuning.",
+    )
     # This option is now obsolete.
     # parser.add_argument(
     #     "--feed-forward-v2",
@@ -697,7 +726,9 @@ if __name__ == "__main__":
         print("Building v1 network")
         # check_files_exists(args.output_dir, 'v1', 'v1', args.force_overwrite)
         set_seed(seed_v1_nodes)
-        v1 = add_nodes_v1(fraction=args.fraction, miniature=args.miniature)
+        v1 = add_nodes_v1(
+            fraction=args.fraction, miniature=args.miniature, flat=args.flat
+        )
         if not args.no_recurrent:
             set_seed(seed_v1_edges)
             v1 = add_edges_v1(v1)

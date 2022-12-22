@@ -8,6 +8,7 @@ glif_props/*
 glif_requisite/*
 *.pyc
 v1nodes/*
+flat/*
 full/*
 single/*
 small/*

@@ -3,7 +3,7 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 #whatever is needed for above should go here:
 buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
 
-networks = miniature full small tiny forty single
+networks = miniature full small tiny forty single flat
 
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config.json, $(networks))
@@ -73,8 +73,10 @@ $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filterne
 $(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
 	python bkg_spike_generation.py $*
 
-$(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: precomputed_props/bkg_v1_edge_types.csv %/network/lgn_nodes.h5 %/components/synaptic_models/lgn_to_e4.json 
-	cp precomputed_props/bkg_v1_edge_types.csv $*/network/bkg_v1_edge_types.csv
+$(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: prepare_lognormal_bkg_weights.py precomputed_props/bkg_v1_edge_types_fitted.csv %/network/lgn_nodes.h5 %/components/synaptic_models/lgn_to_e4.json 
+	python prepare_lognormal_bkg_weights.py $*
+	# cp precomputed_props/bkg_v1_edge_types.csv $*/network/bkg_v1_edge_types.csv
+
 
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.h5: %/jobs/filternet_8dir_10trials.sh %/network/lgn_nodes.h5
 	# WARNING: Terminaing this command won't stop the jobs running on the cluster.
@@ -94,6 +96,10 @@ $(odsi_figure_targets): %/figures/OSI_DSI.png: %/metrics/OSI_DSI_DF.csv plot_ods
 	
 $(get_figures_targets): %/figures: %/figures/OSI_DSI.png
 	echo done.
+	
+flat/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
+	mkdir -p flat
+	mpirun -np 4 python build_network.py -f -o flat/network --flat
 
 miniature/network/lgn_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
 	mkdir -p miniature
