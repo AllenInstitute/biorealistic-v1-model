@@ -12,10 +12,12 @@ import seaborn as sns
 # in principle, if you provide the config file, you should be able to reproduce all the
 # metadata
 
+
 def pick_core(df, radius=400.0):
     """ return if the neuron is at the core. """
-    lateral = np.sqrt(df['x']**2 + df['z']**2)
+    lateral = np.sqrt(df["x"] ** 2 + df["z"] ** 2)
     return df[lateral <= radius]
+
 
 def read_config(config_file):
     js = json.load(open(config_file, "r"))
@@ -70,8 +72,7 @@ def plot_raster(config_file, s=1, radius=400.0, **kwarg):
     v1df = pick_core(v1df, radius=radius)
     v1df["Cell Type"] = v1df["pop_name"].apply(identify_cell_type)
     v1df["Sort Position"] = determine_sort_position(v1df)
-    
-    
+
     spike_df = spike_df.loc[spike_df.index.isin(v1df.index)]
 
     layer_divisions = determine_layer_divisions(v1df)
@@ -115,15 +116,20 @@ def plot_raster(config_file, s=1, radius=400.0, **kwarg):
 if __name__ == "__main__":
     simple = True
     if simple:
-        # config_file = "full/8dir_10trials/angle0_trial0/config_0.json"
+        config_file = "full/8dir_10trials/angle90_trial0/config_20.json"
+        # config_file = "small/8dir_10trials/angle90_trial0/config_20.json"
         # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
         # config_file = "small/output/config.json"
-        config_file = "small/output/config_plain.json"
+        # config_file = "small/output/config_plain.json"
         # config_file = "full/output/config_plain.json"
+        # config_file = "../../GLIF_network/output_lgnbkg/config_lgnbkg.json"
         plt.figure(figsize=(15, 10))
-        # ax = plot_raster(config_file, s=1) # for full
-        ax = plot_raster(config_file, s=3, radius=100.0) # for small
-        ax.set_xlim([0, 1000])
+        ax = plot_raster(config_file, s=1)  # for ful
+        # ax = plot_raster(config_file, s=3, radius=100.0)  # for small
+        # ax.set_xlim([0, 1000])
+        ax.set_xlim([0, 2500])
+        plt.tight_layout()
+        plt.savefig("raster_round8_full.png", dpi=300)
     else:
         config_file = "small/output_lgn/config_lgn.json"
         fig, axs = plt.subplots(3, 1, figsize=(15, 15))

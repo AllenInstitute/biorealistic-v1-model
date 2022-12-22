@@ -12,19 +12,20 @@ import sys
 from pathlib import Path
 
 
-def calculateFiringRate(gids, ts, numNrns, gray_screen=0.0):
+def calculateFiringRate(gids, ts, numNrns, start_time=0.0, duration=2.0):
 
     # print("Calculating Firing Rate")
-    start_time = gray_screen
-    end_time = gray_screen + 2000.0  # requires at least 2 seconds of stimulus
+    start_time = start_time * 1000.0
+    # end_time = gray_screen + 2000.0  # requires at least 2 seconds of stimulus
+    end_time = start_time + duration * 1000.0
 
     gids = gids[np.where(np.logical_and(ts > start_time, ts <= end_time))[0]]
 
     gid_bins = np.arange(0 - 0.5, numNrns + 0.5, 1)
 
     hist, bins = np.histogram(gids, bins=gid_bins)
-    
-    mean_firing_rates = hist / 2.0
+
+    mean_firing_rates = hist / duration
 
     # if gray_screen > 0:
     #     mean_firing_rates = hist / ((3000.0 - gray_screen) / 1000.0)
@@ -37,11 +38,21 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
 
     Rates_DF = pd.DataFrame(
         index=range(numNrns * len(angles)),
-        columns=["DG_angle", "node_id", "Avg_rate(Hz)", "SD_rate(Hz)"],
+        columns=[
+            "DG_angle",
+            "node_id",
+            "Avg_rate(Hz)",
+            "SD_rate(Hz)",
+            "Spont_rate(Hz)",
+        ],
     )
 
     for i, ori in enumerate(angles):
-        firingRatesTrials = np.zeros((trials, numNrns))
+        # initialize with nans
+        firingRatesTrials = np.empty((trials, numNrns))
+        firingRatesTrials[:] = np.nan
+        spontRatesTrials = np.empty((trials, numNrns))
+        spontRatesTrials[:] = np.nan
 
         for trial in range(trials):
 
@@ -49,28 +60,42 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
                 f"{basedir}/8dir_10trials/angle{ori}_trial{trial}/spikes.csv"
             )
             # spikes = np.loadtxt(spikes_file_name, unpack=True)
-            spikes = pd.read_csv(spikes_file_name, sep=" ")
+            # if the file is not found, skip it
+            try:
+                spikes = pd.read_csv(spikes_file_name, sep=" ")
+            except FileNotFoundError:
+                print(f"File not found: {spikes_file_name} .  Skipping...")
+                # the value remains nan, and ignored in the mean calculation
+                continue
             # ts, gids = spikes
             # print(spikes)
             ts = np.array(spikes["timestamps"])
             gids = np.array(spikes["node_ids"], dtype=int)
             # gids = gids.astype(int)
 
-            firingRates = calculateFiringRate(gids, ts, numNrns, gray_screen=500.0)
+            firingRates = calculateFiringRate(gids, ts, numNrns, start_time=0.5)
+            spontRates = calculateFiringRate(
+                gids, ts, numNrns, start_time=0.1, duration=0.4
+            )
             # print(spikes_file_name)
 
             firingRatesTrials[trial, :] = firingRates
+            spontRatesTrials[trial, :] = spontRates
 
         Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "DG_angle"] = ori
         Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "node_id"] = np.arange(
             numNrns
         )
-        Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "Avg_rate(Hz)"] = np.mean(
+        # at one point, try nanmean and nanstd for remedying faining cluster computation
+        Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "Avg_rate(Hz)"] = np.nanmean(
             firingRatesTrials, axis=0
         )
-        Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "SD_rate(Hz)"] = np.std(
+        Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "SD_rate(Hz)"] = np.nanstd(
             firingRatesTrials, axis=0
         )
+        Rates_DF.loc[
+            i * numNrns : (i + 1) * numNrns - 1, "Spont_rate(Hz)"
+        ] = np.nanmean(spontRatesTrials, axis=0)
 
     Rates_DF.to_csv(basedir + "/metrics/Rates_DF.csv", sep=" ", index=False)
     return Rates_DF
@@ -81,11 +106,13 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
 
     num_neurons = len(rates_df) // num_angles
     all_rates = np.zeros((num_neurons, num_angles))
+    all_spont = np.zeros((num_neurons, num_angles))
 
     angles = range(0, 360, 45)
     angle_counts = 0
     for angle, g in rates_df.groupby("DG_angle"):
         all_rates[:, angle_counts] = g["Avg_rate(Hz)"]
+        all_spont[:, angle_counts] = g["Spont_rate(Hz)"]
         angle_counts += 1
 
     preferred_angle_ind = np.argmax(all_rates, axis=1)
@@ -109,6 +136,7 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
     osi_df["preferred_angle"] = np.array(angles)[preferred_angle_ind]
     osi_df["max_mean_rate(Hz)"] = preferred_rates
     osi_df["Avg_Rate(Hz)"] = np.mean(all_rates, axis=1)
+    osi_df["Spont_Rate(Hz)"] = np.mean(all_spont, axis=1)
 
     osi_df.to_csv(basedir + "/metrics/OSI_DSI_DF.csv", sep=" ", index=False)
 

@@ -3,8 +3,9 @@
 import h5py
 import numpy as np
 from sonata.circuit import File
+import pandas as pd
 
-f = h5py.File("miniature_filternet/rates.h5", "r")
+f = h5py.File("small/filternet/rates.h5", "r")
 
 
 times = np.array(f["firing_rates/lgn/times"])
@@ -15,7 +16,7 @@ f.close()
 
 # %% get the LGN cell identity
 
-d = "miniature/"
+d = "small/network/"
 dfiles = [d + "lgn_nodes.h5", d + "v1_nodes.h5", d + "lgn_v1_edges.h5"]
 dtfiles = [
     d + "lgn_node_types.csv",
@@ -29,7 +30,7 @@ net = File(dfiles, dtfiles)
 lgndf = net.nodes["lgn"].to_dataframe()
 
 
-core_types = ["sON_", "tOFF_"]
+core_types = ["sON_", "tOFF_", ""]
 
 for typename in core_types:
     type = lgndf.pop_name.str.contains(typename)
@@ -41,6 +42,16 @@ for typename in core_types:
     avg_stim_rate = rate_type.mean()
     print(f"{typename}")
     print(
-        f"Mean Spont Rate: {avg_spont_rate:0.1f}, Mean Stim Rate: {avg_stim_rate:0.1f}"
+        f"Mean Spont Rate: {avg_spont_rate:0.2f}, Mean Stim Rate: {avg_stim_rate:0.2f}"
     )
 
+
+# %% Let's also check the generated spikes to see if they are consistent with the rates
+spikes = pd.read_csv("small/filternet/spikes.csv", sep=" ")
+
+spont_spikes = spikes[spikes["timestamps"] < 500]
+evoked_spikes = spikes[spikes["timestamps"] > 1000]
+
+len(spont_spikes) * 2 / 17400  # gave 3.83
+len(evoked_spikes) / 2 / 17400  # gave 6.15
+# OK. rates seem to be correct.
