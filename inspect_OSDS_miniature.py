@@ -180,6 +180,13 @@ plt.ylim([0.0, 1.5])
 # (spont_I).mean()
 # (stim_I).mean()
 
+# %% try to characterize for each subpopulations
+locations = ["VisL2/3", "VisL4", "VisL5", "VisL6"]
+for loc in locations:
+    v1df_sub = v1df.query(f"ei=='i' and location=='{loc}'")
+    vi = v1df_sub.index
+    print(f"{loc}: {stim_I[vi].mean() - spont_I[vi].mean()}")
+
 
 # %% It'll look great if you chop off neurons with high FR.
 
