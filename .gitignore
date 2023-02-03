@@ -8,11 +8,11 @@ glif_props/*
 glif_requisite/*
 *.pyc
 v1nodes/*
-flat/*
-full/*
-single/*
-small/*
-tiny/*
+flat*/*
+full*/*
+single*/*
+small*/*
+tiny*/*
 miniature*/*
 no_recurrent/*
 no_recurrent_full/*

@@ -41,6 +41,7 @@ def pop_name_to_cell_type(pop_name):
 
     return f"L{layer} {subclass}"
 
+
 def get_spike_df(basedir, query="timestamps < 100000", recurrent=False):
     if recurrent:
         outputdir = basedir + "/output_bkgtune_recurrent"
@@ -176,17 +177,19 @@ def get_target_fr(basedir, target="target_mean_fr"):
     v1df = get_v1_dfs(basedir)
     model_to_pop = v1df[["node_type_id", "pop_name"]].drop_duplicates()
     model_to_fr = model_to_pop.merge(
-        target_pop[["population", target]], left_on="pop_name", right_on="population",
+        target_pop[["population", target]],
+        left_on="pop_name",
+        right_on="population",
     )
     model_to_fr.index = model_to_fr["node_type_id"]
     target_fr = model_to_fr[target]
     return target_fr
 
 
-basedir = "single"
-get_target_fr(basedir)
+# basedir = "single"
+# get_target_fr(basedir)
 # %% update the parameters
-basedir = "single"
+# basedir = "single"
 
 
 def run_command(command):
@@ -246,12 +249,12 @@ def run_simulation(basedir, ncore=8, recurrent=False):
 
 # %% let's write the main function
 
-mode = "small_lgnbkg"
-mode = "flat_wasser"
-target = "median"
 
 if __name__ == "__main__":
     # start with forming the problem.
+    mode = "small_lgnbkg"
+    # mode = "flat_wasser"
+    target = "median"
 
     if mode == "small_lgnbkg":
         basedir = "small"
@@ -379,4 +382,3 @@ if False:
 # from plotting_utils import plot_raster
 
 # plot_raster("small/output_bkgtune/config_bkgtune.json")
-

@@ -12,6 +12,7 @@ filternet_targets = $(addsuffix /filternet/spikes.h5, $(networks))
 run_targets = $(addsuffix /output/spikes.h5, $(networks))
 run_lgn_targets = $(addsuffix /output_lgn/spikes.h5, $(networks))
 run_bkg_targets = $(addsuffix /output_bkg/spikes.h5, $(networks))
+run_bkgtune_targets = $(addsuffix /output_bkgtune/spikes.h5, $(networks))
 run_lgnbkg_targets = $(addsuffix /output_lgnbkg/spikes.h5, $(networks))
 run_nolgn_targets = $(addsuffix /output_nolgn/spikes.h5, $(networks))
 run_multimeter_targets = $(addsuffix /output_multimeter/spikes.h5, $(networks))
@@ -54,6 +55,9 @@ $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/con
 
 $(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
 	mpirun -np 8 python run_pointnet.py $*/configs/config_bkg.json
+
+$(run_bkgtune_targets): %/output_bkgtune/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
+	mpirun -np 8 python run_pointnet.py $*/configs/config_bkgtune.json
 
 $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
@@ -180,10 +184,15 @@ cell_types/glif_explained_variance_ratio.csv: query_glif_expvar.py
 	python query_glif_expvar.py
 	
 	
-# bkg adjustment
-bkg_adjustment: single/output_bkgtune/spikes.h5
+# new bkg adjustment with flat network (optional, precomputed)
+bkg_adjustment: flat/output_bkgtune/spikes.h5
 	# output will be generates as single/network/bkg_v1_edge_types.csv
-	python bkg_weight_adjustment.py
+	python bkg_weight_adjustment_minuit.py
+	
+# bkg adjustment (obsolete)
+# bkg_adjustment: single/output_bkgtune/spikes.h5
+#	output will be generates as single/network/bkg_v1_edge_types.csv
+#	python bkg_weight_adjustment.py
 
 	
 clean:
@@ -197,6 +206,7 @@ clean:
 	rm -rf full
 	rm -rf small
 	rm -rf forty
+	rm -rf tiny
 	rm -rf no_recurrent_full
 	rm -rf profile
 	rm -rf out.prof

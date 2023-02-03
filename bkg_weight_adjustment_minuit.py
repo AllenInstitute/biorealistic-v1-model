@@ -283,7 +283,8 @@ if __name__ == "__main__":
     bkg_types, edge_type_ids = prepare_new_file_structure(*bkg_files)
     bkg_types = set_init_params(bkg_types)
     if set_init:
-        init_file = basedir + "/network/bkg_v1_edge_types_fitted_v4_full_middle.csv"
+        # init_file = basedir + "/network/bkg_v1_edge_types_fitted_v4_full_middle.csv"
+        init_file = "precomputed_props/bkg_v1_edge_types_fitted_v4_full_done.csv"
         bkg_types = load_init_params(bkg_types, init_file)
     bkg_types = set_ncells(bkg_types, edge_type_ids)
     # identify the cell types of the target neurons
