@@ -251,8 +251,19 @@ plt.tight_layout()
 # plt.savefig("box_Dec12.svg", bbox="tight")
 # plt.savefig("box_Dec12.png", dpi=150)
 
+# %%
+l4df = df.query("data_type == 'full round9' and location == 'VisL4'")
+# print the following 4 items
+print(l4df.groupby('cell_type').mean()['Spont_Rate(Hz)'])
+print(l4df.groupby('cell_type').mean()['Avg_Rate(Hz)'])
+print(l4df.groupby('ei').mean()['Spont_Rate(Hz)'])
+print(l4df.groupby('ei').mean()['Avg_Rate(Hz)'])
+
+
+
 
 # %% experimenting shading
+
 
 # ax.fill_between(range(len(ticklabel)), 0, 1, shades, alpha=0.1, color='k', step='mid')
 
@@ -269,3 +280,5 @@ sns.scatterplot(
 )
 # set xscale log
 ax.set_xscale("log")
+
+# %%
