@@ -14,7 +14,7 @@ import seaborn as sns
 
 
 def pick_core(df, radius=400.0):
-    """ return if the neuron is at the core. """
+    """return if the neuron is at the core."""
     lateral = np.sqrt(df["x"] ** 2 + df["z"] ** 2)
     return df[lateral <= radius]
 
@@ -56,7 +56,7 @@ def determine_sort_position(v1df):
 
 
 def determine_layer_divisions(v1df):
-    """ Given the dataframe, determine the layer divisions """
+    """Given the dataframe, determine the layer divisions"""
     layers = ["", "L1", "L2/3", "L4", "L5", "L6"]
     divisions = list(np.cumsum(v1df.value_counts("location").sort_index()))
     divisions = [0] + divisions
@@ -93,7 +93,7 @@ def plot_raster(config_file, s=1, radius=400.0, **kwarg):
         s=s,
         hue_order=hue_order,
         palette=color_dict,
-        **kwarg
+        **kwarg,
     )
     ax.invert_yaxis()
     for name, div in layer_divisions.items():
@@ -115,21 +115,26 @@ def plot_raster(config_file, s=1, radius=400.0, **kwarg):
 # %%time
 if __name__ == "__main__":
     simple = True
+    # net = 'full'
+    net = "small"
     if simple:
-        config_file = "full/8dir_10trials/angle90_trial0/config_20.json"
-        # config_file = "small/8dir_10trials/angle90_trial0/config_20.json"
+        # config_file = "full/8dir_10trials/angle90_trial0/config_20.json"
+        config_file = f"{net}/8dir_10trials/angle90_trial0/config_20.json"
         # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
         # config_file = "small/output/config.json"
         # config_file = "small/output/config_plain.json"
         # config_file = "full/output/config_plain.json"
         # config_file = "../../GLIF_network/output_lgnbkg/config_lgnbkg.json"
         plt.figure(figsize=(15, 10))
-        ax = plot_raster(config_file, s=1)  # for ful
-        # ax = plot_raster(config_file, s=3, radius=100.0)  # for small
+        if net == "small":
+            ax = plot_raster(config_file, s=3, radius=100.0)
+        else:
+            ax = plot_raster(config_file, s=1)
+        # ax = plot_raster(config_file, s=1)  # for ful
         # ax.set_xlim([0, 1000])
         ax.set_xlim([0, 2500])
         plt.tight_layout()
-        plt.savefig("raster_round8_full.png", dpi=300)
+        plt.savefig(f"raster_corrected_network_{net}.png", dpi=300)
     else:
         config_file = "small/output_lgn/config_lgn.json"
         fig, axs = plt.subplots(3, 1, figsize=(15, 15))
@@ -156,4 +161,3 @@ if __name__ == "__main__":
 
 # %% development block
 # v1df.value_counts("location").sort_index()
-

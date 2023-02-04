@@ -153,7 +153,7 @@ color_pal = {
     "full round9": "tab:cyan",
     "small round7": "tab:cyan",
     "small round9": "tab:blue",
-    "small newest": "tab:blue",
+    "small corrected network": "tab:cyan",
     "Lognorm, norecurrent": "tab:pink",
     "New model": "tab:blue",
     #  'small, lgnonly': 'tab:olive',
@@ -170,15 +170,18 @@ color_pal = {
 
 osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
 osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels"))
-osi_dfs.append(
-    get_osi_df("flat", "OSI_DSI_DF_round9.csv", "Lognorm, norecurrent", radius=850.0)
-)
+# osi_dfs.append(
+# get_osi_df("flat", "OSI_DSI_DF_round9.csv", "Lognorm, norecurrent", radius=850.0)
+# )
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round6.csv", "full round6"))
-osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round9.csv", "full round9"))
+# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round9.csv", "full round9"))
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round7.csv", "full round7"))
 
 osi_dfs.append(
-    get_osi_df("small", "OSI_DSI_DF_round9.csv", "small round9", radius=100.0)
+    get_osi_df("small_0202", "OSI_DSI_DF_round9.csv", "small round9", radius=100.0)
+)
+osi_dfs.append(
+    get_osi_df("small", "OSI_DSI_DF.csv", "small corrected network", radius=100.0)
 )
 # osi_dfs.append(
 #     get_osi_df("small", "OSI_DSI_DF_round7.csv", "small round7", radius=100.0)
@@ -254,12 +257,10 @@ plt.tight_layout()
 # %%
 l4df = df.query("data_type == 'full round9' and location == 'VisL4'")
 # print the following 4 items
-print(l4df.groupby('cell_type').mean()['Spont_Rate(Hz)'])
-print(l4df.groupby('cell_type').mean()['Avg_Rate(Hz)'])
-print(l4df.groupby('ei').mean()['Spont_Rate(Hz)'])
-print(l4df.groupby('ei').mean()['Avg_Rate(Hz)'])
-
-
+print(l4df.groupby("cell_type").mean()["Spont_Rate(Hz)"])
+print(l4df.groupby("cell_type").mean()["Avg_Rate(Hz)"])
+print(l4df.groupby("ei").mean()["Spont_Rate(Hz)"])
+print(l4df.groupby("ei").mean()["Avg_Rate(Hz)"])
 
 
 # %% experimenting shading
