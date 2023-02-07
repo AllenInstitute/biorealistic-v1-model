@@ -35,7 +35,7 @@ def sbatch_boilerplate(file, logdir, config_counts, full_memory=False):
     file.write("#SBATCH --partition=braintv\n")
     if full_memory:  # full model needs a lot of memory
         file.write("#SBATCH -N1 -c1 -n4\n")
-        file.write("#SBATCH --mem-per-cpu=40G\n")
+        file.write("#SBATCH --mem-per-cpu=60G\n")
         file.write("#SBATCH -t2:00:00\n")
     else:
         file.write("#SBATCH -N1 -c1 -n8\n")
@@ -62,7 +62,7 @@ def write_job(basedir, config_counts):
     logdir = jobdir + "/logs"
 
     with open(jobdir + "/8dir_10trials.sh", "w") as f:
-        sbatch_boilerplate(f, logdir, config_counts, full_memory=('full' in basedir))
+        sbatch_boilerplate(f, logdir, config_counts, full_memory=("full" in basedir))
         f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_$SLURM_ARRAY_TASK_ID.json"
@@ -130,7 +130,9 @@ if __name__ == "__main__":
                 config_name = configdir + f"/config_{config_counts}.json"
                 # if the config file contains background input, change the input file
                 if "$BKGINPUT_DIR" in js["manifest"].keys():
-                    bkgdir_indv = f"$BASE_DIR/bkg_8dir_10trials/angle{int(angle)}_trial{trial}"
+                    bkgdir_indv = (
+                        f"$BASE_DIR/bkg_8dir_10trials/angle{int(angle)}_trial{trial}"
+                    )
                     js["manifest"]["$BKGINPUT_DIR"] = bkgdir_indv
             config_counts += 1
 

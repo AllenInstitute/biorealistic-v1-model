@@ -150,7 +150,8 @@ color_pal = {
     "small constBKG round6": "tab:cyan",
     "full round6": "tab:pink",
     "full round7": "tab:blue",
-    "full round9": "tab:cyan",
+    "full round9": "tab:blue",
+    "full corrected network": "tab:pink",
     "small round7": "tab:cyan",
     "small round9": "tab:blue",
     "small corrected network": "tab:cyan",
@@ -174,15 +175,17 @@ osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels"))
 # get_osi_df("flat", "OSI_DSI_DF_round9.csv", "Lognorm, norecurrent", radius=850.0)
 # )
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round6.csv", "full round6"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round9.csv", "full round9"))
+osi_dfs.append(get_osi_df("full_0203", "OSI_DSI_DF_round9.csv", "full round9"))
+osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full corrected network"))
+
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round7.csv", "full round7"))
 
-osi_dfs.append(
-    get_osi_df("small_0202", "OSI_DSI_DF_round9.csv", "small round9", radius=100.0)
-)
-osi_dfs.append(
-    get_osi_df("small", "OSI_DSI_DF.csv", "small corrected network", radius=100.0)
-)
+# osi_dfs.append(
+# get_osi_df("small_0202", "OSI_DSI_DF_round9.csv", "small round9", radius=100.0)
+# )
+# osi_dfs.append(
+# get_osi_df("small", "OSI_DSI_DF.csv", "small corrected network", radius=100.0)
+# )
 # osi_dfs.append(
 #     get_osi_df("small", "OSI_DSI_DF_round7.csv", "small round7", radius=100.0)
 # )
@@ -241,16 +244,18 @@ osi_dfs.append(
 df = pd.concat(osi_dfs)
 
 
-fig, axs = plt.subplots(4, 1, figsize=(12, 20))
+# fig, axs = plt.subplots(4, 1, figsize=(12, 20))
+fig, axs = plt.subplots(5, 1, figsize=(12, 20))
 # fig, axs = plt.subplots(3, 1, figsize=(9, 12))
 plot_one(axs[0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
 plot_one(axs[1], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
 plot_one(axs[2], df, "DSI", [0, 1], color_pal)
 plot_one(axs[3], df, "OSI", [0, 1], color_pal)
-# plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "DSI", color_pal, s=5)
+plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "DSI", color_pal, s=5)
 # plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
 
 plt.tight_layout()
+plt.savefig("box_CorrectRecurrent_Feb6_full.png", dpi=150)
 # plt.savefig("box_Dec12.svg", bbox="tight")
 # plt.savefig("box_Dec12.png", dpi=150)
 
