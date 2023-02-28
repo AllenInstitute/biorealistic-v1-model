@@ -7,10 +7,10 @@ import numpy as np
 from allensdk.api.queries.glif_api import GlifApi
 from shutil import copyfile
 import os
-
-glif_api = GlifApi()
-
-df = pd.read_csv("cell_types/cells_with_glif_pop_name.csv", index_col=0)
+import pathlib
+import urllib.request
+import zipfile
+from tqdm import tqdm
 
 
 def get_glif3_model(id):
@@ -18,17 +18,32 @@ def get_glif3_model(id):
     glif3id = int(np.where(["3 LIF" in m["name"] for m in models])[0])
     modelpath = models[glif3id]["well_known_files"][0]["path"]
     destination = f"glif_models/cell_models/{id}_glif_lif_asc_config.json"
-    copyfile(modelpath, destination)
+    # if the model path is availabe, simply copy it to the destination
+    if os.path.exists(modelpath):
+        # if False:
+        copyfile(modelpath, destination)
+    else:  # otherwise, download the file from the http link.
+        modelid = models[glif3id]["well_known_files"][0]["attachable_id"]
+        url = f"http://api.brain-map.org/neuronal_model/download/{modelid}"
+        urllib.request.urlretrieve(url, "./tmpfile.zip")
+        with zipfile.ZipFile("./tmpfile.zip", "r") as zip_ref:
+            zip_ref.extract("neuron_config.json", "./")
+        copyfile("./neuron_config.json", destination)
+        # and remove the temporary file
+        os.remove("./tmpfile.zip")
+        os.remove("./neuron_config.json")
 
 
-if not os.path.exists("glif_models/cell_models"):
-    if not os.path.exists("glif_models"):
-        os.mkdir("glif_models")
-    os.mkdir("glif_models/cell_models")
+glif_api = GlifApi()
+df = pd.read_csv("cell_types/cells_with_glif_pop_name.csv", index_col=0)
 
+pathlib.Path("glif_models/cell_models").mkdir(parents=True, exist_ok=True)
 
-for _, cell in df.iterrows():
+print("Downloading GLIF3 models to glif_models/cell_models")
+count = 0
+for _, cell in tqdm(df.iterrows(), total=len(df)):
     if not pd.isna(cell.pop_name):
         id = cell.specimen__id
         get_glif3_model(id)
-
+        count += 1
+print(f"Downloaded {count} models")

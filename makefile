@@ -3,7 +3,7 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 #whatever is needed for above should go here:
 buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
 
-networks = miniature full small tiny forty single flat
+networks = miniature full small tiny forty single flat twenty
 
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config.json, $(networks))
@@ -18,10 +18,12 @@ run_nolgn_targets = $(addsuffix /output_nolgn/spikes.h5, $(networks))
 run_multimeter_targets = $(addsuffix /output_multimeter/spikes.h5, $(networks))
 jobs_8dfilternet_targets = $(addsuffix /jobs/filternet_8dir_10trials.sh, $(networks))
 jobs_8d_targets = $(addsuffix /jobs/8dir_10trials.sh, $(networks))
+jobs_spont_lgn_targets = $(addsuffix /jobs/spont_lgn_5s.sh, $(networks))
 bkg_spikes_targets = $(addsuffix /bkg/bkg_spikes_1kHz_3s.h5, $(networks))
 bkg_edge_targets = $(addsuffix /network/bkg_v1_edge_types.csv, $(networks))
 run_8dfilternet_targets = $(addsuffix /filternet_8dir_10trials/angle0_trial0/spikes.h5, $(networks))
 run_8d_targets = $(addsuffix /8dir_10trials/angle0_trial0/spikes.h5, $(networks))
+run_spont_lgn_targets = $(addsuffix /output_spont_lgn_5s/lgn_fr_1.0Hz/spikes.h5, $(networks))
 odsi_targets = $(addsuffix /metrics/OSI_DSI_DF.csv, $(networks))
 odsi_figure_targets = $(addsuffix /figures/OSI_DSI.png, $(networks))
 get_figures_targets = $(addsuffix /figures, $(networks))
@@ -74,6 +76,9 @@ $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config
 $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
 	python make_filternet_jobs.py $*
 
+$(jobs_spont_lgn_targets): %/jobs/spont_lgn_5s.sh: %/configs/config.json make_filternet_jobs.py make_lgn_test_jobs.py
+	python make_lgn_test_jobs.py $*
+
 $(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
 	python bkg_spike_generation.py $*
 
@@ -91,6 +96,11 @@ $(run_8d_targets): %/8dir_10trials/angle0_trial0/spikes.h5: %/filternet_8dir_10t
 	# WARNING: Terminaing this command won't stop the jobs running on the cluster.
 	#          Make sure you cancel the jobs manually before re-running this.
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/8dir_10trials.sh'
+	
+$(run_spont_lgn_targets): %/output_spont_lgn_5s/lgn_fr_1.0Hz/spikes.h5: %/jobs/spont_lgn_5s.sh %/network/lgn_nodes.h5
+	# WARNING: Terminaing this command won't stop the jobs running on the cluster.
+	#          Make sure you cancel the jobs manually before re-running this.
+	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait $*/jobs/spont_lgn_5s.sh'
 
 $(odsi_targets): %/metrics/OSI_DSI_DF.csv: %/8dir_10trials/angle0_trial0/spikes.h5 calculate_odsi.py
 	python calculate_odsi.py $*
@@ -122,6 +132,13 @@ forty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	# Due to nest limitation, larger network won't run on a single core.
 	mkdir -p forty
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait forty_build.sh'
+	
+twenty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
+	# twenty is the largest network that can run on a single core.
+	# Due to nest limitation, larger network won't run on a single core.
+	mkdir -p twenty
+	mpirun -np 8 python build_network.py -f -o twenty/network --fraction 0.2
+	
 
 single/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	# single network contains exactly 1 neuron for each model.

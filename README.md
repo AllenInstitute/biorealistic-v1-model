@@ -13,6 +13,17 @@ The improvements will be:
 
 Right now, it can only generate V1 GLIF nodes. No other structures, no edges.
 
+## Installation instruction
+
+```bash
+conda -n modeling numpy h5py pandas matplotlib jsonschema mpi4py openpyxl
+conda activate modeling
+conda install -c conda-forge allensdk
+conda install -c kaeldai bmtk
+```
+
+You will need to install nest-simulator to run the model.
+
 ## Folders and files
 
 base_props/: A folder that contains seed files that are necessary for building the network. Most of them are in human readable format and editable (except for the LGN part, which didn't change from the last version).

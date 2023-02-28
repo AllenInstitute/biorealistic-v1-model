@@ -33,14 +33,17 @@ print(f"{len(df)} cells are available after excluding specific cells from a list
 
 
 # %% now I set criteria for each population (read from seed file)
-import pylightxl as xl
+seed_df = pd.read_excel("base_props/V1model_seed_file.xlsx", engine="openpyxl")
 
+# in db2 identify the first row where pop_id is nan, and trim the dataframe
+# after that row
+nanindex = np.where(seed_df.pop_id.isna())[0][0]
+seed_df = seed_df.iloc[:nanindex]
 
-db = xl.readxl("base_props/V1model_seed_file.xlsx")
-table = db.ws(db.ws_names[0]).ssd(keycols="pop_id", keyrows="pop_id")
-t0 = table[0]
-seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
-
+# make the me_type, cre_line, and reporter_status row with string.
+seed_df.me_type = seed_df.me_type.fillna("")
+seed_df.cre_line = seed_df.cre_line.fillna("")
+seed_df.reporter_status = seed_df.reporter_status.fillna("")
 
 # %% Let's see if I can get any cells using these criteria
 evr_thresh = 0.7
@@ -80,7 +83,9 @@ for _, pop in seed_df.iterrows():
     n_candidates = matched_cells.sum()
     tot_candidates += n_candidates
 
-    df["pop_name"][matched_cells] = pop.pop_name
+    # df["pop_name"][matched_cells] = pop.pop_name
+    # changed to the following to avoid a warning
+    df.loc[matched_cells, "pop_name"] = pop.pop_name
 
     candidate_dict[pop.pop_name] = df[matched_cells]
 
