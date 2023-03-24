@@ -3,7 +3,7 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 #whatever is needed for above should go here:
 buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
 
-networks = miniature full small tiny forty single flat twenty
+networks = miniature full small tiny forty single flat twenty core
 
 lgn_node_targets = $(addsuffix /network/lgn_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config.json, $(networks))
@@ -13,6 +13,7 @@ run_targets = $(addsuffix /output/spikes.h5, $(networks))
 run_lgn_targets = $(addsuffix /output_lgn/spikes.h5, $(networks))
 run_bkg_targets = $(addsuffix /output_bkg/spikes.h5, $(networks))
 run_bkgtune_targets = $(addsuffix /output_bkgtune/spikes.h5, $(networks))
+run_filternet_bkgtune_targets = $(addsuffix /filternet_bkgtune/spikes.h5, $(networks))
 run_lgnbkg_targets = $(addsuffix /output_lgnbkg/spikes.h5, $(networks))
 run_nolgn_targets = $(addsuffix /output_nolgn/spikes.h5, $(networks))
 run_multimeter_targets = $(addsuffix /output_multimeter/spikes.h5, $(networks))
@@ -58,8 +59,11 @@ $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/con
 $(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
 	mpirun -np 8 python run_pointnet.py $*/configs/config_bkg.json
 
-$(run_bkgtune_targets): %/output_bkgtune/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
+$(run_bkgtune_targets): %/output_bkgtune/spikes.h5: %/filternet_bkgtune/spikes.h5 %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
 	mpirun -np 8 python run_pointnet.py $*/configs/config_bkgtune.json
+
+$(run_filternet_bkgtune_targets): %/filternet_bkgtune/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json
+	mpirun -np 8 python run_filternet.py $*/configs/config_filternet_bkgtune.json
 
 $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
 	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
@@ -134,11 +138,14 @@ forty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	ssh -t hpc-login 'cd $(CURDIR); sbatch --wait forty_build.sh'
 	
 twenty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
-	# twenty is the largest network that can run on a single core.
-	# Due to nest limitation, larger network won't run on a single core.
 	mkdir -p twenty
 	mpirun -np 8 python build_network.py -f -o twenty/network --fraction 0.2
 	
+core/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
+	# core is 400 micron diameter network.
+	# Due to nest limitation, larger network won't run on a single core.
+	mkdir -p core
+	mpirun -np 8 python build_network.py -f -o core/network --fraction 0.22145328719723
 
 single/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	# single network contains exactly 1 neuron for each model.
@@ -203,7 +210,7 @@ cell_types/glif_explained_variance_ratio.csv: query_glif_expvar.py
 	
 # new bkg adjustment with flat network (optional, precomputed)
 bkg_adjustment: flat/output_bkgtune/spikes.h5
-	# output will be generates as single/network/bkg_v1_edge_types.csv
+	# output will be generates as flat/network/bkg_v1_edge_types.csv
 	python bkg_weight_adjustment_minuit.py
 	
 # bkg adjustment (obsolete)
