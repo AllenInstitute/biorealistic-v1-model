@@ -42,11 +42,14 @@ def pop_name_to_cell_type(pop_name):
     return f"L{layer} {subclass}"
 
 
-def get_spike_df(basedir, query="timestamps < 100000", recurrent=False):
+def get_spike_df(basedir, query="timestamps < 100000", recurrent=False, outdir=None):
     if recurrent:
         outputdir = basedir + "/output_bkgtune_recurrent"
     else:
         outputdir = basedir + "/output_bkgtune"
+
+    if outdir is not None:
+        outputdir = basedir + "/" + outdir
     spike_df = pd.read_csv(outputdir + "/spikes.csv", sep=" ")
     spike_df = spike_df.query(query)
     return spike_df
@@ -56,18 +59,20 @@ def get_v1_dfs(basedir):
     data_files = [basedir + "/network/v1_nodes.h5"]
     data_type_files = [basedir + "/network/v1_node_types.csv"]
     v1 = sonata.circuit.File(data_files=data_files, data_type_files=data_type_files)
-    v1df = v1.nodes["v1"].to_dataframe()
+    v1df = v1.nodes["v1"].to_dataframe().copy()
     return v1df
 
 
-def get_model_fr(basedir, recurrent=False, duration=100.0, target="mean"):
-    spike_df = get_spike_df(basedir, recurrent=recurrent)
+def get_model_fr(basedir, recurrent=False, duration=100.0, target="mean", outdir=None):
+    spike_df = get_spike_df(basedir, recurrent=recurrent, outdir=outdir)
     v1df = get_v1_dfs(basedir)
 
     v1df["node_ids"] = v1df["node_id"]
     spike_df = spike_df.merge(v1df[["node_ids", "node_type_id"]], on="node_ids")
     v1df["spike_rate"] = spike_df.value_counts("node_ids") / duration
-    v1df["spike_rate"][np.isnan(v1df["spike_rate"])] = 0
+    # v1df["spike_rate"][np.isnan(v1df["spike_rate"])] = 0
+    # replace nan with 0
+    v1df["spike_rate"] = v1df["spike_rate"].fillna(0)
     if target == "mean":
         model_fr = v1df.groupby("node_type_id")["spike_rate"].mean()
     elif target == "median":

@@ -108,18 +108,21 @@ def set_init_params(bkg_types):
     # loc can be the original weight of the df.
     bkg_types["loc"] = bkg_types["syn_weight"]
     bkg_types["s"] = 1
-    bkg_types["scale"] = 10
+    bkg_types["scale"] = 0.1
     return bkg_types
 
 
-def load_init_params(bkg_types, bkg_edge_type_file):
+def load_init_params(bkg_types, bkg_edge_type_file, syn_weight_only=False):
     # load the initial parameters from the file.
     bkg_types_loaded = pd.read_csv(
         bkg_edge_type_file, index_col="edge_type_id", sep=" "
     )
-    bkg_types["loc"] = bkg_types_loaded["loc"]
-    bkg_types["s"] = bkg_types_loaded["s"]
-    bkg_types["scale"] = bkg_types_loaded["scale"]
+    if syn_weight_only:
+        bkg_types["syn_weight"] = bkg_types_loaded["syn_weight"]
+    else:
+        bkg_types["loc"] = bkg_types_loaded["loc"]
+        bkg_types["s"] = bkg_types_loaded["s"]
+        bkg_types["scale"] = bkg_types_loaded["scale"]
     return bkg_types
 
 
@@ -212,7 +215,7 @@ def run_solver(inits, conn, id):
         tol=1e-2,
         bounds=((0.01, 200), (0.01, 100), (0.01, 100)),  # bounds for loc, s, scale
         method="Nelder-Mead",
-        options={"eps": 1e-2},
+        options={"eps": 1},
     )
     solution_dict[id] = solution
     return solution
@@ -225,7 +228,9 @@ def run_solver2(inits, conn, id):
         inits,
         args=(conn,),
         tol=1e-3,
-        bounds=((0.01, 200), (0.01, 100), (0.01, 100)),  # bounds for loc, s, scale
+        # bounds=((0.01, 200), (0.01, 100), (0.01, 100)),  # bounds for loc, s, scale
+        bounds=((0.01, 200), (0.1, 10.0), (0.1, 10)),  # bounds for loc, s, scale
+        # method="migrad",
         method="simplex",
     )
     solution_dict[id] = solution
@@ -281,11 +286,17 @@ if __name__ == "__main__":
     basedir = "flat"
     bkg_files = backup_files(basedir)
     bkg_types, edge_type_ids = prepare_new_file_structure(*bkg_files)
-    bkg_types = set_init_params(bkg_types)
     if set_init:
         # init_file = basedir + "/network/bkg_v1_edge_types_fitted_v4_full_middle.csv"
-        init_file = "precomputed_props/bkg_v1_edge_types_fitted_v4_full_done.csv"
+        # init_file = basedir + "/network/bkg_v1_edge_types_fitted_loconly_9am.csv"
+        init_file = basedir + "/network/bkg_v1_edge_types_fitted_locscale_1pm.csv"
+        # init_file = "precomputed_props/bkg_v1_edge_types_fitted_v4_full_done.csv"
         bkg_types = load_init_params(bkg_types, init_file)
+    else:  # at leas load the syn_weights from the past result
+        init_file = "precomputed_props/bkg_v1_edge_types_round7.csv"
+        bkg_types = load_init_params(bkg_types, init_file, syn_weight_only=True)
+        bkg_types = set_init_params(bkg_types)
+
     bkg_types = set_ncells(bkg_types, edge_type_ids)
     # identify the cell types of the target neurons
     v1types = pd.read_csv(basedir + "/network/v1_node_types.csv", index_col=0, sep=" ")
@@ -314,12 +325,25 @@ if __name__ == "__main__":
         write_weights(bkg_files[0], weights)
         bkg_types.to_csv(basedir + "/network/bkg_v1_edge_types_fitted.csv", sep=" ")
         bwa.run_simulation(basedir, recurrent=False, ncore=8)
-        model_frs = bwa.get_model_fr(basedir, target="array", duration=3.0)
+        # model_frs = bwa.get_model_fr(basedir, target="array", duration=3.0)
+        model_frs = bwa.get_model_fr(basedir, target="array", duration=10.0)
         was_dist = calculate_wasserstein(target_frs, model_frs, bkg_types)
 
         # print the mean value
         print(i)
         print(np.mean(list(was_dist.values())))
+        # also save it to a file
+        meanfr = bwa.get_model_fr(basedir, target="mean", duration=10.0)
+        wasdf = pd.DataFrame(was_dist, index=["wasserstein"]).T
+        wasdf["node_type_id"] = v1types.index.values
+
+        # wasdf["meanFR"] = meanfr.values
+        # join with mean fr
+        wasdf = wasdf.merge(meanfr, left_on="node_type_id", right_index=True)
+
+        wasdf.to_csv(
+            basedir + "/network/bkg_v1_edge_types_fitted_wasserstein.csv", sep=" "
+        )
         # also plot the results
         # plt.plot(list(was_dist.values()))
 
