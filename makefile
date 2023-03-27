@@ -48,31 +48,31 @@ $(components_targets): %/components/synaptic_models/lgn_to_e4.json: %/network/lg
 	python convert_models.py $*
 
 $(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/config_filternet.json
-	mpirun -np 8 python run_filternet.py $*/configs/config_filternet.json
+	mpirun -np 4 python run_filternet.py $*/configs/config_filternet.json
 	
 $(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	mpirun -np 8 python run_pointnet.py $*/configs/config.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config.json
 
 $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
-	mpirun -np 8 python run_pointnet.py $*/configs/config_lgn.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_lgn.json
 
 $(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
-	mpirun -np 8 python run_pointnet.py $*/configs/config_bkg.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_bkg.json
 
 $(run_bkgtune_targets): %/output_bkgtune/spikes.h5: %/filternet_bkgtune/spikes.h5 %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json
-	mpirun -np 8 python run_pointnet.py $*/configs/config_bkgtune.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_bkgtune.json
 
 $(run_filternet_bkgtune_targets): %/filternet_bkgtune/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json
-	mpirun -np 8 python run_filternet.py $*/configs/config_filternet_bkgtune.json
+	mpirun -np 4 python run_filternet.py $*/configs/config_filternet_bkgtune.json
 
 $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	mpirun -np 8 python run_pointnet.py $*/configs/config_lgnbkg.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_lgnbkg.json
 
 $(run_nolgn_targets): %/output_nolgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	mpirun -np 8 python run_pointnet.py $*/configs/config_nolgn.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_nolgn.json
 
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
-	mpirun -np 8 python run_pointnet.py $*/configs/config_multimeter.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_multimeter.json
 
 $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
@@ -83,7 +83,7 @@ $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filterne
 $(jobs_spont_lgn_targets): %/jobs/spont_lgn_5s.sh: %/configs/config.json make_filternet_jobs.py make_lgn_test_jobs.py
 	python make_lgn_test_jobs.py $*
 
-$(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5
+$(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/lgn_nodes.h5 bkg_spike_generation.py
 	python bkg_spike_generation.py $*
 
 $(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: prepare_lognormal_bkg_weights.py precomputed_props/bkg_v1_edge_types_fitted.csv %/network/lgn_nodes.h5 %/components/synaptic_models/lgn_to_e4.json 

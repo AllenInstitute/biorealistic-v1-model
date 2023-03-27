@@ -18,7 +18,8 @@ def write_bkg(output_filename, duration=3.0, binsize=2.5e-4, rate=1000, seed=0):
     # save
     out_file = h5py.File(output_filename, "w")
     out_file["spikes/gids"] = nids
-    out_file["spikes/timestamps"] = spikes_time * 1000  # in ms
+    # add some random value to avoid the bad time stamps.
+    out_file["spikes/timestamps"] = spikes_time * 1000 + 0.01  # in ms
     out_file.close()
     return 0
 
@@ -80,4 +81,3 @@ if __name__ == "__main__":
             write_bkg(f"{dirname}/bkg_spikes_1kHz_3s.h5", seed=seed)
             write_bkg(f"{dirname}/bkg_spikes_2kHz_3s.h5", rate=2000, seed=seed)
             write_bkg(f"{dirname}/bkg_spikes_full_3s.h5", rate=4000, seed=seed)
-

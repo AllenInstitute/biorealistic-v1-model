@@ -215,7 +215,7 @@ def run_solver(inits, conn, id):
         tol=1e-2,
         bounds=((0.01, 200), (0.01, 100), (0.01, 100)),  # bounds for loc, s, scale
         method="Nelder-Mead",
-        options={"eps": 1},
+        options={"eps": 1e-2},
     )
     solution_dict[id] = solution
     return solution
@@ -223,6 +223,7 @@ def run_solver(inits, conn, id):
 
 def run_solver2(inits, conn, id):
     # this one uses iminuit
+    option = {"eps": 0.1}
     solution = iminuit.minimize(
         get_from_main,
         inits,
@@ -232,6 +233,7 @@ def run_solver2(inits, conn, id):
         bounds=((0.01, 200), (0.1, 10.0), (0.1, 10)),  # bounds for loc, s, scale
         # method="migrad",
         method="simplex",
+        options=option,
     )
     solution_dict[id] = solution
     return solution
@@ -289,8 +291,11 @@ if __name__ == "__main__":
     if set_init:
         # init_file = basedir + "/network/bkg_v1_edge_types_fitted_v4_full_middle.csv"
         # init_file = basedir + "/network/bkg_v1_edge_types_fitted_loconly_9am.csv"
-        init_file = basedir + "/network/bkg_v1_edge_types_fitted_locscale_1pm.csv"
+        # init_file = basedir + "/network/bkg_v1_edge_types_fitted_locscale_1pm.csv"
+        # init_file = basedir + "/network/bkg_v1_edge_types_fitted_10pm.csv"
+        init_file = basedir + "/network/bkg_v1_edge_types_fitted.csv"
         # init_file = "precomputed_props/bkg_v1_edge_types_fitted_v4_full_done.csv"
+        # init_file = "precomputed_props/bkg_v1_edge_types_fitted.csv"
         bkg_types = load_init_params(bkg_types, init_file)
     else:  # at leas load the syn_weights from the past result
         init_file = "precomputed_props/bkg_v1_edge_types_round7.csv"
