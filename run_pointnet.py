@@ -187,7 +187,7 @@ def insert_modfile_to_config(config, modfilename):
     # insert the mod file to the config
     if modfilename is not None:
         modfile_fullpath = os.path.abspath(modfilename)
-        config["inputs"]["MODFILE"] = modfile_fullpath
+        config["modfile"] = modfile_fullpath
     return config
 
 
