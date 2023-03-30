@@ -6,15 +6,10 @@
     "$COMPONENT_DIR": "$BASE_DIR/../base_props/filter_components"
   },
   "run": {
-    "tstop": 100000.0,
-    "dt": 0.1,
+    "tstop": 10000.0,
     "overwrite_output_dir": true
   },
   "target_simulator": "LGNModel",
-  "conditions": {
-    "celsius": 34.0,
-    "v_init": -80
-  },
   "inputs": {
     "LGN_spikes": {
       "input_type": "movie",

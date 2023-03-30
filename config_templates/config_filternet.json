@@ -7,14 +7,9 @@
   },
   "run": {
     "tstop": 3000.0,
-    "dt": 0.1,
     "overwrite_output_dir": true
   },
   "target_simulator": "LGNModel",
-  "conditions": {
-    "celsius": 34.0,
-    "v_init": -80
-  },
   "inputs": {
     "LGN_spikes": {
       "input_type": "movie",
