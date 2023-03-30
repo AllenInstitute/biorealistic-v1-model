@@ -1,3 +1,6 @@
+# set the defalut values for the options to be an empty string
+makeopt?=
+
 mainscripts := build_network.py edge_funcs.py node_funcs.py
 
 #whatever is needed for above should go here:
@@ -51,13 +54,13 @@ $(filternet_targets): %/filternet/spikes.h5: %/network/lgn_nodes.h5 %/configs/co
 	mpirun -np 4 python run_filternet.py $*/configs/config_filternet.json
 	
 $(run_targets): %/output/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	mpirun -np 4 python run_pointnet.py $*/configs/config.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config.json $(makeopt)
 
 $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5
-	mpirun -np 4 python run_pointnet.py $*/configs/config_lgn.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_lgn.json $(makeopt)
 
 $(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/network/bkg_v1_edge_types.csv 
-	mpirun -np 4 python run_pointnet.py $*/configs/config_bkg.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_bkg.json $(makeopt)
 
 $(run_bkgtune_targets): %/output_bkgtune/spikes.h5: %/filternet_bkgtune/spikes.h5 %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/network/bkg_v1_edge_types.csv 
 	mpirun -np 4 python run_pointnet.py $*/configs/config_bkgtune.json
@@ -66,19 +69,19 @@ $(run_filternet_bkgtune_targets): %/filternet_bkgtune/spikes.h5: %/network/bkg_n
 	mpirun -np 4 python run_filternet.py $*/configs/config_filternet_bkgtune.json
 
 $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	mpirun -np 4 python run_pointnet.py $*/configs/config_lgnbkg.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_lgnbkg.json $(makeopt)
 
 $(run_nolgn_targets): %/output_nolgn/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	mpirun -np 4 python run_pointnet.py $*/configs/config_nolgn.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_nolgn.json $(makeopt)
 
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/lgn_nodes.h5 %/configs/config.json %/components/synaptic_models/lgn_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv 
-	mpirun -np 4 python run_pointnet.py $*/configs/config_multimeter.json
+	mpirun -np 4 python run_pointnet.py $*/configs/config_multimeter.json $(makeopt)
 
 $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
 	
 $(jobs_8d_targets): %/jobs/8dir_10trials.sh: %/configs/config.json make_filternet_jobs.py
-	python make_filternet_jobs.py $*
+	python make_filternet_jobs.py $* $(makeopt)
 
 $(jobs_spont_lgn_targets): %/jobs/spont_lgn_5s.sh: %/configs/config.json make_filternet_jobs.py make_lgn_test_jobs.py
 	python make_lgn_test_jobs.py $*

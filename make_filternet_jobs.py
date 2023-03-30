@@ -62,7 +62,7 @@ def sbatch_boilerplate(file, logdir, config_counts, memory=4, jobs=8):
     file.write("source activate bmtk-latest-py37-slurm\n")
 
 
-def write_job(basedir, config_counts):
+def write_job(basedir, config_counts, modfile):
     configdir = basedir + "/configs/8dir_10trials"
     jobdir = basedir + "/jobs"
     logdir = jobdir + "/logs"
@@ -84,7 +84,12 @@ def write_job(basedir, config_counts):
         f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_$SLURM_ARRAY_TASK_ID.json"
-        f.write(f"srun --mpi=pmi2 python run_pointnet.py {config_array}")
+        if modfile is not None:
+            f.write(
+                f"srun --mpi=pmi2 python run_pointnet.py {config_array} -m {modfile}"
+            )
+        else:
+            f.write(f"srun --mpi=pmi2 python run_pointnet.py {config_array}")
 
 
 def write_filternet_job(basedir, config_counts):
@@ -104,6 +109,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Making a cluster-ready job file.")
     parser.add_argument("basedir", type=str)
     parser.add_argument("--filternet", action="store_true")
+    parser.add_argument(
+        "-m", "--modfile", type=str, default=None, help="The modulation file to use."
+    )
     args = parser.parse_args()
 
     filterdir = args.basedir + "/filternet_8dir_10trials"
@@ -159,4 +167,4 @@ if __name__ == "__main__":
     if args.filternet:
         write_filternet_job(args.basedir, config_counts)
     else:
-        write_job(args.basedir, config_counts)
+        write_job(args.basedir, config_counts, args.modfile)

@@ -14,10 +14,8 @@ single*/*
 small*/*
 tiny*/*
 miniature*/*
-fourty/*
-twenty/*
 scaled_spont_lgn_5s/*
-core/*
+core*/*
 no_recurrent/*
 no_recurrent_full/*
 no_recurrent_base/*
@@ -32,6 +30,7 @@ obsolete/*
 normalize_by_e4/*
 normalize_by_type/*
 Raster*.png
+raster*.png
 Rates*.png
 .edge_types*
 images/

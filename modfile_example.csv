@@ -1,0 +1,5 @@
+src_property src_substring trg_property trg_substring operation value
+pop_name e2 pop_name e6 * 2.0 
+pop_name e4 pop_name e6 * 2.0
+location LGN pop_name i4P * 0.5
+location BKG pop_name i6V + 10

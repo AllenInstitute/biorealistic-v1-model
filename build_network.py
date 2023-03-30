@@ -156,15 +156,15 @@ def orientation_dependence_fns(intercept_in, grad_in):
         [x < 90, x >= 90],
         [
             lambda x: (intercept1 + x * grad)
-            / (2 * (intercept1 * 90 + grad * 90 ** 2 / 2)),
+            / (2 * (intercept1 * 90 + grad * 90**2 / 2)),
             lambda x: (intercept2 - x * grad)
             / (
                 2
                 * (
                     intercept2 * 180
-                    - grad * 180 ** 2 / 2
+                    - grad * 180**2 / 2
                     - intercept2 * 90
-                    + grad * 90 ** 2 / 2
+                    + grad * 90**2 / 2
                 )
             ),
         ],
@@ -197,7 +197,7 @@ def syn_weight_by_experimental_distribution(
     if PSP_lognorm_shape < target["nsyn_size_shape"]:
         weight_shape = 0.001
     else:
-        weight_shape = sqrt(PSP_lognorm_shape ** 2 - target["nsyn_size_shape"] ** 2)
+        weight_shape = sqrt(PSP_lognorm_shape**2 - target["nsyn_size_shape"] ** 2)
     weight_scale = exp(
         log(PSP_lognorm_scale)
         + log(target["nsyn_size_scale"])
@@ -318,7 +318,7 @@ def syn_weight_by_experimental_distribution(
 
 def lognorm_ppf(x, shape, loc=0, scale=1):
     # definition from wikipedia (quantile)
-    return scale * exp(sqrt(2 * shape ** 2) * erfinv(2 * x - 1)) + loc
+    return scale * exp(sqrt(2 * shape**2) * erfinv(2 * x - 1)) + loc
 
 
 def delta_theta_cdf(intercept, d_theta):
@@ -333,19 +333,21 @@ def delta_theta_cdf(intercept, d_theta):
         raise "d_theta must be >= 0, but was {}".format(d_theta)
     elif d_theta < 90:
         # analytical integration of the pdf to get this cdf
-        return (0.5 * G * x ** 2 + B2 * x) / norm + 0.5
+        return (0.5 * G * x**2 + B2 * x) / norm + 0.5
     elif d_theta <= 180:
-        return (-0.5 * G * x ** 2 + B2 * x) / norm + 0.5
+        return (-0.5 * G * x**2 + B2 * x) / norm + 0.5
     else:
         raise "d_theta must be <= 180, but was {}".format(d_theta)
 
 
 def add_edges_v1(net):
     # pop to pop parameters:
-    cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
+    # cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
+    cc_prob_dict = json.load(open("base_props/v1_conn_props_March28_2023.json", "r"))
     # pop to specific model parameters:
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
-    conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_June_20_2022.csv")
+    # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_June_20_2022.csv")
+    conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_March28_2023.csv")
     # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
     # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
@@ -545,7 +547,7 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0, miniature=False)
         # sizes.
         lognorm_shape = v1_models_pop["e4other"]["nsyn_lognorm_shape"]
         lognorm_scale = v1_models_pop["e4other"]["nsyn_lognorm_scale"]
-        e4_mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape ** 2) / 2)
+        e4_mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape**2) / 2)
 
         edge_params = {
             "source": lgn_net.nodes(),
@@ -604,7 +606,8 @@ def add_bkg_v1_edges(v1_net, bkg_net):
             "connection_rule": lambda s, t, n: n,
             "connection_params": {"n": row["nsyns"]},
             "dynamics_params": row["dynamics_params"],
-            "syn_weight": row["syn_weight_psp"],
+            # "syn_weight": row["syn_weight_psp"],
+            "syn_weight": row["syn_weight"],
             "delay": 1.0,
             "model_template": "static_synapse",
             "weight_function": "ConstantMultiplier_BKG",
