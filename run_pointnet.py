@@ -182,12 +182,14 @@ def override_output(config, output_dir):
             config["output"][key] = os.path.join(output_fullpath, value)
     return config
 
+
 def insert_modfile_to_config(config, modfilename):
     # insert the mod file to the config
     if modfilename is not None:
         modfile_fullpath = os.path.abspath(modfilename)
         config["inputs"]["MODFILE"] = modfile_fullpath
     return config
+
 
 def main(config_file, output_dir, modfilename):
     configure = pointnet.Config.from_json(config_file)
@@ -246,4 +248,4 @@ if __name__ == "__main__":
         # index column is not defined in the file, so make it up.
         modulation_df = pd.read_csv(args.modfile, sep=" ", index_col=False)
 
-    main(args.config_file, output_dir=args.output_dir, args.modfile)
+    main(args.config_file, output_dir=args.output_dir, modfilename=args.modfile)
