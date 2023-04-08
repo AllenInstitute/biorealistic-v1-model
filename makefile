@@ -186,6 +186,7 @@ profile_run: $(mainscripts) $(buildfiles) small/filternet/spikes.h5
 
 glif_models/cell_models: prepare_glif_models.py cell_types/cells_with_glif_pop_name.csv
 	python prepare_glif_models.py
+	touch glif_models/cell_models
 	# cp -r base_props/synaptic_models glif_models/synaptic_models
 
 glif_models/synaptic_models/e4_to_e4.json: create_syn_models.py

@@ -396,7 +396,7 @@ def add_edges_v1(net):
                 dynamics_params=row["params_file"],
                 # syn_weight_max=row["weight_max"],
                 delay=row["delay"],
-                # weight_function=weight_fnc,
+                weight_function="weight_function_recurrent",
                 # weight_sigma=weight_sigma,
                 # distance_range=row["distance_range"],
                 # target_sections=row["target_sections"],
@@ -557,7 +557,8 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0, miniature=False)
             "connection_params": {"lgn_mean": lgn_mean, "lgn_nodes": lgn_nodes},
             "dynamics_params": row["dynamics_params"],
             "delay": 1.7,
-            "weight_function": "ConstantMultiplier_LGN",
+            # "weight_function": "ConstantMultiplier_LGN",
+            "weight_function": "weight_function_lgn",
             "weight_sigma": sigma,
             "model_template": "static_synapse",
         }
@@ -610,7 +611,8 @@ def add_bkg_v1_edges(v1_net, bkg_net):
             "syn_weight": row["syn_weight"],
             "delay": 1.0,
             "model_template": "static_synapse",
-            "weight_function": "ConstantMultiplier_BKG",
+            # "weight_function": "ConstantMultiplier_BKG",
+            "weight_function": "weight_function_bkg",
         }
         bkg_net.add_edges(**edge_params)
 
