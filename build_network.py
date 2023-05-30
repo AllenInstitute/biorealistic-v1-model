@@ -347,7 +347,7 @@ def add_edges_v1(net):
     # pop to specific model parameters:
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_June_20_2022.csv")
-    conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_March28_2023.csv")
+    conn_weight_df = pd.read_csv("base_props/v1_edge_models_double_alpha.csv")
     # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
     # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
