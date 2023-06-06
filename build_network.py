@@ -389,6 +389,11 @@ def add_edges_v1(net):
             #         weight_sigma=weight_sigma,
             #     )
             # else:
+            # tentative fix for non-negative inhibitory connections
+            if src_type[0] == "i":
+                pspsign = -1
+            else:
+                pspsign = 1
             cm = net.add_edges(
                 source=src_criteria,
                 target={"node_type_id": node_type_id},
@@ -405,7 +410,8 @@ def add_edges_v1(net):
                 # weight_sigma=weight_sigma,
                 # distance_range=row["distance_range"],
                 # target_sections=row["target_sections"],
-                PSP_correction=row["PSP_scale_factor"],
+                # PSP_correction=row["PSP_scale_factor"],  # original
+                PSP_correction=np.abs(row["PSP_scale_factor"]) * pspsign,
                 PSP_lognorm_shape=row["lognorm_shape"],
                 PSP_lognorm_scale=row["lognorm_scale"],
                 model_template="static_synapse",
