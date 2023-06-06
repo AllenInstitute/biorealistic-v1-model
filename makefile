@@ -89,12 +89,12 @@ $(jobs_spont_lgn_targets): %/jobs/spont_lgn_5s.sh: %/configs/config.json make_fi
 $(bkg_spikes_targets): %/bkg/bkg_spikes_1kHz_3s.h5: %/network/bkg_nodes.h5 bkg_spike_generation.py
 	python bkg_spike_generation.py $*
 
-$(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: prepare_lognormal_bkg_weights.py precomputed_props/bkg_v1_edge_types_fitted.csv %/network/bkg_nodes.h5 %/components/synaptic_models/exc_to_e4.json 
-	# new scheme (lognormal)
-	# python prepare_lognormal_bkg_weights.py $*
-	# old scheme
+$(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: prepare_lognormal_bkg_weights.py precomputed_props/bkg_v1_edge_types.csv %/network/bkg_nodes.h5 %/components/synaptic_models/exc_to_e4.json 
 	cp precomputed_props/bkg_v1_edge_types.csv $*/network/bkg_v1_edge_types.csv
 
+# $(bkg_edge_targets): %/network/bkg_v1_edge_types.csv: prepare_lognormal_bkg_weights.py precomputed_props/bkg_v1_edge_types_fitted.csv %/network/bkg_nodes.h5 %/components/synaptic_models/exc_to_e4.json 
+# 	# new scheme (lognormal)
+# 	# python prepare_lognormal_bkg_weights.py $*
 
 $(run_8dfilternet_targets): %/filternet_8dir_10trials/angle0_trial0/spikes.h5: %/jobs/filternet_8dir_10trials.sh %/network/bkg_nodes.h5
 	# WARNING: Terminaing this command won't stop the jobs running on the cluster.
