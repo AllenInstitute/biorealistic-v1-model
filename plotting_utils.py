@@ -22,7 +22,10 @@ def pick_core(df, radius=400.0):
 
 
 def read_config(config_file):
-    js = json.load(open(config_file, "r"))
+    # js = json.load(open(config_file, "r"))
+    # let's close the file once opened...
+    with open(config_file, "r") as f:
+        js = json.load(f)
     return js
 
 
@@ -192,9 +195,9 @@ if __name__ == "__main__":
         # config_file = f"{net}/output_bkgtune/config_bkgtune.json"
         # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
         # config_file = f"{net}/output/config.json"
-        # config_file = f"{net}/output/config_plain.json"
+        config_file = f"{net}/output/config_plain.json"
         # config_file = f"{net}/output_2x/config_plain.json"
-        config_file = f"{net}/output_lgnbkg/config_lgnbkg.json"
+        # config_file = f"{net}/output_lgnbkg/config_lgnbkg.json"
         # config_file = f"{net}/output_lgn/config_lgn.json"
         # config_file = f"{net}/output_multimeter/config_multimeter.json"
         # config_file = (

@@ -410,7 +410,7 @@ def add_edges_v1(net):
                 # weight_sigma=weight_sigma,
                 # distance_range=row["distance_range"],
                 # target_sections=row["target_sections"],
-                # PSP_correction=row["PSP_scale_factor"],  # original
+                # PSP_correction=row["PSP_scale_factor"],  # original there is one more line to fix ~30 lines below.
                 PSP_correction=np.abs(row["PSP_scale_factor"]) * pspsign,
                 PSP_lognorm_shape=row["lognorm_shape"],
                 PSP_lognorm_scale=row["lognorm_scale"],
@@ -442,7 +442,8 @@ def add_edges_v1(net):
                 rule_params={
                     "src_type": src_type,
                     "trg_type": trg_type,
-                    "PSP_correction": row["PSP_scale_factor"],
+                    # "PSP_correction": row["PSP_scale_factor"],
+                    "PSP_correction": np.abs(row["PSP_scale_factor"]) * pspsign,
                     "PSP_lognorm_shape": row["lognorm_shape"],
                     "PSP_lognorm_scale": row["lognorm_scale"],
                     "connection_params": src_trg_params,
