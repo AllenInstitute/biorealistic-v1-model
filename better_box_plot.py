@@ -97,7 +97,11 @@ def draw_borders(ax, borders, ylim):
     return ax
 
 
-def plot_one(ax, df, metric_name, ylim, cpal=None):
+def plot_one(ax, df, metric_name, ylim, cpal=None, e_only=False):
+    if e_only:
+        # first, filter out cell type == nan
+        df = df[~df["cell_type"].isna()]
+        df = df[df["cell_type"].str.contains("Exc")]
     sns.boxplot(
         x="cell_type",
         y=metric_name,
@@ -130,134 +134,177 @@ osi_dfs = []
 
 color_pal = {
     "Billeh 2020, GLIF final": "tab:orange",
-    "full, bkg=1.0": "tab:blue",
-    "full, bkg=0.5": "tab:cyan",
-    #  'small, bkg=1.0': 'tab:red',
-    #  'small, bkg=0.5': 'tab:pink',
-    "small all round1": "tab:red",
-    "small dendritic norm fix": "tab:pink",
-    "small dendritic norm fix, no rand": "tab:cyan",
-    "small dendritic norm fix, full bkg": "tab:cyan",
-    "small all round2": "tab:pink",
-    "small all round3": "tab:red",
-    "small all round4": "tab:pink",
-    "full all round4": "tab:blue",
-    "full all round3": "tab:blue",
-    "full all round2": "tab:cyan",
-    "full all round1": "tab:red",
-    "full, all": "tab:blue",
-    "small, lgnbkg": "tab:pink",
-    "small constBKG round6": "tab:cyan",
-    "full round6": "tab:pink",
-    "full round7": "tab:blue",
-    "full round9": "tab:blue",
-    "full corrected network": "tab:pink",
-    "small round7": "tab:cyan",
-    "small round9": "tab:blue",
-    "small corrected network": "tab:cyan",
-    "Lognorm, norecurrent": "tab:pink",
-    "New model": "tab:blue",
-    #  'small, lgnonly': 'tab:olive',
-    #  'small, lgn+bkg': 'tab:brown',
-    #  'small, +recurrent': 'tab:red',
     "Neuropixels": "tab:gray",
     # "Neuropixels": "k",
+    "core 9am": "tab:pink",
+    "core bkg minus4": "tab:cyan",
+    "core bkg minus6": "tab:pink",
+    "Tensorflow": "tab:blue",
+    "TF FR tuning": "tab:cyan",
+    "TF default": "tab:blue",
+    "Random weights": "tab:blue",
+    "After 1000 iter.": "tab:pink",
+    "After 7500 iter.": "tab:red",
+    "TF rand ckpt5": "tab:pink",
+    "TF rand ckpt10": "tab:red",
+    "TF rand ckpt50": "tab:green",
+    "TF rand ckpt75": "tab:blue",
+    "Trained": "tab:red",
+    "TF rand ckpt100": "tab:blue",
+    "TF OS tuning": "tab:pink",
+    "TF OS, core, 5": "tab:brown",
+    "Lognorm, norecurrent": "tab:pink",
+    "New model": "tab:blue",
+    "small_new": "tab:blue",
 }
 
 
-# Billeh, small, neuropixels set
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_27pBKG_lgnbkg.csv", "small, lgnbkg", radius=100.0))
-
-osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
 osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels"))
 # osi_dfs.append(
-# get_osi_df("flat", "OSI_DSI_DF_round9.csv", "Lognorm, norecurrent", radius=850.0)
-# )
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round6.csv", "full round6"))
-osi_dfs.append(get_osi_df("full_0203", "OSI_DSI_DF_round9.csv", "full round9"))
-osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full corrected network"))
-
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round7.csv", "full round7"))
-
-# osi_dfs.append(
-# get_osi_df("small_0202", "OSI_DSI_DF_round9.csv", "small round9", radius=100.0)
-# )
-# osi_dfs.append(
-# get_osi_df("small", "OSI_DSI_DF.csv", "small corrected network", radius=100.0)
-# )
-# osi_dfs.append(
-#     get_osi_df("small", "OSI_DSI_DF_round7.csv", "small round7", radius=100.0)
-# )
-# osi_dfs.append(
-#     get_osi_df("full", "OSI_DSI_DF.csv", "New model")
-# )
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF.csv", "small all round4", radius=100.0))
-# osi_dfs.append(
-#     get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small all round1", radius=100.0)
-# )
-# osi_dfs.append(
 #     get_osi_df(
-#         "small", "OSI_DSI_DF_normfix.csv", "small dendritic norm fix", radius=100.0
+#         "core", "OSI_DSI_DF_recurrent_minus4.csv", "core bkg minus4", radius=200.0
 #     )
 # )
 # osi_dfs.append(
 #     get_osi_df(
-#         "small",
-#         "OSI_DSI_DF.csv",
-#         "small dendritic norm fix, full bkg",
+#         "core", "OSI_DSI_DF_recurrent_minus6.csv", "core bkg minus6", radius=200.0
+#     )
+# )
+# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_lgn.csv", "core lgn", radius=200.0))
+# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_lgnbkg.csv", "core lgnbkg", radius=200.0))
+# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core new", radius=200.0))
+# osi_dfs.append(
+# get_osi_df("full", "OSI_DSI_DF_recurrent.csv", "full recurrent", radius=200.0)
+# )
+# osi_dfs.append(
+# get_osi_df("tensorflow", "OSI_DSI_DF_before_tuning.csv", "TF default", radius=200.0)
+# )
+osi_dfs.append(
+    get_osi_df(
+        "small",
+        "OSI_DSI_DF.csv",
+        "small_new",
+        radius=100.0,
+    )
+)
+# osi_dfs.append(
+#     get_osi_df(
+#         "tensorflow",
+#         "OSI_DSI_DF_10k_random_pre.csv",
+#         "Random weights",
 #         radius=100.0,
 #     )
 # )
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round3_all.csv", "full all round3"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full all round4"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full all round1"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_27pBKG_all.csv", "full all round2"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_round3_all.csv", "small all round3", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_27pBKG_all.csv", "small all round2", radius=100.0))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_27pBKG_all.csv", "full, all", radius=400.0))
-
-# Billeh set
-# osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full, bkg=1.0"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg0.5.csv", "full, bkg=0.5"))
-
-# full-small set
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full, bkg=1.0"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small, bkg=1.0", radius=100.0))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg0.5.csv", "full, bkg=0.5"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg0.5.csv", "small, bkg=0.5", radius=100.0))
-
-# recurrent effect set
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_lgnonly.csv", "small, lgnonly", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_lgnbkg.csv", "small, lgn+bkg", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small, +recurrent", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg0.5.csv", "small, bkg=0.5"))
-
-# osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full, bkg=1.0"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small, bkg=1.0"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg0.5.csv", "full, bkg=0.5"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg0.5.csv", "small, bkg=0.5"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_lgnbkg.csv", "small, lgn+bkg"))
+# osi_dfs.append(
+#     get_osi_df(
+#         "tensorflow",
+#         "OSI_DSI_DF_10k_random_ckpt10.csv",
+#         "After 1000 iter.",
+#         radius=100.0,
+#     )
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "tensorflow",
+#         "OSI_DSI_DF_10k_random_ckpt50.csv",
+#         "TF rand ckpt50",
+#         radius=100.0,
+#     )
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "tensorflow",
+#         "OSI_DSI_DF_10k_random_ckpt75.csv",
+#         "After 7500 iter.",
+#         radius=100.0,
+#     )
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "tensorflow",
+#         "OSI_DSI_DF_10k_random_ckpt100.csv",
+#         "TF rand ckpt100",
+#         radius=100.0,
+#     )
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "tensorflow",
+#         "OSI_DSI_DF_firing_rate_tuning_ckpt3.csv",
+#         "TF FR tuning",
+#         radius=200.0,
+#     )
+# )
+# osi_dfs.append(
+#     get_osi_df("tensorflow", "OSI_DSI_DF_os_tuning.csv", "TF OS tuning", radius=200.0)
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "tensorflow", "OSI_DSI_DF_core_os_ckpt5.csv", "TF OS, core, 5", radius=400.0
+#     )
+# )
+# osi_dfs.append(
+#     get_osi_df(
+#         "core", "OSI_DSI_DF_lgnbkg_minus4.csv", "core lgnbkg minus4", radius=200.0
+#     )
+# )
+# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full bad bkg", radius=400.0))
+# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core bad bkg", radius=200.0))
 
 df = pd.concat(osi_dfs)
 
+# for_sac = True
+pattern = "scats"
 
 # fig, axs = plt.subplots(4, 1, figsize=(12, 20))
-fig, axs = plt.subplots(5, 1, figsize=(12, 20))
-# fig, axs = plt.subplots(3, 1, figsize=(9, 12))
-plot_one(axs[0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
-plot_one(axs[1], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
-plot_one(axs[2], df, "DSI", [0, 1], color_pal)
-plot_one(axs[3], df, "OSI", [0, 1], color_pal)
-plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "DSI", color_pal, s=5)
-# plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
+if pattern == "sac":
+    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+    plot_one(
+        axs[0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal, e_only=True
+    )
+    plot_one(axs[1], df, "OSI", [0, 1], color_pal, e_only=True)
+    # remove the legend from axs[0], move the legend of axs[1] to outside the plot
+    axs[0].get_legend().remove()
+    axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    plt.tight_layout()
+    plt.savefig("box_simplified_SAC.png", dpi=150)
+elif pattern == "normal":
+    fig, axs = plt.subplots(4, 2, figsize=(24, 12))
+    # fig, axs = plt.subplots(3, 1, figsize=(9, 12))
+    plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
+    plot_one(axs[0, 1], df, "Avg_Rate(Hz)", [0, 50], color_pal)
+    plot_one(axs[1, 0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
+    plot_one(axs[2, 0], df, "DSI", [0, 1], color_pal)
+    plot_one(axs[2, 1], df, "OSI", [0, 1], color_pal)
+    plot_scat(axs[3, 0], df, "Rate at preferred direction (Hz)", "DSI", color_pal, s=5)
+    plot_scat(axs[3, 1], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
 
-plt.tight_layout()
-plt.savefig("box_CorrectRecurrent_Feb6_full.png", dpi=150)
-# plt.savefig("box_Dec12.svg", bbox="tight")
-# plt.savefig("box_Dec12.png", dpi=150)
+    plt.tight_layout()
+    plt.savefig("box_CorrectRecurrent_Feb6_full.png", dpi=150)
+    # plt.savefig("box_Dec12.svg", bbox="tight")
+    # plt.savefig("box_Dec12.png", dpi=150)
+elif pattern == "scats":
+    # scatter plots of the rates.
+    fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+    plot_scat(axs[0, 0], df, "Spont_Rate(Hz)", "Avg_Rate(Hz)", color_pal, s=5)
+    axs[0, 0].set_yscale("log")
+    axs[0, 0].set_aspect("equal")
+    # equality line
+    axs[0, 0].plot([0, 100], [0, 100], "k--")
+    plot_scat(
+        axs[0, 1],
+        df,
+        "Spont_Rate(Hz)",
+        "Rate at preferred direction (Hz)",
+        color_pal,
+        s=5,
+    )
+    axs[0, 1].set_yscale("log")
+    axs[0, 1].set_aspect("equal")
+    axs[0, 1].plot([0, 100], [0, 100], "k--")
+    plt.tight_layout()
+
 
 # %%
 l4df = df.query("data_type == 'full round9' and location == 'VisL4'")

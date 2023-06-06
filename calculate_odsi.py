@@ -13,7 +13,6 @@ from pathlib import Path
 
 
 def calculateFiringRate(gids, ts, numNrns, start_time=0.0, duration=2.0):
-
     # print("Calculating Firing Rate")
     start_time = start_time * 1000.0
     # end_time = gray_screen + 2000.0  # requires at least 2 seconds of stimulus
@@ -35,7 +34,6 @@ def calculateFiringRate(gids, ts, numNrns, start_time=0.0, duration=2.0):
 
 
 def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir=None):
-
     Rates_DF = pd.DataFrame(
         index=range(numNrns * len(angles)),
         columns=[
@@ -55,7 +53,6 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
         spontRatesTrials[:] = np.nan
 
         for trial in range(trials):
-
             spikes_file_name = (
                 f"{basedir}/8dir_10trials/angle{ori}_trial{trial}/spikes.csv"
             )
@@ -74,8 +71,20 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
             # gids = gids.astype(int)
 
             firingRates = calculateFiringRate(gids, ts, numNrns, start_time=0.5)
+            # firingRates = calculateFiringRate(
+            #     gids, ts, numNrns, start_time=0.1, duration=0.5
+            # )
             spontRates = calculateFiringRate(
-                gids, ts, numNrns, start_time=0.1, duration=0.4
+                gids,
+                ts,
+                numNrns,
+                start_time=0.1,
+                duration=0.4
+                # gids,
+                # ts,
+                # numNrns,
+                # start_time=0.0,
+                # duration=0.1,
             )
             # print(spikes_file_name)
 
@@ -97,7 +106,6 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
             i * numNrns : (i + 1) * numNrns - 1, "Spont_rate(Hz)"
         ] = np.nanmean(spontRatesTrials, axis=0)
 
-    Rates_DF.to_csv(basedir + "/metrics/Rates_DF.csv", sep=" ", index=False)
     return Rates_DF
 
 
@@ -137,8 +145,7 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
     osi_df["max_mean_rate(Hz)"] = preferred_rates
     osi_df["Avg_Rate(Hz)"] = np.mean(all_rates, axis=1)
     osi_df["Spont_Rate(Hz)"] = np.mean(all_spont, axis=1)
-
-    osi_df.to_csv(basedir + "/metrics/OSI_DSI_DF.csv", sep=" ", index=False)
+    return osi_df
 
 
 if __name__ == "__main__":
@@ -160,14 +167,26 @@ if __name__ == "__main__":
     net = File(data_files=nodes_file_name, data_type_files=type_file_name)
     # nodes_DF = pd.read_csv(nodes_file_name, sep=" ")
     nodes_DF = net.nodes["v1"].to_dataframe()
+    # there is additional file in there that use the subset of the node ids.
+    # let's reset the index, and use them as the node ids.
     numNrns = len(nodes_DF)
 
     print("FR calculation started...")
     Rates_DF = calculate_Rates_DF(
         numNrns, trials=trials, angles=angles, basedir=basedir
     )
+    # drop the rows that is not included in node_ids
+    if basedir == "tensorflow":
+        node_ids = np.load(set_name + "/node_ids.npy")
+        Rates_DF = Rates_DF.loc[Rates_DF["node_id"].isin(node_ids)]
+
+    Rates_DF.to_csv(basedir + "/metrics/Rates_DF.csv", sep=" ", index=False)
     print("Done Rates DF!")
 
     # Rates_DF = pd.read_csv(set_name + "/Rates_DF.csv", sep=" ", index_col=False)
-    calculate_OSI_DSI_from_DF(Rates_DF, basedir=basedir)
+    osi_df = calculate_OSI_DSI_from_DF(Rates_DF, basedir=basedir)
+    if basedir == "tensorflow":
+        # replace the node_ids with the node_ids
+        osi_df["node_id"] = node_ids
+    osi_df.to_csv(basedir + "/metrics/OSI_DSI_DF.csv", sep=" ", index=False)
     print("Done with all!")

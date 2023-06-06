@@ -81,7 +81,7 @@ def distribute_nums(n, m):
     return counts
 
 
-def pick_glif_models(models_df, row):
+def pick_glif_models(models_df, row, douple_alpha=False):
     # # Need short names for indexing (leaving these here temporarily in case they are needed elsewhere)
     # pop_name_long2short = {
     #     "i1Htr3a": "vip",
@@ -137,7 +137,10 @@ def pick_glif_models(models_df, row):
         model_dict["N"] = int(model_cell_count[i])
         model_dict["node_type_id"] = int(poprow["specimen__id"])
         model_dict["model_type"] = "point_process"
-        model_dict["model_template"] = "nest:glif_psc"
+        if douple_alpha:
+            model_dict["model_template"] = "nest:glif_psc_double_alpha"
+        else:
+            model_dict["model_template"] = "nest:glif_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
         models.append(model_dict)
 
@@ -182,8 +185,8 @@ def pick_bio_models(models_df, row):
     return models
 
 
-def make_v1_node_models(miniature=False):
-    if miniature:
+def make_v1_node_models(args):
+    if args.miniature:
         filepath = "base_props/V1model_seed_file_miniature.xlsx"
         outfilepath = "glif_props/v1_node_models_miniature.json"
     else:
@@ -202,7 +205,7 @@ def make_v1_node_models(miniature=False):
         location_dict = {}
         for pop_id, row in subdf.iterrows():
             pop_dict = extract_info(row)
-            models = pick_glif_models(glif_models_df, row)
+            models = pick_glif_models(glif_models_df, row, args.double_alpha)
             pop_dict["models"] = models
             location_dict[pop_name_change(row["pop_name"])] = pop_dict
 
@@ -249,6 +252,13 @@ if __name__ == "__main__":
         default=False,
         help="make a miniature version of the simualtion for debugging",
     )
+    parser.add_argument(
+        "-d",
+        "--double-alpha",
+        action="store_true",
+        default=False,
+        help="use nest glif model with double alpha synapses",
+    )
     args = parser.parse_args()
 
-    make_v1_node_models(args.miniature)
+    make_v1_node_models(args)

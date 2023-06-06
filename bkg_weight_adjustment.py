@@ -263,7 +263,7 @@ if __name__ == "__main__":
 
     if mode == "small_lgnbkg":
         basedir = "small"
-        duration = 100.0
+        duration = 10.0
     elif mode == "flat_wasser":
         # flat population (100 neurons for each model) with wasserstein distance
         basedir = "flat"
@@ -292,7 +292,8 @@ if __name__ == "__main__":
     if mode == "flat_wasser":
         solvers = {nid: MinuitPipeSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
     else:
-        solvers = {nid: BisectionSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
+        solvers = {nid: BisectionSolver(0, 256, tfr[nid]) for nid in tfr.keys()}
+        # solvers = {nid: BisectionSolver(0, 16, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
     weight[:] = 0.0

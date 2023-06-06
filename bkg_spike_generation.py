@@ -6,20 +6,40 @@ import pathlib
 import sys
 
 
-def write_bkg(output_filename, duration=3.0, binsize=2.5e-4, rate=1000, seed=0):
+def write_bkg(
+    output_filename, n_neu=1, duration=3.0, binsize=2.5e-4, rate=1000, seed=0
+):
     # time units are seconds, (inverse: Hz)
 
     nbins = int(duration / binsize)
     np.random.seed(seed)
-    spike_bools = np.random.random(nbins) < (rate * binsize)
-    spikes_time = (np.where(spike_bools)[0] + 1) * binsize  # to avoid 0, still second
-    nids = np.zeros_like(spikes_time, dtype=np.uint)
+    spike_bools = np.random.random([n_neu, nbins]) < (rate * binsize)
+    where = np.where(spike_bools)
+    # spikes_time = (np.where(spike_bools)[0] + 1) * binsize  # to avoid 0, still second
+    timestamps = (where[1] + 1) * binsize
+    # nids = np.zeros_like(spikes_time, dtype=np.uint)
+    nids = where[0]
 
     # save
     out_file = h5py.File(output_filename, "w")
-    out_file["spikes/gids"] = nids
+    # out_file["spikes/gids"] = nids
     # add some random value to avoid the bad time stamps.
-    out_file["spikes/timestamps"] = spikes_time * 1000 + 0.01  # in ms
+    # out_file["spikes/timestamps"] = timestamps * 1000 + 0.01  # in ms
+    # let's use gzip level 6.
+    out_file.create_dataset(
+        "spikes/gids",
+        data=nids,
+        compression="gzip",
+        compression_opts=6,
+        shuffle=True,
+    )
+    out_file.create_dataset(
+        "spikes/timestamps",
+        data=timestamps * 1000 + 0.01,
+        compression="gzip",
+        compression_opts=6,
+        shuffle=True,
+    )
     out_file.close()
     return 0
 
@@ -41,31 +61,47 @@ if __name__ == "__main__":
     # basedir = "small"
     basedir = sys.argv[1]
     pathlib.Path(f"{basedir}/bkg").mkdir(parents=True, exist_ok=True)
-    bkg_name = f"{basedir}/bkg/bkg_spikes_1kHz_100s.h5"
-    write_bkg(bkg_name, duration=100.0)
+    # read the bkg file and check the number of bkg units.
+    bkg_file = f"{basedir}/network/bkg_nodes.h5"
+    # open the file and get the number of bkg units
+    with h5py.File(bkg_file, "r") as f:
+        n_neu = f["nodes"]["bkg"]["node_id"].shape[0]
+
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_1kHz_100s.h5"
+    # write_bkg(bkg_name, n_neu, duration=100.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_1kHz_10s.h5"
-    write_bkg(bkg_name, duration=10.0)
+    write_bkg(bkg_name, n_neu, duration=10.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_1kHz_3s.h5"
-    write_bkg(bkg_name)
-    bkg_name = f"{basedir}/bkg/bkg_spikes_2kHz_10s.h5"
-    write_bkg(bkg_name, rate=2000, duration=10.0)
-    bkg_name = f"{basedir}/bkg/bkg_spikes_2kHz_3s.h5"
-    write_bkg(bkg_name, rate=2000, duration=3.0)
+    write_bkg(bkg_name, n_neu)
+
+    # 250 Hz (new default for 100 background units)
+    bkg_name = f"{basedir}/bkg/bkg_spikes_250Hz_10s.h5"
+    write_bkg(bkg_name, n_neu, rate=250, duration=10.0)
+    bkg_name = f"{basedir}/bkg/bkg_spikes_250Hz_3s.h5"
+    write_bkg(bkg_name, n_neu, rate=250, duration=3.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_100Hz_10s.h5"
+    # write_bkg(bkg_name, n_neu, rate=100, duration=10.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_100Hz_3s.h5"
+    # write_bkg(bkg_name, n_neu, rate=100, duration=3.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_2kHz_10s.h5"
+    # write_bkg(bkg_name, n_neu, rate=2000, duration=10.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_2kHz_3s.h5"
+    # write_bkg(bkg_name, n_neu, rate=2000, duration=3.0)
 
     # with 'full', all the bins are filled with spikes. i.e. no fluctuations.
-    bkg_name = f"{basedir}/bkg/bkg_spikes_full_100s.h5"
-    write_bkg(bkg_name, rate=4000, duration=100.0)
-    bkg_name = f"{basedir}/bkg/bkg_spikes_full_30s.h5"
-    write_bkg(bkg_name, rate=4000, duration=30.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_full_100s.h5"
+    # write_bkg(bkg_name, n_neu, rate=4000, duration=100.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_full_30s.h5"
+    # write_bkg(bkg_name, n_neu, rate=4000, duration=30.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_full_10s.h5"
-    write_bkg(bkg_name, rate=4000, duration=10.0)
+    write_bkg(bkg_name, n_neu, rate=4000, duration=10.0)
     bkg_name = f"{basedir}/bkg/bkg_spikes_full_3s.h5"
-    write_bkg(bkg_name, rate=4000, duration=3.0)
+    write_bkg(bkg_name, n_neu, rate=4000, duration=3.0)
     # these require high resolution simulations
-    bkg_name = f"{basedir}/bkg/bkg_spikes_5kHz_3s.h5"
-    write_bkg(bkg_name, rate=5000, binsize=1.0e-5, duration=3.0)
-    bkg_name = f"{basedir}/bkg/bkg_spikes_5kHz_10s.h5"
-    write_bkg(bkg_name, rate=5000, binsize=1.0e-5, duration=10.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_5kHz_3s.h5"
+    # write_bkg(bkg_name, n_neu, rate=5000, binsize=1.0e-5, duration=3.0)
+    # bkg_name = f"{basedir}/bkg/bkg_spikes_5kHz_10s.h5"
+    # write_bkg(bkg_name, n_neu, rate=5000, binsize=1.0e-5, duration=10.0)
 
     # regular bkg
     bkg_name = f"{basedir}/bkg/bkg_spikes_regular_1s.h5"
@@ -78,6 +114,7 @@ if __name__ == "__main__":
             seed = start_seed + i * 10 + j
             dirname = f"{basedir}/bkg_8dir_10trials/angle{i*45}_trial{j}"
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
-            write_bkg(f"{dirname}/bkg_spikes_1kHz_3s.h5", seed=seed)
-            write_bkg(f"{dirname}/bkg_spikes_2kHz_3s.h5", rate=2000, seed=seed)
-            write_bkg(f"{dirname}/bkg_spikes_full_3s.h5", rate=4000, seed=seed)
+            # write_bkg(f"{dirname}/bkg_spikes_1kHz_3s.h5", n_neu, seed=seed)
+            write_bkg(f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed)
+            # write_bkg(f"{dirname}/bkg_spikes_2kHz_3s.h5", n_neu, rate=2000, seed=seed)
+            # write_bkg(f"{dirname}/bkg_spikes_full_3s.h5", n_neu, rate=4000, seed=seed)

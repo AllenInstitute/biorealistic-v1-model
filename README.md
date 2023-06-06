@@ -18,8 +18,9 @@ Right now, it can only generate V1 GLIF nodes. No other structures, no edges.
 ```bash
 conda -n modeling numpy h5py pandas matplotlib jsonschema mpi4py openpyxl
 conda activate modeling
-conda install -c conda-forge allensdk
+# conda install -c conda-forge allensdk # requires python 7
 conda install -c kaeldai bmtk
+pip install allensdk
 ```
 
 You will need to install nest-simulator to run the model.

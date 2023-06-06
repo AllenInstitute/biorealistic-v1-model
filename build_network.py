@@ -22,11 +22,16 @@ from edge_funcs import (
     compute_pair_type_parameters,
     connect_cells,
     select_lgn_sources_powerlaw,
+    select_bkg_sources,
 )
 
 from bmtk.builder import NetworkBuilder
 from bmtk.builder.node_pool import NodePool
 from numba import njit
+
+import logging
+
+# logging.basicConfig(level=logging.DEBUG)
 
 # print(NetworkBuilder)
 # exit()
@@ -581,21 +586,24 @@ def lgn_synaptic_weight_rule(source, target, base_weight, mean_size):
     return base_weight * mean_size / target["target_sizes"]
 
 
-def add_nodes_bkg():
+def add_nodes_bkg(n_unit):
     bkg = NetworkBuilder("bkg")
     bkg.add_nodes(
-        N=1,
+        # N=1,
+        N=n_unit,
         pop_name="SG_001",
         ei="e",
         location="BKG",
         model_type="virtual",
-        x=[-91.23767151810344],
-        y=[233.43548226294524],
+        x=np.zeros(n_unit),
+        y=np.zeros(n_unit),  # are these necessary?
+        # x=[-91.23767151810344],
+        # y=[233.43548226294524],
     )
     return bkg
 
 
-def add_bkg_v1_edges(v1_net, bkg_net):
+def add_bkg_v1_edges(v1_net, bkg_net, n_conn):
     conn_weight_df = pd.read_csv("glif_props/bkg_weights_model.csv", sep=" ")
     # this file should contain the following parameters:
     # model_id (of targets), syn_weight_psp, dynamics_params, nsyns
@@ -604,8 +612,10 @@ def add_bkg_v1_edges(v1_net, bkg_net):
         edge_params = {
             "source": bkg_net.nodes(),
             "target": v1_net.nodes(node_type_id=row["model_id"]),
-            "connection_rule": lambda s, t, n: n,
-            "connection_params": {"n": row["nsyns"]},
+            # "connection_rule": lambda s, t, n: n,
+            "connection_rule": select_bkg_sources,
+            "iterator": "all_to_one",
+            "connection_params": {"n_syns": row["nsyns"], "n_conn": n_conn},
             "dynamics_params": row["dynamics_params"],
             # "syn_weight": row["syn_weight_psp"],
             "syn_weight": row["syn_weight"],
@@ -681,13 +691,33 @@ if __name__ == "__main__":
         "--miniature",
         action="store_true",
         default=False,
-        help="Make a miniture network with with a small LGN. Only for debugging",
+        help="Make a miniture network with a small LGN. Only for debugging",
     )
     parser.add_argument(
         "--flat",
         action="store_true",
         default=False,
         help="Make the number of neurons for each population 100. For BKG tuning.",
+    )
+    parser.add_argument(
+        "--bkg-unit-num",
+        type=int,
+        default=100,
+        help="Number of units in the background population",
+    )
+    parser.add_argument(
+        "--bkg-conn-num",
+        type=int,
+        default=4,
+        help="Number of connections from the background population",
+    )
+    parser.add_argument(
+        "--compression",
+        type=str,
+        default="gzip",
+        help="Compression algorithm to use for the HDF5 files (none, 1-9, gzip, lzf, etc.) \
+              If you provide a number, it will be used as the compression level for gzip., \
+        ",
     )
     # This option is now obsolete.
     # parser.add_argument(
@@ -698,6 +728,10 @@ if __name__ == "__main__":
     # )
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
     args = parser.parse_args()
+
+    # if args.compression is a single letter string with a digit, convert it to int.
+    if len(args.compression) == 1 and args.compression[0].isdigit():
+        args.compression = int(args.compression)
 
     # set random number seed for reproducibility
     # The strategy is to use the common seed for all MPI ranks for nodes, and use
@@ -710,6 +744,8 @@ if __name__ == "__main__":
     seed_v1_edges = 154 + rank
     seed_lgn_nodes = 253
     seed_lgn_edges = 254 + rank
+    seed_bkg_nodes = 353
+    seed_bkg_edges = 354 + rank
 
     def set_seed(seed):
         random.seed(seed)
@@ -739,7 +775,7 @@ if __name__ == "__main__":
             v1 = add_edges_v1(v1)
         v1.build()
         print("Saving v1 network")
-        v1.save(args.output_dir)
+        v1.save(args.output_dir, compression=args.compression)
         print("  done.")
         nets.remove("v1")
 
@@ -765,21 +801,28 @@ if __name__ == "__main__":
 
         # now regardless of settings, LGN models are the same
         set_seed(seed_lgn_nodes)
-        lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
+        if args.miniature:
+            lgn = add_nodes_lgn(
+                X_grids=1, Y_grids=2, x_block=x_block_unit, y_block=y_block_unit
+            )
+        else:
+            lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
         set_seed(seed_lgn_edges)
         lgn = lgn_v1_edge_func(
             v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
         )
 
         lgn.build()
-        lgn.save(args.output_dir)
+        lgn.save(args.output_dir, compression=args.compression)
         print("  done.")
 
     if "bkg" in nets:
         print("Building bkg network")
         check_files_exists(args.output_dir, "bkg", "v1", args.force_overwrite)
-        bkg = add_nodes_bkg()
-        bkg = add_bkg_v1_edges(v1, bkg)
+        set_seed(seed_bkg_nodes)
+        bkg = add_nodes_bkg(args.bkg_unit_num)
+        set_seed(seed_bkg_edges)
+        bkg = add_bkg_v1_edges(v1, bkg, args.bkg_conn_num)
         bkg.build()
-        bkg.save(args.output_dir)
+        bkg.save(args.output_dir, compression=args.compression)
         print("  done.")

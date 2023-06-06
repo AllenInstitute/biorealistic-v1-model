@@ -53,13 +53,43 @@ def sbatch_boilerplate(file, logdir, config_counts, memory=4, jobs=8):
     # array ID range includes both edges
     file.write(f"#SBATCH --array=0-{config_counts-1}\n\n")
     file.write(
-        "module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles\n"
+        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest.sh\n"
     )
-    file.write("module load mpich/3.4.1-slurm\n")
-    file.write("module load conda/4.5.4\n")
+    # file.write(
+    #     "module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles\n"
+    # )
+    # # activating double alpha version of nest.
+    # file.write(
+    #     "module load anaconda/22.10 cmake/3.25.2 gcc/10.1.0-centos7 openmpi/4.1.5-gcc10\n"
+    # )
+    # file.write(
+    #     "conda activate /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/miniconda3/envs/custom_nest\n"
+    # )
+    # file.write(
+    #     "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/custom_nest/nest-simulator-3.4/build/bin/nest_vars.sh\n"
+    # )
+    # old code
+    # file.write("module load mpich/3.4.1-slurm\n")
+    # file.write("module load conda/4.5.4\n")
     # f.write("module load nest/2.20.1-py37-slurm\n")
     # f.write("source activate v1_glif_modeling\n")
-    file.write("source activate bmtk-latest-py37-slurm\n")
+    # file.write("source activate bmtk-latest-py37-slurm\n")
+
+
+def memory_jobs(basedir):
+    if "full" in basedir:
+        memory = 60
+        jobs = 4
+    elif "forty" in basedir:
+        memory = 30
+        jobs = 8
+    elif ("core" in basedir) or ("twenty" in basedir):
+        memory = 15
+        jobs = 8
+    else:  # including small, tiny, etc.
+        memory = 4
+        jobs = 8
+    return memory, jobs
 
 
 def write_job(basedir, config_counts, modfile):
@@ -68,28 +98,31 @@ def write_job(basedir, config_counts, modfile):
     logdir = jobdir + "/logs"
 
     with open(jobdir + "/8dir_10trials.sh", "w") as f:
-        if "full" in basedir:
-            memory = 60
-            jobs = 4
-        elif "forty" in basedir:
-            memory = 30
-            jobs = 8
-        elif ("core" in basedir) or ("twenty" in basedir):
-            memory = 15
-            jobs = 8
-        else:  # including small, tiny, etc.
-            memory = 4
-            jobs = 8
+        memory, jobs = memory_jobs(basedir)
+        # if "full" in basedir:
+        #     memory = 60
+        #     jobs = 4
+        # elif "forty" in basedir:
+        #     memory = 30
+        #     jobs = 8
+        # elif ("core" in basedir) or ("twenty" in basedir):
+        #     memory = 15
+        #     jobs = 8
+        # else:  # including small, tiny, etc.
+        #     memory = 4
+        #     jobs = 8
         sbatch_boilerplate(f, logdir, config_counts, memory=memory, jobs=jobs)
-        f.write("module load nest/2.20.1-py37-slurm\n")
+        # f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_$SLURM_ARRAY_TASK_ID.json"
         if modfile is not None:
             f.write(
-                f"srun --mpi=pmi2 python run_pointnet.py {config_array} -m {modfile}"
+                # f"srun --mpi=pmi2 python run_pointnet.py {config_array} -m {modfile}"
+                f"mpirun -np {jobs} python run_pointnet.py {config_array} -m {modfile}"
             )
         else:
-            f.write(f"srun --mpi=pmi2 python run_pointnet.py {config_array}")
+            # f.write(f"srun --mpi=pmi2 python run_pointnet.py {config_array}")
+            f.write(f"mpirun -np {jobs} python run_pointnet.py {config_array}")
 
 
 def write_filternet_job(basedir, config_counts):
@@ -99,10 +132,12 @@ def write_filternet_job(basedir, config_counts):
 
     with open(jobdir + "/filternet_8dir_10trials.sh", "w") as f:
         sbatch_boilerplate(f, logdir, config_counts)
+        memory, jobs = memory_jobs(basedir)
         # f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_filternet_$SLURM_ARRAY_TASK_ID.json"
-        f.write(f"srun --mpi=pmi2 python run_filternet.py {config_array}")
+        # f.write(f"srun --mpi=pmi2 python run_filternet.py {config_array}")
+        f.write(f"mpirun -np {jobs} python run_filternet.py {config_array}")
 
 
 if __name__ == "__main__":

@@ -41,27 +41,34 @@ def weight_function_recurrent(edges, src_nodes, trg_nodes):
     # now we have modulation_df.
     # modulation_df should have the following columns:
     # src_property, src_substring, trg_property, trg_substring, operation, value
+    weights = edges["syn_weight"].values
     for row in modulation_df.itertuples():
         src_prop = src_nodes[row.src_property].iloc[0]
         tgt_prop = trg_nodes[row.trg_property].iloc[0]
         if (row.src_substring in src_prop) and (row.trg_substring in tgt_prop):
             if row.operation == "*":
-                return edges["syn_weight"].values * row.value
+                # return edges["syn_weight"].values * row.value
+                weights *= row.value
             elif row.operation == "+":
-                return edges["syn_weight"].values + row.value
+                # return edges["syn_weight"].values + row.value
+                weights += row.value
             elif row.operation == "-":
-                return edges["syn_weight"].values - row.value
+                # return edges["syn_weight"].values - row.value
+                weights -= row.value
             elif row.operation == "/":
-                return edges["syn_weight"].values / row.value
+                # return edges["syn_weight"].values / row.value
+                weights /= row.value
             else:
-                raise ValueError("Operation not recognized")
+                raise ValueError(
+                    "Operation not recognized. Should be one of +, -, *, /"
+                )
 
     # if ("i4V" in src_pop) and ("i4V" in tgt_pop):
     # print("i4V to i4V")
     # return edges["syn_weight"].values * 10.0
 
     # if nothing is wanted, you can just return the original weight
-    return edges["syn_weight"].values
+    return weights
 
 
 @synaptic_weight
@@ -96,6 +103,7 @@ def DendriticConstancy_LGN(edges, src_nodes, trg_nodes):
 """
 
 
+# keeping these for backward compatibility
 @synaptic_weight
 def ConstantMultiplier_LGN(edges, src_nodes, trg_nodes):
     """

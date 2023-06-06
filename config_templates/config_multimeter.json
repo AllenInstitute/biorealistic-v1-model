@@ -32,10 +32,12 @@
     "membrane_potential": {
       "module": "multimeter_report",
       "cells": {
-        "population": "v1"
+        "population": "v1",
+        "location": "VisL4",
+        "ei": "e"
       },
       "variable_name": "I_syn",
-      "file_name": "cai_traces.h5"
+      "file_name": "i_traces.h5"
     }
   },
   "target_simulator": "NEST",

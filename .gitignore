@@ -37,3 +37,4 @@ images/
 billeh/*
 *.err
 *.out
+test*/*

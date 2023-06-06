@@ -16,7 +16,7 @@
       "module": "graiting",
       "row_size": 80,
       "col_size": 120,
-      "gray_screen_dur": 100000.0,
+      "gray_screen_dur": 10000.0,
       "theta": 45.0,
       "cpd": 0.04,
       "trial": "trial_TRIALNUM",

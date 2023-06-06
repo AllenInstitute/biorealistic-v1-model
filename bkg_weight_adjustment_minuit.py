@@ -39,6 +39,7 @@ reload(bwa)
 # so, in the new structure, the bkg edge types will contain the s, loc, scale values,
 # and the synaptic weight will be generated using these values.
 
+
 # firt, lets copy the original files to keep them safe.
 def backup_files(basedir):
     # basedir = "small"
@@ -49,12 +50,14 @@ def backup_files(basedir):
     # copy without overwriting
     if not os.path.exists(bkg_edge_file_bkup):
         shutil.copy2(bkg_edge_file, bkg_edge_file_bkup)
-    else:
-        print("bkg_edge_file_bkup already exists. skipping copy.")
+        print("bkg_edge_file_bkup copied.")
+    # else:
+    # print("bkg_edge_file_bkup already exists. skipping copy.")
     if not os.path.exists(bkg_edge_type_file_bkup):
         shutil.copy2(bkg_edge_type_file, bkg_edge_type_file_bkup)
-    else:
-        print("bkg_edge_type_file_bkup already exists. skipping copy.")
+        print("bkg_edge_type_file_bkup copied.")
+    # else:
+    # print("bkg_edge_type_file_bkup already exists. skipping copy.")
     return (
         bkg_edge_file,
         bkg_edge_file_bkup,
@@ -98,7 +101,8 @@ def write_weights(bkg_file, weights):
     # and write them to the edges file. (overwrite the variable if it already exists)
     if "syn_weight" in bkg["edges/bkg_to_v1/0"]:
         del bkg["edges/bkg_to_v1/0"]["syn_weight"]
-    bkg["edges/bkg_to_v1/0/syn_weight"] = weights
+    target_id = bkg["edges/bkg_to_v1/target_node_id"][:]
+    bkg["edges/bkg_to_v1/0/syn_weight"] = weights[target_id]
     bkg.close()
     return
 
@@ -231,6 +235,7 @@ def run_solver2(inits, conn, id):
         tol=1e-3,
         # bounds=((0.01, 200), (0.01, 100), (0.01, 100)),  # bounds for loc, s, scale
         bounds=((0.01, 200), (0.1, 10.0), (0.1, 10)),  # bounds for loc, s, scale
+        # bounds=((0.01, 200), (1, 1), (0.1, 0.1)),  # bounds for loc, s, scale
         # method="migrad",
         method="simplex",
         options=option,
@@ -293,12 +298,13 @@ if __name__ == "__main__":
         # init_file = basedir + "/network/bkg_v1_edge_types_fitted_loconly_9am.csv"
         # init_file = basedir + "/network/bkg_v1_edge_types_fitted_locscale_1pm.csv"
         # init_file = basedir + "/network/bkg_v1_edge_types_fitted_10pm.csv"
-        init_file = basedir + "/network/bkg_v1_edge_types_fitted.csv"
+        # init_file = basedir + "/network/bkg_v1_edge_types_fitted.csv"
         # init_file = "precomputed_props/bkg_v1_edge_types_fitted_v4_full_done.csv"
-        # init_file = "precomputed_props/bkg_v1_edge_types_fitted.csv"
+        init_file = "precomputed_props/bkg_v1_edge_types_fitted.csv"
         bkg_types = load_init_params(bkg_types, init_file)
-    else:  # at leas load the syn_weights from the past result
-        init_file = "precomputed_props/bkg_v1_edge_types_round7.csv"
+    else:  # at least load the syn_weights from the past result
+        # init_file = "precomputed_props/bkg_v1_edge_types_round7.csv"
+        init_file = "precomputed_props/bkg_v1_edge_types_round11.csv"
         bkg_types = load_init_params(bkg_types, init_file, syn_weight_only=True)
         bkg_types = set_init_params(bkg_types)
 

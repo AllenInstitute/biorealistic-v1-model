@@ -14,10 +14,10 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.max_colwidth", None)
 
 
-def convert_glif_lif_asc_psc(dynamics_params, tau_syns):
+def convert_glif_lif_asc_psc(dynamics_params, syn_params):
     config = dynamics_params
     coeffs = config["coeffs"]
-    return {
+    basedict = {
         "V_m": config["El"] * 1.0e03 + config["El_reference"] * 1.0e03,
         "V_th": coeffs["th_inf"] * config["th_inf"] * 1.0e03
         + config["El_reference"] * 1.0e03,
@@ -33,11 +33,18 @@ def convert_glif_lif_asc_psc(dynamics_params, tau_syns):
             * np.array(coeffs["asc_amp_array"])
             * 1.0e12
         ),
-        "tau_syn": tau_syns,
+        # "tau_syn": syn_params,
         "spike_dependent_threshold": False,
         "after_spike_currents": True,
         "adapting_threshold": False,
     }
+    # if syn_params is a dict
+    if isinstance(syn_params, dict):
+        basedict.update(syn_params)
+    else:
+        basedict["tau_syn"] = syn_params
+
+    return basedict
 
 
 def load_v1_nodes(base_dir):
@@ -117,14 +124,14 @@ def convert_params(components_orig_dir, components_new_base_dir, verbose):
     os.makedirs("{}/cell_models".format(components_new_dir), exist_ok=True)
     edges_table = {
         "synaptic_model": [],
-        "tau": [],
+        "params": [],
         "index": [],
         "group": [],
     }  # For printing later
     nodes_table = {}  # {'tau_syn': [], 'cell_models': []}
     group = 0
     for eset, nset in zip(edge_params, node_params):
-        tau_syns = []
+        syn_params = {}
         for i, efile in enumerate(eset):
             # Get the "tau_syn" values from synaptic_models dynamics_params and create a list of tau_syns. eg
             #  {e2e.json, i2e.json} => tau_syns=[5.5, 8.5]
@@ -134,13 +141,39 @@ def convert_params(components_orig_dir, components_new_base_dir, verbose):
             dyn_params = json.load(open(input_json_path, "r"))
             print(input_json_path)
             try:
-                tau = dyn_params["tau_syn"]
-                tau_syns.append(tau)
-                del dyn_params["tau_syn"]
-            except:
-                print(f'Warning: No "tau_syn" found in "{input_json_path}". Setting it to 1.0.')
-                tau = 1.0
-                tau_syns.append(tau)
+                # the new format should have 3 parameters: tau_syn, tau_syn_slow, and amp_slow
+                # try to retrieve all, and determine the version.
+                params = ["tau_syn", "tau_syn_slow", "amp_slow"]
+                syn_params_one = {k: dyn_params[k] for k in params}
+            except KeyError:
+                # show warning only once
+                if verbose:
+                    print(
+                        f'Warning: No "tau_syn_slow" or "amp_slow" found in "{input_json_path}". Falling back to single tau_syn.'
+                    )
+                try:
+                    params = ["tau_syn"]
+                    syn_params_one = {k: dyn_params[k] for k in params}
+                    # tau = dyn_params["tau_syn"]
+                    # syn_params.append(tau)
+                    # del dyn_params["tau_syn"]
+                except:
+                    print(
+                        f'Warning: No "tau_syn" found in "{input_json_path}". Setting it to 1.0.'
+                    )
+                    # tau = 1.0
+                    params = ["tau_syn"]
+                    syn_params_one.append({"tau_syn": 1.0})
+
+            # once the keys are determined, append the values to the list for each parameter.
+            for key in params:
+                # if entry does not exist, create a list
+                if key not in syn_params:
+                    syn_params[key] = []
+                # append the value
+                syn_params[key].append(syn_params_one[key])
+            # reset dyn_params for recycling.
+            dyn_params = {}
 
             output_json = os.path.join(components_new_dir, "synaptic_models", efile)
             dyn_params["receptor_type"] = (
@@ -150,7 +183,7 @@ def convert_params(components_orig_dir, components_new_base_dir, verbose):
 
             # For displaying table at the end
             edges_table["synaptic_model"].append(efile)
-            edges_table["tau"].append(tau)
+            edges_table["params"].append(syn_params_one)
             edges_table["index"].append(i + 1)
             edges_table["group"].append(group)
         group += 1
@@ -160,11 +193,11 @@ def convert_params(components_orig_dir, components_new_base_dir, verbose):
             input_json_path = os.path.join(components_orig_dir, "cell_models", nfile)
             dyn_params = json.load(open(input_json_path, "r"))
 
-            updated_params = convert_glif_lif_asc_psc(dyn_params, tau_syns)
+            updated_params = convert_glif_lif_asc_psc(dyn_params, syn_params)
             output_json_path = os.path.join(components_new_dir, "cell_models", nfile)
             json.dump(updated_params, open(output_json_path, "w"), indent=2)
 
-        nodes_table[tuple(tau_syns)] = nset
+        nodes_table[tuple(syn_params)] = nset
 
     print(" > Done.")
     print(" > synaptic_models indices:")

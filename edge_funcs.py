@@ -26,7 +26,6 @@ lgn_shift_dict = {
 }
 
 
-
 def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     """Takes in two strings for the source and target type. It determined the connectivity parameters needed based on
     distance dependence and orientation tuning dependence and returns a dictionary of these parameters. A description
@@ -179,9 +178,9 @@ def connect_cells(sources, target, params, source_nodes):
     # sources_x = np.array([s["x"] for s in sources])
     # sources_z = np.array([s["z"] for s in sources])
     # sources_tuning_angle = [s["tuning_angle"] for s in sources]
-    sources_x = np.array(source_nodes['x'])
-    sources_z = np.array(source_nodes['z'])
-    sources_tuning_angle = np.array(source_nodes['tuning_angle'])
+    sources_x = np.array(source_nodes["x"])
+    sources_z = np.array(source_nodes["z"])
+    sources_tuning_angle = np.array(source_nodes["tuning_angle"])
 
     # Get target id
     tid = target.node_id
@@ -262,7 +261,6 @@ def connect_cells(sources, target, params, source_nodes):
 
 
 def get_selection_probability(src_type, lgn_models_subtypes_dictionary):
-
     current_model_subtypes = lgn_models_subtypes_dictionary[src_type[0:4]]["sub_types"]
     current_model_probabilities = lgn_models_subtypes_dictionary[src_type[0:4]][
         "probabilities"
@@ -293,7 +291,6 @@ def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
         x_rot = x0 * e_cos - y0 * e_sin
         y_rot = x0 * e_sin + y0 * e_cos
     return ((x_rot / e_a) ** 2 + (y_rot / e_b) ** 2) <= 1.0
-
 
 
 def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
@@ -363,7 +360,9 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     # lgn_complex[lgn_circle["pop_name"].str.startswith("sON_")] -= rf_shift_vector * shift
     # lgn_complex[lgn_circle["pop_name"].str.startswith("sOFF_")] -= rf_shift_vector * shift
     # lgn_complex[lgn_circle["pop_name"].str.startswith("tOFF_")] += rf_shift_vector * shift
-    lgn_complex += np.array(lgn_circle["pop_name"].map(lgn_shift_dict) * rf_shift_vector * shift)
+    lgn_complex += np.array(
+        lgn_circle["pop_name"].map(lgn_shift_dict) * rf_shift_vector * shift
+    )
 
     # next, elongate the LGN complex orthogonal to the shift vector
     # rotate by shift vector to adjust the angle, strech, and rotate back.
@@ -396,7 +395,7 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
             # subunit_prob[lgn_circle["pop_name"].str.startswith(typename)] = probs[i]
             subunit_dict_keys.append(typename)
             subunit_dict_values.append(probs[i])
-    
+
     subunit_dict = dict(zip(subunit_dict_keys, subunit_dict_values))
     subunit_prob = np.array(lgn_circle["pop_name"].map(subunit_dict).fillna(0.0))
 
@@ -458,6 +457,22 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     return nsyns_ret
 
 
+def select_bkg_sources(sources, target, n_syns, n_conn):
+    # draw n_conn connections randomly from the background sources.
+    # n_syns is the number of synapses per connection
+    # n_conn is the number of connections to draw
+    n_unit = len(sources)
+    # select n_conn units randomly
+    selected_units = np.random.choice(n_unit, size=n_conn, replace=False)
+    nsyns_ret = np.zeros(n_unit, dtype=int)
+    nsyns_ret[selected_units] = n_syns
+    nsyns_ret = list(nsyns_ret)
+    # getting back to list
+    nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
+    return nsyns_ret
+
+
+
 def pick_from_probs(n, prob_dist):
     # pick n item based on prob_dist and return index of the choice
     return np.random.choice(
@@ -466,7 +481,7 @@ def pick_from_probs(n, prob_dist):
 
 
 def gaussian_probability(x, sigma):
-    return np.exp(-(x ** 2 / (2 * sigma ** 2)))
+    return np.exp(-(x**2 / (2 * sigma**2)))
 
 
 def calculate_subunit_probs(cell_TF, tf_list):

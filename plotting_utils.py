@@ -1,5 +1,6 @@
 # %% provides utilities for plotting a nice figures of simulation
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sonata.circuit import File
@@ -7,6 +8,7 @@ import json
 import pandas as pd
 import re
 import seaborn as sns
+import pathlib
 
 
 # in principle, if you provide the config file, you should be able to reproduce all the
@@ -24,18 +26,29 @@ def read_config(config_file):
     return js
 
 
-def form_network(config_js):
-    # get the network structure out of the simulation
-    node_files = [e["nodes_file"] for e in config_js["networks"]["nodes"]]
-    # edge_files = [e["edges_file"] for e in config_js["networks"]["edges"]]
-    node_type_files = [e["node_types_file"] for e in config_js["networks"]["nodes"]]
-    # edge_type_files = [e["edge_types_file"] for e in config_js["networks"]["edges"]]
-    net = File(node_files[0], node_type_files[0])
+def form_network(config_js, infer=False):
+    if infer:
+        # in this case, config_js is the file pat, so trim the file name, and guess
+        # the main directory name
+        # pick up the top directory
+        net_name = config_js.split("/")[0]
+        net = File(
+            f"{net_name}/network/v1_nodes.h5", f"{net_name}/network/v1_node_types.csv"
+        )
+    else:
+        # get the network structure out of the simulation
+        node_files = [e["nodes_file"] for e in config_js["networks"]["nodes"]]
+        node_type_files = [e["node_types_file"] for e in config_js["networks"]["nodes"]]
+        net = File(node_files[0], node_type_files[0])
     return net
 
 
-def get_spikes(config_js):
-    spike_file_name = config_js["output"]["spikes_file_csv"]
+def get_spikes(config_js, infer=False):
+    if infer:
+        dir_name = str(pathlib.Path(config_js).parent)
+        spike_file_name = f"{dir_name}/spikes.csv"
+    else:
+        spike_file_name = config_js["output"]["spikes_file_csv"]
     spike_df = pd.read_csv(spike_file_name, sep=" ", index_col=2)
     return spike_df
 
@@ -49,8 +62,17 @@ def identify_cell_type(pop_name: str):
 
 
 # this is destructive method (adds columns to v1df)
-def determine_sort_position(v1df):
-    reset_v1 = v1df.sort_values(["location", "Cell Type", "tuning_angle"]).reset_index()
+def determine_sort_position(v1df, sortby):
+    if v1df["location"].iloc[0] == "Cortex":  # Old model
+        layer = v1df["pop_name"].apply(lambda x: x[1])
+        v1df["location"] = layer
+    if sortby is not None:
+        sorter = ["location", "Cell Type", sortby]
+    else:
+        sorter = ["location", "Cell Type"]
+    reset_v1 = v1df.sort_values(sorter).reset_index()
+    # reset_v1 = v1df.sort_values(["location", "Cell Type", "x"]).reset_index()
+    # reset_v1 = v1df.sort_values(["location", "Cell Type"]).reset_index()
     sort_position = reset_v1.sort_values("index").index
     return sort_position
 
@@ -63,15 +85,26 @@ def determine_layer_divisions(v1df):
     return dict(zip(layers, divisions))
 
 
-def plot_raster(config_file, s=1, radius=400.0, **kwarg):
-    config_js = read_config(config_file)
-    net = form_network(config_js)
-    spike_df = get_spikes(config_js)
+def plot_raster(config_file, s=1, radius=400.0, sortby=None, **kwarg):
+    # try:
+    #     config_js = read_config(config_file)
+    #     net = form_network(config_js)
+    #     spike_df = get_spikes(config_js)
+    # except FileNotFoundError:
+    #     # fall back to infer the network from the directory name.
+    #     # <net>/network/ should contain the necessary node files.
+    #     print("config file not found, inferring network from directory name.")
+    #     net = form_network(config_file, infer=True)
+    #     spike_df = get_spikes(config_file, infer=True)
+
+    # defaulting to infer. because if I change the directory name, it tries to read from the new one.
+    net = form_network(config_file, infer=True)
+    spike_df = get_spikes(config_file, infer=True)
 
     v1df = net.nodes["v1"].to_dataframe()
     v1df = pick_core(v1df, radius=radius)
     v1df["Cell Type"] = v1df["pop_name"].apply(identify_cell_type)
-    v1df["Sort Position"] = determine_sort_position(v1df)
+    v1df["Sort Position"] = determine_sort_position(v1df, sortby)
 
     spike_df = spike_df.loc[spike_df.index.isin(v1df.index)]
 
@@ -95,6 +128,8 @@ def plot_raster(config_file, s=1, radius=400.0, **kwarg):
         palette=color_dict,
         **kwarg,
     )
+    # change the x label to Time (ms)
+    ax.set_xlabel("Time (ms)")
     ax.invert_yaxis()
     for name, div in layer_divisions.items():
         ax.axhline(y=div, color="black", linestyle="-", linewidth=0.3)
@@ -112,51 +147,99 @@ def plot_raster(config_file, s=1, radius=400.0, **kwarg):
     return ax
 
 
+settings = {
+    "full": {"radius": 400.0, "s": 0.5},
+    "small": {"radius": 200.0, "s": 1},
+    "small_0330": {"radius": 100.0, "s": 2},
+    "small_0522": {"radius": 100.0, "s": 2},
+    "small_0427": {"radius": 100.0, "s": 2},
+    "small_0202": {"radius": 100.0, "s": 2},
+    "core": {"radius": 200.0, "s": 1},
+    "flat": {"radius": 850.0, "s": 1},
+    "tensorflow": {"radius": 177.3, "s": 1},
+    # "tensorflow": {"radius": 400, "s": 1},
+}
 # %%time
 if __name__ == "__main__":
     simple = True
-    # net = 'full'
+    # net = "full"
+    # net = "flat"
+    # net = "core"
     net = "small"
+    # net = "small_0202"
+    # net = "small_0330"
+    # net = "small_0522"
+    # net = "small_0427"
+    # net = "tensorflow"
+
+    # sortby = "tuning_angle"
+    # sortby = None  # model ID
+    sortby = "node_type_id"
+    # sortby = "x"
+    # sortby = "z"
+    # sortby = "y"
+
     if simple:
         # config_file = "full/8dir_10trials/angle90_trial0/config_20.json"
-        config_file = f"{net}/8dir_10trials/angle90_trial0/config_20.json"
+        # config_file = f"{net}/8dir_10trials/angle0_trial0/config_0.json"
+        # config_file = f"{net}/8dir_10trials/angle45_trial0/config_10.json"
+        # config_file = f"{net}/8dir_10trials/angle90_trial0/config_20.json"
+        # config_file = (
+        #     f"{net}/8dir_10trials_10k_rand_ckpt10/angle90_trial0/config_20.json"
+        # )
+        # config_file = f"../../glif_builder_test_0407/biorealistic-v1-model/{net}/8dir_10trials/angle90_trial0/config_20.json"
+        # config_file = f"flat_0203/output_bkgtune/config_bkgtune.json"
+        # config_file = f"{net}/output_bkgtune/config_bkgtune.json"
         # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
-        # config_file = "small/output/config.json"
-        # config_file = "small/output/config_plain.json"
+        # config_file = f"{net}/output/config.json"
+        # config_file = f"{net}/output/config_plain.json"
+        # config_file = f"{net}/output_2x/config_plain.json"
+        config_file = f"{net}/output_lgnbkg/config_lgnbkg.json"
+        # config_file = f"{net}/output_lgn/config_lgn.json"
+        # config_file = f"{net}/output_multimeter/config_multimeter.json"
+        # config_file = (
+        #     f"{net}/output_lgnbkg_borrow_filter/config_lgnbkg_borrow_filter.json"
+        # )
+        # config_file = f"{net}/output_bkg/config_bkg.json"
         # config_file = "full/output/config_plain.json"
         # config_file = "../../GLIF_network/output_lgnbkg/config_lgnbkg.json"
-        plt.figure(figsize=(15, 10))
-        if net == "small":
-            ax = plot_raster(config_file, s=3, radius=100.0)
+        # plt.figure(figsize=(15, 10))
+        # plt.figure(figsize=(5, 3))
+        plt.figure(figsize=(10, 6))
+        if net in settings:
+            ax = plot_raster(config_file, sortby=sortby, **settings[net])
         else:
-            ax = plot_raster(config_file, s=1)
+            ax = plot_raster(config_file, sortby=sortby, s=1)
         # ax = plot_raster(config_file, s=1)  # for ful
         # ax.set_xlim([0, 1000])
         ax.set_xlim([0, 2500])
+        # ax.set_xlim([0, 1000])
         plt.tight_layout()
-        plt.savefig(f"raster_corrected_network_{net}.png", dpi=300)
+        ax.legend_.texts[4].set_text("Inh. L1")
+        # ax.legend_.text
+
+        config_folder = os.path.dirname(config_file)
+        plt.savefig(f"{config_folder}/raster_by_{sortby}.png", dpi=300)
     else:
-        config_file = "small/output_lgn/config_lgn.json"
-        fig, axs = plt.subplots(3, 1, figsize=(15, 15))
-        ax = plot_raster(config_file, ax=axs[0])
+        config_file = f"{net}/output_lgn/config_lgn.json"
+        fig, axs = plt.subplots(3, 1, figsize=(15, 15), sharex=True)
+        ax = plot_raster(config_file, ax=axs[0], **settings[net])
         ax.set_xlim([0, 1000])
         ax.legend(loc="upper right")
         ax.set_title("LGN only")
 
-        config_file = "small/output_lgnbkg/config_lgnbkg.json"
-        ax = plot_raster(config_file, ax=axs[1])
-        ax.set_xlim([0, 1000])
+        config_file = f"{net}/output_lgnbkg/config_lgnbkg.json"
+        ax = plot_raster(config_file, ax=axs[1], **settings[net])
         ax.legend(loc="upper right")
         ax.set_title("LGN + BKG connection")
 
-        config_file = "small/output/config.json"
-        ax = plot_raster(config_file, ax=axs[2])
-        ax.set_xlim([0, 1000])
+        config_file = f"{net}/output/config.json"
+        ax = plot_raster(config_file, ax=axs[2], **settings[net])
         ax.legend(loc="upper right")
         ax.set_title("LGN + BKG + recurrent connection")
 
         plt.tight_layout()
-        plt.savefig("nice_ratser_reoptim.png")
+        plt.savefig("nice_ratser_reoptim.png", dpi=300)
 
 
 # %% development block
