@@ -1,23 +1,23 @@
-population syn_weight nsyns dynamics_params target_mean_fr target_median_fr
-i1Htr3a 4.678465901004 1 exc_to_vip.json 2.93 0.83
-e23Cux2 3.976659363085 1 exc_to_e23.json 1.00 0.27
-i23Vip 2.469383327728 1 exc_to_vip.json 8.45 7.97
-i23Pvalb 2.06360632416 1 exc_to_pv.json 4.93 3.10
-i23Sst 4.83280828545 1 exc_to_sst.json 4.24 3.63
-e4Nr5a1 3.334693673586E-14 1 exc_to_e4.json 2.52 1.06
-e4Rorb 7.090524410229E-08 1 exc_to_e4.json 2.52 1.06
-e4Scnn1a 8.59391427069E-11 1 exc_to_e4.json 2.52 1.06
-e4other 1.165568732787E-17 1 exc_to_e4.json 2.52 1.06
-i4Vip 0.793264203462 1 exc_to_vip.json 1.76 0.85
-i4Pvalb 7.481130099256E-26 1 exc_to_pv.json 6.38 3.89
-i4Sst 3.657252909984 1 exc_to_sst.json 3.59 1.89
-e5ET 3.31151020159 1 exc_to_e5et.json 4.03 2.22
-e5IT 3.31151020159 1 exc_to_e5it.json 4.03 2.22
-e5NP 3.31151020159 1 exc_to_e5np.json 4.03 2.22
-i5Vip 0.01970275024068 1 exc_to_vip.json 12.63 6.50
-i5Pvalb 3.26952542255E-18 1 exc_to_pv.json 9.22 4.58
-i5Sst 1.757218084128 1 exc_to_sst.json 5.39 3.78
-e6Ntsr1 6.552053732565 1 exc_to_e6.json 2.33 0.93
-i6Vip 2.632469083272 1 exc_to_vip.json 2.85 2.90
-i6Pvalb 1.91467447012E-20 1 exc_to_pv.json 8.99 4.61
-i6Sst 3.15562589751 1 exc_to_sst.json 10.12 6.30
+population syn_weight nsyns dynamics_params target_median_fr
+i1Htr3a 4.678465901004 1 exc_to_vip.json 2.21
+e23Cux2 3.976659363085 1 exc_to_e23.json 0.63
+i23Vip 2.469383327728 1 exc_to_vip.json 14.73
+i23Pvalb 2.06360632416 1 exc_to_pv.json 7.35
+i23Sst 4.83280828545 1 exc_to_sst.json 3.82
+e4Nr5a1 3.334693673586E-14 1 exc_to_e4.json 2.12
+e4Rorb 7.090524410229E-08 1 exc_to_e4.json 2.12
+e4Scnn1a 8.59391427069E-11 1 exc_to_e4.json 2.12
+e4other 1.165568732787E-17 1 exc_to_e4.json 2.12
+i4Vip 0.793264203462 1 exc_to_vip.json 3.13
+i4Pvalb 7.481130099256E-26 1 exc_to_pv.json 8.86
+i4Sst 3.657252909984 1 exc_to_sst.json 3.82
+e5ET 3.31151020159 1 exc_to_e5et.json 4.05
+e5IT 3.31151020159 1 exc_to_e5it.json 4.05
+e5NP 3.31151020159 1 exc_to_e5np.json 4.05
+i5Vip 0.01970275024068 1 exc_to_vip.json 11.57
+i5Pvalb 3.26952542255E-18 1 exc_to_pv.json 8.94
+i5Sst 1.757218084128 1 exc_to_sst.json 3.92
+e6Ntsr1 6.552053732565 1 exc_to_e6.json 1.86
+i6Vip 2.632469083272 1 exc_to_vip.json 6.73
+i6Pvalb 1.91467447012E-20 1 exc_to_pv.json 9.76
+i6Sst 3.15562589751 1 exc_to_sst.json 10.28

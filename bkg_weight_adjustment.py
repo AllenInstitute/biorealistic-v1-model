@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sonata.circuit
 import subprocess
+import utils
 
 
 # %% try getting FR
@@ -80,6 +81,12 @@ def get_model_fr(basedir, recurrent=False, duration=100.0, target="mean", outdir
     elif target == "array":
         # return the array of firing rates
         model_fr = v1df.groupby("node_type_id")["spike_rate"].apply(np.array)
+    elif target == "type_median":
+        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type)
+        model_fr = v1df.groupby("cell_type")["spike_rate"].median()
+    elif target == "type_mean":
+        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type)
+        model_fr = v1df.groupby("cell_type")["spike_rate"].mean()
     else:
         raise ValueError(f"Unknown target: {target}")
     return model_fr
@@ -217,7 +224,7 @@ def update_bkg_weights(basedir, new_weight):
     del bkg_edge_df["edge_type_id"]
     del bkg_edge_df["target_type_id"]
     bkg_edge_df.to_csv(bkg_edge_name, sep=" ")
-    return 0
+    return bkg_edge_df
 
 
 # this is a new version after synaptic weight dynamics change
@@ -292,7 +299,7 @@ if __name__ == "__main__":
     if mode == "flat_wasser":
         solvers = {nid: MinuitPipeSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
     else:
-        solvers = {nid: BisectionSolver(0, 256, tfr[nid]) for nid in tfr.keys()}
+        solvers = {nid: BisectionSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
         # solvers = {nid: BisectionSolver(0, 16, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
