@@ -173,6 +173,11 @@ def connect_cells(sources, target, params, source_nodes):
              and the target id for that connection. The code further returns the number of synapses between
              those two neurons
     """
+    # special handing of the empty sources
+    if source_nodes.empty:
+        # since there is no sources, no edges will be created.
+        # print("Warning: no sources for target: {}".format(target.node_id))
+        return []
 
     # TODO: remove list comprehension
     # sources_x = np.array([s["x"] for s in sources])
@@ -347,6 +352,11 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     )
 
     lgn_circle = lgn_nodes[in_circle]
+    # if there is no candidate LGN cells, return with no connectinos.
+    if lgn_circle.empty:
+        # print("Warning: no candidate LGN cells for V1 cell id: ", target_id)
+        return [None] * len(lgn_nodes)
+
 
     # RF center of LGN cell as a complex number
     lgn_complex = np.array(lgn_circle["x"] + 1j * lgn_circle["y"])
