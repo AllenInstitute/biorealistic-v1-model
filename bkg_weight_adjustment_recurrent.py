@@ -16,9 +16,13 @@ v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type)
 target = "median"
 # tfr = bwa.get_target_fr(basedir, target="target_median_fr")
 tfr = pd.read_csv("base_props/bkg_weights_population_init.csv", sep=" ")
-tfr.index = tfr.population.map(utils.pop_name_to_cell_type)
-tfr.index.name = "cell_type"
-tfr = tfr["target_median_fr"].drop_duplicates()
+tfr["cell_type"] = tfr["population"].map(utils.pop_name_to_cell_type)
+tfr = tfr[["cell_type", "target_median_fr"]].drop_duplicates()
+tfr.index = tfr["cell_type"]
+tfr = tfr["target_median_fr"]
+# tfr.index = tfr.population.map(utils.pop_name_to_cell_type)
+# tfr.index.name = "cell_type"
+# tfr = tfr.drop_duplicates()["target_median_fr"]
 
 # make a table of node_type_id to cell_type
 node_id_to_cell_type = v1df[["node_type_id", "cell_type"]].copy().drop_duplicates()
