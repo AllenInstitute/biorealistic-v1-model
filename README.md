@@ -16,13 +16,10 @@ Right now, it can only generate V1 GLIF nodes. No other structures, no edges.
 ## Installation instruction
 
 ```bash
-conda -n modeling numpy h5py pandas matplotlib jsonschema mpi4py openpyxl
-conda activate modeling
-conda install -c conda-forge allensdk
-conda install -c kaeldai bmtk
+conda env create -f environment.yml -n allen_v1_model_2023
 ```
 
-You will need to install nest-simulator to run the model.
+This default install will install nest-simulator from conda-forge. This version of Nest is not compiled with MPI, but OpenMP parallelization is available.
 
 ## Folders and files
 

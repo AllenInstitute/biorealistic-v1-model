@@ -132,7 +132,7 @@ tiny/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 
 small/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
-	mpirun -np 8 python build_network.py -f -o small/network --fraction 0.05
+	mpirun -np 4 python build_network.py -f -o small/network --fraction 0.05
 
 forty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	# forty is the largest network that can run on a single core.
@@ -142,13 +142,13 @@ forty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	
 twenty/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p twenty
-	mpirun -np 8 python build_network.py -f -o twenty/network --fraction 0.2
+	mpirun -np 4 python build_network.py -f -o twenty/network --fraction 0.2
 	
 core/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	# core is 400 micron diameter network.
 	# Due to nest limitation, larger network won't run on a single core.
 	mkdir -p core
-	mpirun -np 8 python build_network.py -f -o core/network --fraction 0.22145328719723
+	mpirun -np 4 python build_network.py -f -o core/network --fraction 0.22145328719723
 
 single/network/lgn_nodes.h5: $(mainscripts) $(buildfiles)
 	# single network contains exactly 1 neuron for each model.
