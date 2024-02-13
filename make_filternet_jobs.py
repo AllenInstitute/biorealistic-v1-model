@@ -53,7 +53,7 @@ def sbatch_boilerplate(file, logdir, config_counts, memory=4, jobs=8):
     # array ID range includes both edges
     file.write(f"#SBATCH --array=0-{config_counts-1}\n\n")
     file.write(
-        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest.sh\n"
+        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest_sdk.sh\n"
     )
     # file.write(
     #     "module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles\n"
