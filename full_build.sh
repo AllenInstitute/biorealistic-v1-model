@@ -11,9 +11,11 @@
 # Those nodes have 512GB of RAM, so we can submit with 500GB of memory usage.
 # To build the model, we need about ~400GB of RAM.
 
-module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles
-module load mpich/3.4.1-slurm
-module load conda/4.5.4
-source activate v1_glif_modeling
-module load nest/2.20.1-py37-slurm
-srun --mpi=pmi2 python build_network.py -f -o full/network
+# module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles
+# module load mpich/3.4.1-slurm
+# module load conda/4.5.4
+# source activate v1_glif_modeling
+source /home/shinya.ito/realistic-model/activate_custom_nest_sdk.sh
+# module load nest/2.20.1-py37-slurm
+# srun --mpi=pmi2 python build_network.py -f -o full/network
+mpirun -np 56 python build_network.py -f -o full/network

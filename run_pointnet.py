@@ -14,6 +14,10 @@ try:
 except Exception as e:
     pass
 
+try:
+    nest.Install("glif_psc_double_alpha_module")
+except Exception as e:
+    pass
 
 # If you want to turn off modulation entirely, set this to True
 # turn_off_modulation = False  # this option is no longer needed.
@@ -209,7 +213,8 @@ def main(config_file, output_dir, modfilename):
     configure.build_env()
 
     graph = pointnet.PointNetwork.from_config(configure)
-    sim = pointnet.PointSimulator.from_config(configure, graph)
+    sim = pointnet.PointSimulator.from_config(configure, graph, n_thread=4)
+    # sim = pointnet.PointSimulator.from_config(configure, graph)
 
     # if you want to initialize the network with random membrane potentials,
     # uncomment the following line
