@@ -22,6 +22,7 @@
       "trial": "trial_TRIALNUM",
       "temporal_f": 2.0,
       "contrast": 0.8,
+      "degrees_per_pixel": 1.0,
       "evaluation_options": {
         "downsample": 1,
         "separable": true
