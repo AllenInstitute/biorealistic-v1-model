@@ -198,6 +198,12 @@ def syn_weight_by_experimental_distribution(
     src_tuning = source["tuning_angle"]
     tar_tuning = target["tuning_angle"]
 
+
+    x_tar = target["x"]
+    x_src = source["x"]
+    z_tar = target["z"]
+    z_src = source["z"]
+
     #
     if PSP_lognorm_shape < target["nsyn_size_shape"]:
         weight_shape = 0.001
@@ -229,7 +235,8 @@ def syn_weight_by_experimental_distribution(
         # These need to be ordered and mapped uniformly over [0,1] using the cdf:
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
+        # tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
+        tuning_rnd = 0.0
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -254,7 +261,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 15) * randomizing_factor
+        tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -275,7 +282,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 25) * randomizing_factor
+        tuning_rnd = float(np.random.randn(1) * 10) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -312,6 +319,26 @@ def syn_weight_by_experimental_distribution(
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
         # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
+
+# Below was copied from Billeh to use as an initial correction factor, but it is not clear how applicable 
+# it is to the current Rossi Rule
+    # delta_x = (x_tar - x_src) * 0.07
+    # delta_z = (z_tar - z_src) * 0.04
+
+    # theta_pref = tar_tuning * (np.pi / 180.0)
+    # xz = delta_x * np.cos(theta_pref) + delta_z * np.sin(theta_pref)
+    # sigma_phase = 1.0
+    # phase_scale_ratio = np.exp(-(xz**2 / (2 * sigma_phase**2)))
+
+    # # To account for the 0.07 vs 0.04 dimensions. This ensures the horizontal neurons are scaled by 5.5/4 (from the
+    # # midpoint of 4 & 7). Also, ensures the vertical is scaled by 5.5/7. This was a basic linear estimate to get the
+    # # numbers (y = ax + b).
+    # theta_tar_scale = abs(
+    #     abs(abs(180.0 - np.mod(np.abs(tar_tuning), 360.0)) - 90.0) - 90.0
+    # )
+    # phase_scale_ratio = phase_scale_ratio * (
+    #     5.5 / 4.0 - 11.0 / 1680.0 * theta_tar_scale
+    # )
 
     syn_weight = (
         syn_weight

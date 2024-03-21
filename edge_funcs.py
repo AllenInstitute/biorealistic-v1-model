@@ -4,7 +4,7 @@ import math
 from random import random
 from numba import njit, jit
 from itertools import compress
-from scipy.stats import yulesimon
+from scipy.stats import yulesimon, multivariate_normal
 
 
 lgn_params = json.load(open("base_props/lgn_params.json", "r"))
@@ -152,6 +152,8 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
         "gradient": G,
         "intercept": B1,
         "nsyn_range": cc_props["nsyn_range"],
+        "src_ei": source_type[0],  # for Rossi correction
+        "trg_ei": target_type[0],  # for Rossi
     }
 
 
@@ -208,6 +210,44 @@ def connect_cells(sources, target, params, source_nodes):
         (sources_x - target["x"]) ** 2 + (sources_z - target["z"]) ** 2
     )
 
+    ##For Rossi correction. The distance dependence is asymmetrical in the X-Z plane and depends on the target neuron
+    # orientation preference.
+    intersomatic_x = sources_x - target["x"]
+    intersomatic_z = sources_z - target["z"]
+    intersomatic_xz = [
+        [delta_x, delta_z] for delta_x, delta_z in zip(intersomatic_x, intersomatic_z)
+    ]
+    if np.sqrt(target["x"] ** 2 + target["z"] ** 2) > 200:
+        Rossi_displacement = 0.0
+    else:
+        Rossi_displacement = (
+            50.0  # displacement of presynaptic soma distribution centroid
+        )
+    Rossi_scaling = 1.5  # scaling of major/minor axes of covariance
+
+    Rossi_theta = np.radians(target["tuning_angle"])
+
+    if params["src_ei"] == "i":
+        Rossi_mean = [
+            Rossi_displacement * np.cos(Rossi_theta),
+            Rossi_displacement * np.sin(Rossi_theta),
+        ]
+        cov_ = np.array([[(sigma) ** 2, 0.0], [0.0, (sigma) ** 2]])
+    else:
+        Rossi_mean = [
+            -Rossi_displacement * np.cos(Rossi_theta),
+            -Rossi_displacement * np.sin(Rossi_theta),
+        ]
+        cov_ = np.array(
+            [[(sigma / Rossi_scaling) ** 2, 0.0], [0.0, (sigma * Rossi_scaling) ** 2]]
+        )
+
+    c, s = np.cos(Rossi_theta), np.sin(Rossi_theta)
+    R = np.array(((c, -s), (s, c)))
+    Rossi_cov = R @ cov_ @ R.transpose()
+
+    Rossi_mvNorm = multivariate_normal(Rossi_mean, Rossi_cov)
+
     # if target.node_id % 10000 == 0:
     #     print("Working on tid: ", target.node_id)
 
@@ -222,16 +262,29 @@ def connect_cells(sources, target, params, source_nodes):
         delta_orientation = abs(abs(abs(180.0 - abs(delta_orientation)) - 90.0) - 90.0)
 
         # Calculate the probability two cells are connected based on distance and orientation
+        # p_connect = (
+        #    A_new
+        #    * np.exp(-((intersomatic_distance / sigma) ** 2))
+        #    * (intercept + gradient * delta_orientation)
+        # )
+
+        # using Rossi:
         p_connect = (
             A_new
-            * np.exp(-((intersomatic_distance / sigma) ** 2))
+            * Rossi_mvNorm.pdf(intersomatic_xz)
+            / Rossi_mvNorm.pdf(Rossi_mean)
             * (intercept + gradient * delta_orientation)
         )
 
-    ### If no orienatation dependence
+    ### If no orientation dependence
     else:
         # Calculate the probability two cells are connection based on distance only
-        p_connect = A_new * np.exp(-((intersomatic_distance / sigma) ** 2))
+        # p_connect = A_new * np.exp(-((intersomatic_distance / sigma) ** 2))
+
+        # using Rossi:
+        p_connect = (
+            A_new * Rossi_mvNorm.pdf(intersomatic_xz) / Rossi_mvNorm.pdf(Rossi_mean)
+        )
 
     # # Sanity check warning
     # if p_connect > 1:
