@@ -55,28 +55,28 @@ $(filternet_targets): %/filternet/spikes.h5: %/network/bkg_nodes.h5 %/configs/co
 	mpirun -np 4 python run_filternet.py $*/configs/config_filternet.json
 	
 $(run_targets): %/output/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	run_pointnet.py $*/configs/config.json $(makeopt) -n 8
+	python run_pointnet.py $*/configs/config.json $(makeopt) -n 8
 
 $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5
-	run_pointnet.py $*/configs/config_lgn.json $(makeopt) -n 8
+	python run_pointnet.py $*/configs/config_lgn.json $(makeopt) -n 8
 
 $(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	run_pointnet.py $*/configs/config_bkg.json $(makeopt) -n 8
+	python run_pointnet.py $*/configs/config_bkg.json $(makeopt) -n 8
 
 $(run_bkgtune_targets): %/output_bkgtune/spikes.h5: %/filternet_bkgtune/spikes.h5 %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	run_pointnet.py $*/configs/config_bkgtune.json -n 8
+	python run_pointnet.py $*/configs/config_bkgtune.json -n 8
 
 $(run_filternet_bkgtune_targets): %/filternet_bkgtune/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json
 	mpirun -np 4 python run_filternet.py $*/configs/config_filternet_bkgtune.json
 
 $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	run_pointnet.py $*/configs/config_lgnbkg.json $(makeopt) -n 8
+	python run_pointnet.py $*/configs/config_lgnbkg.json $(makeopt) -n 8
 
 $(run_nolgn_targets): %/output_nolgn/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	run_pointnet.py $*/configs/config_nolgn.json $(makeopt) -n 8
+	python run_pointnet.py $*/configs/config_nolgn.json $(makeopt) -n 8
 
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv 
-	run_pointnet.py $*/configs/config_multimeter.json $(makeopt) -n 8
+	python run_pointnet.py $*/configs/config_multimeter.json $(makeopt) -n 8
 
 $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
