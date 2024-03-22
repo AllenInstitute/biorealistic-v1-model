@@ -6,7 +6,7 @@ mainscripts := build_network.py edge_funcs.py node_funcs.py
 #whatever is needed for above should go here:
 buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
 
-networks = miniature full small tiny forty single flat twenty core
+networks = miniature full small tiny forty single flat twenty core diagnose
 
 lgn_node_targets = $(addsuffix /network/bkg_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config.json, $(networks))
@@ -36,6 +36,7 @@ components_targets = $(addsuffix /components/synaptic_models/exc_to_e4.json, $(n
 smallfigure: small/figures
 tinybuild: tiny/network/bkg_nodes.h5
 
+
 $(config_targets): %/configs/config.json: config_templates/config_plain.json
 	mkdir -p $*/configs
 	cp config_templates/*.json $*/configs
@@ -54,28 +55,28 @@ $(filternet_targets): %/filternet/spikes.h5: %/network/bkg_nodes.h5 %/configs/co
 	mpirun -np 4 python run_filternet.py $*/configs/config_filternet.json
 	
 $(run_targets): %/output/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	mpirun -np 4 python run_pointnet.py $*/configs/config.json $(makeopt)
+	run_pointnet.py $*/configs/config.json $(makeopt) -n 8
 
 $(run_lgn_targets): %/output_lgn/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5
-	mpirun -np 4 python run_pointnet.py $*/configs/config_lgn.json $(makeopt)
+	run_pointnet.py $*/configs/config_lgn.json $(makeopt) -n 8
 
 $(run_bkg_targets): %/output_bkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	mpirun -np 4 python run_pointnet.py $*/configs/config_bkg.json $(makeopt)
+	run_pointnet.py $*/configs/config_bkg.json $(makeopt) -n 8
 
 $(run_bkgtune_targets): %/output_bkgtune/spikes.h5: %/filternet_bkgtune/spikes.h5 %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/network/bkg_v1_edge_types.csv %/bkg/bkg_spikes_1kHz_3s.h5
-	mpirun -np 4 python run_pointnet.py $*/configs/config_bkgtune.json
+	run_pointnet.py $*/configs/config_bkgtune.json -n 8
 
 $(run_filternet_bkgtune_targets): %/filternet_bkgtune/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json
 	mpirun -np 4 python run_filternet.py $*/configs/config_filternet_bkgtune.json
 
 $(run_lgnbkg_targets): %/output_lgnbkg/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5 %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	mpirun -np 4 python run_pointnet.py $*/configs/config_lgnbkg.json $(makeopt)
+	run_pointnet.py $*/configs/config_lgnbkg.json $(makeopt) -n 8
 
 $(run_nolgn_targets): %/output_nolgn/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/bkg/bkg_spikes_1kHz_3s.h5 %/network/bkg_v1_edge_types.csv
-	mpirun -np 4 python run_pointnet.py $*/configs/config_nolgn.json $(makeopt)
+	run_pointnet.py $*/configs/config_nolgn.json $(makeopt) -n 8
 
 $(run_multimeter_targets): %/output_multimeter/spikes.h5: %/network/bkg_nodes.h5 %/configs/config.json %/components/synaptic_models/exc_to_e4.json %/filternet/spikes.h5 %/network/bkg_v1_edge_types.csv 
-	mpirun -np 4 python run_pointnet.py $*/configs/config_multimeter.json $(makeopt)
+	run_pointnet.py $*/configs/config_multimeter.json $(makeopt) -n 8
 
 $(jobs_8dfilternet_targets): %/jobs/filternet_8dir_10trials.sh: %/configs/config_filternet.json make_filternet_jobs.py
 	python make_filternet_jobs.py $* --filternet
@@ -132,6 +133,10 @@ tiny/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p tiny
 	mpirun -np 4 python build_network.py -f -o tiny/network --fraction 0.005
 
+diagnose/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
+	mkdir -p diagnose
+	python build_network.py -f -o diagnose/network --fraction 0.001 --bkg-unit-num 1 --bkg-conn-num 1
+
 small/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
 	mpirun -np 8 python build_network.py -f -o small/network --fraction 0.05 --compression gzip
@@ -150,7 +155,7 @@ core/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	# core is 400 micron diameter network.
 	# Due to nest limitation, larger network won't run on a single core.
 	mkdir -p core
-	mpirun -np 8 python build_network.py -f -o core/network --fraction 0.22145328719723
+	mpirun -np 4 python build_network.py -f -o core/network --fraction 0.22145328719723
 
 single/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	# single network contains exactly 1 neuron for each model.
