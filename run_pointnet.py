@@ -203,7 +203,7 @@ def insert_modfile_to_config(config, modfilename):
     return config
 
 
-def main(config_file, output_dir, modfilename):
+def main(config_file, output_dir, modfilename, n_thread):
     configure = pointnet.Config.from_json(config_file)
     # change the output directory if specified
     # it will do nothing if output_dir is None
@@ -213,7 +213,7 @@ def main(config_file, output_dir, modfilename):
     configure.build_env()
 
     graph = pointnet.PointNetwork.from_config(configure)
-    sim = pointnet.PointSimulator.from_config(configure, graph, n_thread=4)
+    sim = pointnet.PointSimulator.from_config(configure, graph, n_thread=n_thread)
     # sim = pointnet.PointSimulator.from_config(configure, graph)
 
     # if you want to initialize the network with random membrane potentials,
@@ -254,6 +254,9 @@ if __name__ == "__main__":
         default="config.json",
         help="The config file to use for the simulation.",
     )
+    parser.add_argument(
+        "-n", "--n_thread", type=int, default=1, help="Number of threads to use."
+    )
     args = parser.parse_args()
 
     if args.modfile is not None:
@@ -261,4 +264,9 @@ if __name__ == "__main__":
         # index column is not defined in the file, so make it up.
         modulation_df = pd.read_csv(args.modfile, sep=" ", index_col=False)
 
-    main(args.config_file, output_dir=args.output_dir, modfilename=args.modfile)
+    main(
+        args.config_file,
+        output_dir=args.output_dir,
+        modfilename=args.modfile,
+        n_thread=args.n_thread,
+    )
