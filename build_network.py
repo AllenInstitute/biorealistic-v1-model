@@ -375,7 +375,12 @@ def delta_theta_cdf(intercept, d_theta):
 def add_edges_v1(net):
     # pop to pop parameters:
     # cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
-    cc_prob_dict = json.load(open("base_props/v1_conn_props_March28_2023.json", "r"))
+    # cc_prob_dict = json.load(open("base_props/v1_conn_props_March28_2023.json", "r"))
+    cc_prob_dict = json.load(
+        open("base_props/v1_conn_props_March12_2024_Q0.5.json", "r")
+        # open("base_props/v1_conn_props_March13_2024_Q0.2.json", "r")
+        # open("base_props/v1_conn_props_March14_2024_Q0.4.json", "r")
+    )
     # pop to specific model parameters:
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_June_20_2022.csv")
