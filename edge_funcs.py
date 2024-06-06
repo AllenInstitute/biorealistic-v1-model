@@ -66,7 +66,9 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     # Note we intergrate upto 75um as an approximate mid-point from the reported literature.
 
     # A_literature is different for every source-target pair and was estimated from the literature.
-    A_literature = cc_props["A_literature"]
+    A_literature = cc_props["A_literature"][
+        0
+    ]  # TODO: remove [0] after fixing the json file
 
     # R0 read from the dictionary, but setting it now at 75um for all cases but this allows us to change it
     R0 = cc_props["R0"]
@@ -157,7 +159,7 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
     }
 
 
-def connect_cells(sources, target, params, source_nodes):
+def connect_cells(sources, target, params, source_nodes, core_radius):
     """This function determined which nodes are connected based on the parameters in the dictionary params. The
     function iterates through every cell pair when called and hence no for loop is seen iterating pairwise
     although this is still happening.
@@ -217,7 +219,7 @@ def connect_cells(sources, target, params, source_nodes):
     intersomatic_xz = [
         [delta_x, delta_z] for delta_x, delta_z in zip(intersomatic_x, intersomatic_z)
     ]
-    if np.sqrt(target["x"] ** 2 + target["z"] ** 2) > 200:
+    if np.sqrt(target["x"] ** 2 + target["z"] ** 2) > (core_radius * 1.5):
         Rossi_displacement = 0.0
     else:
         Rossi_displacement = (
@@ -533,7 +535,6 @@ def select_bkg_sources(sources, target, n_syns, n_conn):
     # getting back to list
     nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
     return nsyns_ret
-
 
 
 def pick_from_probs(n, prob_dist):

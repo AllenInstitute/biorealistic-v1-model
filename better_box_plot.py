@@ -130,15 +130,43 @@ def plot_scat(ax, df, x, y, cpal=None, s=1):
     return ax
 
 
+def plot_normal(df, cpal):
+    fig, axs = plt.subplots(4, 2, figsize=(24, 12))
+    plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], cpal)
+    plot_one(axs[0, 1], df, "Avg_Rate(Hz)", [0, 50], cpal)
+    plot_one(axs[1, 0], df, "Rate at preferred direction (Hz)", [0, 50], cpal)
+    plot_one(axs[2, 0], df, "DSI", [0, 1], cpal)
+    plot_one(axs[2, 1], df, "OSI", [0, 1], cpal)
+    plot_scat(axs[3, 0], df, "Rate at preferred direction (Hz)", "DSI", cpal, s=5)
+    plot_scat(axs[3, 1], df, "Rate at preferred direction (Hz)", "OSI", cpal, s=5)
+    plt.tight_layout()
+    return fig, axs
+
+
+def plot_sac(df, cpal):
+    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+    # plot_one(axs[0], df, "Rate at preferred direction (Hz)", [0, 50], cpal, e_only=True)
+    plot_one(axs[0], df, "Avg_Rate(Hz)", [0, 25], cpal, e_only=True)
+    plot_one(axs[1], df, "OSI", [0, 1], cpal, e_only=True)
+    # remove the legend from axs[0], move the legend of axs[1] to outside the plot
+    axs[0].get_legend().remove()
+    axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    plt.tight_layout()
+    return fig, axs
+
+
 osi_dfs = []
 
 color_pal = {
     "Billeh 2020, GLIF final": "tab:orange",
     "Neuropixels": "tab:gray",
+    "Neuropixels v3": "tab:gray",
     # "Neuropixels": "k",
     "core 9am": "tab:pink",
     "core bkg minus4": "tab:cyan",
     "core bkg minus6": "tab:pink",
+    "full recurrent": "tab:blue",
+    "core recurrent": "tab:pink",
     "Tensorflow": "tab:blue",
     "TF FR tuning": "tab:cyan",
     "TF default": "tab:blue",
@@ -154,119 +182,41 @@ color_pal = {
     "TF OS tuning": "tab:pink",
     "TF OS, core, 5": "tab:brown",
     "Lognorm, norecurrent": "tab:pink",
-    "New model": "tab:blue",
+    "New model": "tab:orange",
     "small_new": "tab:blue",
+    "core new": "tab:red",
+    "core default": "tab:orange",
+    "core adjusted": "tab:blue",
+    "small_before_tuning": "tab:blue",
+    "small_after_tuning": "tab:pink",
 }
 
 
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
 osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels"))
+osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core default", radius=200.0))
+osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core adjusted", radius=200.0))
 # osi_dfs.append(
-#     get_osi_df(
-#         "core", "OSI_DSI_DF_recurrent_minus4.csv", "core bkg minus4", radius=200.0
-#     )
+#     get_osi_df("core_0427", "OSI_DSI_DF_recurrent.csv", "core recurrent", radius=200.0)
 # )
-# osi_dfs.append(
-#     get_osi_df(
-#         "core", "OSI_DSI_DF_recurrent_minus6.csv", "core bkg minus6", radius=200.0
-#     )
-# )
-# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_lgn.csv", "core lgn", radius=200.0))
-# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_lgnbkg.csv", "core lgnbkg", radius=200.0))
 # osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core new", radius=200.0))
-# osi_dfs.append(
-# get_osi_df("full", "OSI_DSI_DF_recurrent.csv", "full recurrent", radius=200.0)
-# )
-# osi_dfs.append(
-# get_osi_df("tensorflow", "OSI_DSI_DF_before_tuning.csv", "TF default", radius=200.0)
-# )
-osi_dfs.append(
-    get_osi_df(
-        "small",
-        "OSI_DSI_DF.csv",
-        "small_new",
-        radius=100.0,
-    )
-)
-# osi_dfs.append(
-#     get_osi_df(
-#         "tensorflow",
-#         "OSI_DSI_DF_10k_random_pre.csv",
-#         "Random weights",
-#         radius=100.0,
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "tensorflow",
-#         "OSI_DSI_DF_10k_random_ckpt10.csv",
-#         "After 1000 iter.",
-#         radius=100.0,
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "tensorflow",
-#         "OSI_DSI_DF_10k_random_ckpt50.csv",
-#         "TF rand ckpt50",
-#         radius=100.0,
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "tensorflow",
-#         "OSI_DSI_DF_10k_random_ckpt75.csv",
-#         "After 7500 iter.",
-#         radius=100.0,
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "tensorflow",
-#         "OSI_DSI_DF_10k_random_ckpt100.csv",
-#         "TF rand ckpt100",
-#         radius=100.0,
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "tensorflow",
-#         "OSI_DSI_DF_firing_rate_tuning_ckpt3.csv",
-#         "TF FR tuning",
-#         radius=200.0,
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df("tensorflow", "OSI_DSI_DF_os_tuning.csv", "TF OS tuning", radius=200.0)
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "tensorflow", "OSI_DSI_DF_core_os_ckpt5.csv", "TF OS, core, 5", radius=400.0
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "core", "OSI_DSI_DF_lgnbkg_minus4.csv", "core lgnbkg minus4", radius=200.0
-#     )
-# )
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full bad bkg", radius=400.0))
-# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core bad bkg", radius=200.0))
-
+# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full recurrent", radius=400.0))
 df = pd.concat(osi_dfs)
 
-# for_sac = True
-pattern = "scats"
+pattern = "normal"
+# pattern = "sac"
 
 # fig, axs = plt.subplots(4, 1, figsize=(12, 20))
 if pattern == "sac":
-    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
-    plot_one(
-        axs[0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal, e_only=True
-    )
-    plot_one(axs[1], df, "OSI", [0, 1], color_pal, e_only=True)
-    # remove the legend from axs[0], move the legend of axs[1] to outside the plot
-    axs[0].get_legend().remove()
-    axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    fig, axs = plot_sac(df, color_pal)
+    # fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+    # plot_one(
+    #     axs[0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal, e_only=True
+    # )
+    # plot_one(axs[1], df, "OSI", [0, 1], color_pal, e_only=True)
+    # # remove the legend from axs[0], move the legend of axs[1] to outside the plot
+    # axs[0].get_legend().remove()
+    # axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
     plt.tight_layout()
     plt.savefig("box_simplified_SAC.png", dpi=150)
 elif pattern == "normal":
@@ -281,7 +231,7 @@ elif pattern == "normal":
     plot_scat(axs[3, 1], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
 
     plt.tight_layout()
-    plt.savefig("box_CorrectRecurrent_Feb6_full.png", dpi=150)
+    plt.savefig("box.png", dpi=150)
     # plt.savefig("box_Dec12.svg", bbox="tight")
     # plt.savefig("box_Dec12.png", dpi=150)
 elif pattern == "scats":
@@ -303,6 +253,8 @@ elif pattern == "scats":
     axs[0, 1].set_yscale("log")
     axs[0, 1].set_aspect("equal")
     axs[0, 1].plot([0, 100], [0, 100], "k--")
+    plot_scat(axs[1, 0], df, "Spont_Rate(Hz)", "OSI", color_pal, s=5)
+    plot_scat(axs[1, 1], df, "Spont_Rate(Hz)", "DSI", color_pal, s=5)
     plt.tight_layout()
 
 
@@ -335,3 +287,39 @@ sns.scatterplot(
 ax.set_xscale("log")
 
 # %%
+
+osi_dfs[0].groupby("cell_type").median()["Spont_Rate(Hz)"]
+
+
+osi_dfs[0].value_counts("cell_type")
+
+osi_dfs[2].groupby("cell_type").median()
+
+# %%
+
+np_df = get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels")
+
+# for each cell type, plot the scatter plot of spont vs prefered rate.
+
+
+fig, axs = plt.subplots(4, 5, figsize=(15, 15))
+axcount = 0
+for cell_type, df in np_df.groupby("cell_type"):
+    ax = axs[axcount // 5, axcount % 5]
+    sns.scatterplot(
+        ax=ax,
+        data=df,
+        y="OSI",
+        x="Spont_Rate(Hz)",
+        s=5,
+        hue="cell_type",
+    )
+    ax.set_xscale("log")
+    # ax.set_yscale("log")
+    # ax.plot([0, 100], [0, 100], "k--")
+    # ax.set_aspect("equal")
+    ax.set_title(cell_type)
+    # turn off legend
+    ax.get_legend().remove()
+    axcount += 1
+plt.tight_layout()

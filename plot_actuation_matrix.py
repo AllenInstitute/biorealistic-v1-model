@@ -153,5 +153,8 @@ if __name__ == "__main__":
     # make figures dir if not exists
     Path(f"{args.basedir}/figures").mkdir(parents=True, exist_ok=True)
     plt.savefig(f"{args.basedir}/figures/actuation_matrix.pdf")
+    # let's also save the actuation matrix itself.
+    Path(f"{args.basedir}/metrics").mkdir(parents=True, exist_ok=True)
+    act_mat.to_csv(f"{args.basedir}/metrics/actuation_matrix.csv", sep=" ")
 
     print("Done")

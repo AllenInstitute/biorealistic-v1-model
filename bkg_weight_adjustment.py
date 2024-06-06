@@ -264,11 +264,11 @@ def run_simulation(basedir, ncore=8, recurrent=False):
 
 if __name__ == "__main__":
     # start with forming the problem.
-    mode = "small_lgnbkg"
+    mode = "small_lgnbkg_lowspont"
     # mode = "flat_wasser"
     target = "median"
 
-    if mode == "small_lgnbkg":
+    if mode == "small_lgnbkg" or mode == "small_lgnbkg_lowspont":
         basedir = "small"
         duration = 10.0
     elif mode == "flat_wasser":
@@ -292,7 +292,7 @@ if __name__ == "__main__":
 
     # based on Reinhold et al., 2015, we try to set the background so that the
     # spontaneous firing rates are 27% of the measured rates that include the LGN.
-    if mode == "single":
+    if mode == "single" or mode == "small_lgnbkg_lowspont":
         tfr = tfr * 0.27
 
     tfr.keys()[0]

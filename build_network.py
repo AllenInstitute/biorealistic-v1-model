@@ -372,19 +372,21 @@ def delta_theta_cdf(intercept, d_theta):
         raise "d_theta must be <= 180, but was {}".format(d_theta)
 
 
-def add_edges_v1(net):
+def add_edges_v1(net, core_radius):
     # pop to pop parameters:
     # cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
     # cc_prob_dict = json.load(open("base_props/v1_conn_props_March28_2023.json", "r"))
     cc_prob_dict = json.load(
-        open("base_props/v1_conn_props_March12_2024_Q0.5.json", "r")
+        # open("base_props/v1_conn_props_March12_2024_Q0.5.json", "r")
+        open("base_props/v1_conn_props_April2.json", "r")
         # open("base_props/v1_conn_props_March13_2024_Q0.2.json", "r")
         # open("base_props/v1_conn_props_March14_2024_Q0.4.json", "r")
     )
     # pop to specific model parameters:
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_June_20_2022.csv")
-    conn_weight_df = pd.read_csv("base_props/v1_edge_models_double_alpha.csv")
+    # conn_weight_df = pd.read_csv("base_props/v1_edge_models_double_alpha.csv")
+    conn_weight_df = pd.read_csv("base_props/v1_edge_models_April2.csv")
     # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
     # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
@@ -434,6 +436,7 @@ def add_edges_v1(net):
                 connection_params={
                     "params": src_trg_params,
                     "source_nodes": source_nodes_df,
+                    "core_radius": core_radius,
                 },
                 dynamics_params=row["params_file"],
                 # syn_weight_max=row["weight_max"],
@@ -758,6 +761,13 @@ if __name__ == "__main__":
               If you provide a number, it will be used as the compression level for gzip., \
         ",
     )
+    parser.add_argument(
+        "--core-radius",
+        type=float,
+        default=400.0,
+        help="The radius of the core region. This will be used to determine how the \
+              Rossi rule will be applied. It will be applied within 1.5 * core_radius.",
+    )
     # This option is now obsolete.
     # parser.add_argument(
     #     "--feed-forward-v2",
@@ -811,7 +821,7 @@ if __name__ == "__main__":
         )
         if not args.no_recurrent:
             set_seed(seed_v1_edges)
-            v1 = add_edges_v1(v1)
+            v1 = add_edges_v1(v1, args.core_radius)
         v1.build()
         print("Saving v1 network")
         v1.save(args.output_dir, compression=args.compression)

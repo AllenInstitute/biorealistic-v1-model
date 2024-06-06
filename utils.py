@@ -48,3 +48,29 @@ pop_name_to_cell_type = {
     "i6Pvalb": "L6 PV",
     "i6Sst": "L6 SST",
 }
+
+# a version with L5 cells split into IT, ET, and NP
+pop_name_to_cell_type2 = {
+    "i1Htr3a": "L1 Inh",
+    "e23Cux2": "L2/3 Exc",
+    "i23Vip": "L2/3 VIP",
+    "i23Pvalb": "L2/3 PV",
+    "i23Sst": "L2/3 SST",
+    "e4Nr5a1": "L4 Exc",
+    "e4Rorb": "L4 Exc",
+    "e4Scnn1a": "L4 Exc",
+    "e4other": "L4 Exc",
+    "i4Vip": "L4 VIP",
+    "i4Pvalb": "L4 PV",
+    "i4Sst": "L4 SST",
+    "e5IT": "L5 IT",
+    "e5ET": "L5 ET",
+    "e5NP": "L5 NP",
+    "i5Vip": "L5 VIP",
+    "i5Pvalb": "L5 PV",
+    "i5Sst": "L5 SST",
+    "e6Ntsr1": "L6 Exc",
+    "i6Vip": "L6 VIP",
+    "i6Pvalb": "L6 PV",
+    "i6Sst": "L6 SST",
+}

@@ -38,3 +38,5 @@ billeh/*
 *.err
 *.out
 test*/*
+diagnose/*
+tensorflow/*
