@@ -203,6 +203,17 @@ def insert_modfile_to_config(config, modfilename):
     return config
 
 
+def get_v1_node_nums(sim):
+    node_ids = sim.net._node_sets["v1"]._populations[0]._node_pop.node_ids
+    return len(node_ids)
+
+
+def set_random_potentials(sim):
+    node_nums = get_v1_node_nums(sim)
+    random_potentials = np.random.uniform(low=-75.0, high=-55.0, size=node_nums)
+    nest.SetStatus(range(1, node_nums + 1), "V_m", random_potentials)
+
+
 def main(config_file, output_dir, modfilename, n_thread):
     configure = pointnet.Config.from_json(config_file)
     # change the output directory if specified
@@ -220,17 +231,6 @@ def main(config_file, output_dir, modfilename, n_thread):
     # uncomment the following line
     # set_random_potentials(sim)
     sim.run()
-
-
-def get_v1_node_nums(sim):
-    node_ids = sim.net._node_sets["v1"]._populations[0]._node_pop.node_ids
-    return len(node_ids)
-
-
-def set_random_potentials(sim):
-    node_nums = get_v1_node_nums(sim)
-    random_potentials = np.random.uniform(low=-75.0, high=-55.0, size=node_nums)
-    nest.SetStatus(range(1, node_nums + 1), "V_m", random_potentials)
 
 
 if __name__ == "__main__":
