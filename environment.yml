@@ -18,10 +18,10 @@ dependencies:
   - pytest
   - mpi4py
   - bmtk
+  - numba
   
   # modeling
   - openpyxl
-  - numba
 
   # allensdk
   - future
@@ -50,3 +50,4 @@ dependencies:
     # for modeling
     - allensdk
     - pylightxl
+    - sonata
