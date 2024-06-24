@@ -20,7 +20,7 @@ def get_tau_syn(synaptic_folder="glif_models/synaptic_models/", double_alpha=Tru
             if double_alpha:
                 props = json.load(f)
                 tau_syn_dict[file.name] = (
-                    props["tau_syn"] + props["tau_syn_slow"] * props["amp_slow"]
+                    props["tau_syn_fast"] + props["tau_syn_slow"] * props["amp_slow"]
                 )
             else:
                 tau_syn_dict[file.name] = json.load(f)["tau_syn"]
