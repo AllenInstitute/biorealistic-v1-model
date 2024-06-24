@@ -1,0 +1,51 @@
+channels:
+  - conda-forge
+  - kaeldai
+
+dependencies:
+  # Basics ------------------
+  - python=3.11
+  - pip
+
+  # Nest   ------------------
+  - nest-simulator
+    
+  # Convenience -------------
+  - black
+  - iminuit
+  
+  # bmtk
+  - pytest
+  - mpi4py
+  - bmtk
+  
+  # modeling
+  - openpyxl
+  - numba
+
+  # allensdk
+  - future
+  - jinja2
+  - nest-asyncio
+  - psycopg2-binary
+  - pynrrd
+  - python-dateutil
+  - requests
+  - scikit-build
+  - scikit-image
+  - scipy
+  - seaborn
+  - semver
+  - simpleitk
+  - simplejson
+  - six
+  - sqlalchemy
+  - tqdm
+  - xarray
+
+  
+  # PIP dependencies
+  - pip:
+    # for modeling
+    - allensdk
+    - pylightxl
