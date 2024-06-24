@@ -28,7 +28,7 @@ for pre_pop in cell_pops_pre:
         syn_name = f"{pre_pop}_to_{post_pop}"
         syn = {
             # TODO: remove * 1000 when the units are fixed in the original file
-            "tau_syn": float(tau_syn[post_pop].loc[pre_pop]) * 1000,
+            "tau_syn_fast": float(tau_syn[post_pop].loc[pre_pop]) * 1000,
             "tau_syn_slow": float(tau_syn_slow[post_pop].loc[pre_pop]) * 1000,
             "amp_slow": float(amp_slow[post_pop].loc[pre_pop]),
         }

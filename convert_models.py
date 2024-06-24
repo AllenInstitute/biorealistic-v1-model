@@ -141,9 +141,10 @@ def convert_params(components_orig_dir, components_new_base_dir, verbose):
             dyn_params = json.load(open(input_json_path, "r"))
             print(input_json_path)
             try:
-                # the new format should have 3 parameters: tau_syn, tau_syn_slow, and amp_slow
+                # the new format should have 3 parameters: tau_syn_fast, tau_syn_slow, and amp_slow
+                # the double alpha model incorporated in NEST uses these 3 parameters.
                 # try to retrieve all, and determine the version.
-                params = ["tau_syn", "tau_syn_slow", "amp_slow"]
+                params = ["tau_syn_fast", "tau_syn_slow", "amp_slow"]
                 syn_params_one = {k: dyn_params[k] for k in params}
             except KeyError:
                 # show warning only once
