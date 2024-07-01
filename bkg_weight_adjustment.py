@@ -252,7 +252,8 @@ def run_simulation(basedir, ncore=8, recurrent=False):
         config_file = basedir + "/configs/config_bkgtune_recurrent.json"
     else:
         config_file = basedir + "/configs/config_bkgtune.json"
-    command = f"mpirun -np {ncore} python run_pointnet.py {config_file}"
+    # command = f"mpirun -np {ncore} python run_pointnet.py {config_file}"
+    command = f"python run_pointnet.py {config_file} -n {ncore}"
     return run_command(command)
 
 
@@ -264,7 +265,8 @@ def run_simulation(basedir, ncore=8, recurrent=False):
 
 if __name__ == "__main__":
     # start with forming the problem.
-    mode = "small_lgnbkg_lowspont"
+    # mode = "small_lgnbkg_lowspont"
+    mode = "small_lgnbkg"
     # mode = "flat_wasser"
     target = "median"
 
@@ -306,12 +308,12 @@ if __name__ == "__main__":
     weight[:] = 0.0
     weight.name = "syn_weight"
 
-    for i in range(1000):
+    for i in range(20):  # 20 repetition would achieve ~6 digit accuracy
         if mode == "flat_wasser":
             update_bkg_weights_lognormal(basedir, weight)
         else:
             update_bkg_weights(basedir, weight)
-        run_simulation(basedir, recurrent=recurrent, ncore=6)
+        run_simulation(basedir, recurrent=recurrent, ncore=8)
         model_fr = get_model_fr(basedir, recurrent, duration=duration, target=target)
 
         # if new_weight does not exist, create it.

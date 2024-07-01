@@ -1,9 +1,11 @@
 channels:
   - conda-forge
+  - bioconda
   - kaeldai
 
 dependencies:
   # Basics ------------------
+  # 3.12 is not compatible with allensdk (as of 7/1/2024)
   - python=3.11
   - pip
 
@@ -13,6 +15,8 @@ dependencies:
   # Convenience -------------
   - black
   - iminuit
+  - snakemake
+  - jupyter
   
   # bmtk
   - pytest
