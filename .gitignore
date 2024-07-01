@@ -20,7 +20,6 @@ no_recurrent/*
 no_recurrent_full/*
 no_recurrent_base/*
 misc_scripts/*.csv
-profile/*
 *prof
 slurm*.out
 original_mini/*
