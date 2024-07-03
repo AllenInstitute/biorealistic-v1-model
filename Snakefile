@@ -2,6 +2,7 @@ main_scripts = ["build_network.py", "edge_funcs.py", "node_funcs.py"]
 build_files = [
     "base_props/lgn_weights_population.csv",
     "glif_props/v1_node_models.json",
+    "glif_props/v1_edge_models.csv",
     "glif_props/lgn_weights_model.csv",
     "glif_props/bkg_weights_model.csv",
     "glif_models/cell_models"
@@ -35,9 +36,9 @@ network_files = [
 network_files = [f"/network/{file}" for file in network_files]
 
 # drop bkg_v1_edge_types.csv because it will be overridden.
-print(network_files)
+# print(network_files)
 network_files = network_files[:6] + network_files[7:]
-print(network_files)
+# print(network_files)
 
 
 
@@ -120,6 +121,22 @@ rule glif_requirements:
     output: "glif_props/v1_node_models.json"
     shell: "python {input.script} --double-alpha"
 
+rule v1_edge_model:
+    input:
+        script="make_v1_edge_models.py",
+        data=[
+            "base_props/cell_type_naming_scheme.csv",
+            "glif_requisite/glif_models_prop.csv",
+            "precomputed_props/v1_synapse_amps.json",
+            "base_props/sigma.csv",
+            "base_props/pmax_matrix_v1dd.csv",
+            "base_props/b_ratio.csv",
+            "base_props/psp_lookup_table.csv",
+            "base_props/psp_characterization.csv",
+            "base_props/syn_types_latency.csv"
+        ]
+    output: "glif_props/v1_edge_models.csv"
+    shell: "python {input.script}"
 
 rule lgn_weight_model:
     input:

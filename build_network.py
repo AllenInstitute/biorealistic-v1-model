@@ -44,7 +44,9 @@ def add_nodes_v1(fraction=1.00, miniature=False, flat=False):
         node_props = "glif_props/v1_node_models_miniature.json"
     else:
         node_props = "glif_props/v1_node_models.json"
-    v1_models = json.load(open(node_props, "r"))
+    # v1_models = json.load(open(node_props, "r"))
+    with open(node_props, "r") as f:
+        v1_models = json.load(f)
 
     min_radius = 1.0  # to avoid diverging density near 0
     radius = v1_models["radius"] * np.sqrt(fraction)
@@ -185,24 +187,19 @@ def orientation_dependence_fns(intercept_in, grad_in):
 def syn_weight_by_experimental_distribution(
     source,
     target,
-    src_type,
-    trg_type,
+    src_pop_name,
+    trg_pop_name,
     PSP_correction,
     PSP_lognorm_shape,
     PSP_lognorm_scale,
     connection_params,
     # delta_theta_dist,
 ):
-    src_ei = "e" if src_type.startswith("e") or src_type.startswith("LIFe") else "i"
-    trg_ei = "e" if trg_type.startswith("e") or trg_type.startswith("LIFe") else "i"
+    src_ei = src_pop_name[0]
+    trg_ei = trg_pop_name[0]
+
     src_tuning = source["tuning_angle"]
     tar_tuning = target["tuning_angle"]
-
-
-    x_tar = target["x"]
-    x_src = source["x"]
-    z_tar = target["z"]
-    z_src = source["z"]
 
     #
     if PSP_lognorm_shape < target["nsyn_size_shape"]:
@@ -320,8 +317,8 @@ def syn_weight_by_experimental_distribution(
         # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
 
-# Below was copied from Billeh to use as an initial correction factor, but it is not clear how applicable 
-# it is to the current Rossi Rule
+    # Below was copied from Billeh to use as an initial correction factor, but it is not clear how applicable
+    # it is to the current Rossi Rule
     # delta_x = (x_tar - x_src) * 0.07
     # delta_z = (z_tar - z_src) * 0.04
 
@@ -376,30 +373,31 @@ def add_edges_v1(net, core_radius):
     # pop to pop parameters:
     # cc_prob_dict = json.load(open("base_props/v1_conn_props_new.json", "r"))
     # cc_prob_dict = json.load(open("base_props/v1_conn_props_March28_2023.json", "r"))
-    cc_prob_dict = json.load(
-        # open("base_props/v1_conn_props_March12_2024_Q0.5.json", "r")
-        open("base_props/v1_conn_props_April2.json", "r")
-        # open("base_props/v1_conn_props_March13_2024_Q0.2.json", "r")
-        # open("base_props/v1_conn_props_March14_2024_Q0.4.json", "r")
-    )
+    # cc_prob_dict = json.load(
+    # open("base_props/v1_conn_props_March12_2024_Q0.5.json", "r")
+    # open("base_props/v1_conn_props_April2.json", "r")
+    # open("base_props/v1_conn_props_March13_2024_Q0.2.json", "r")
+    # open("base_props/v1_conn_props_March14_2024_Q0.4.json", "r")
+    # )
     # pop to specific model parameters:
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_Jan_3_2022.csv")
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_lognorm_June_20_2022.csv")
     # conn_weight_df = pd.read_csv("base_props/v1_edge_models_double_alpha.csv")
-    conn_weight_df = pd.read_csv("base_props/v1_edge_models_April2.csv")
+    # conn_weight_df = pd.read_csv("base_props/v1_edge_models_April2.csv")
     # cc_prob_dict = json.load(open("biophys_props/v1_conn_props.json", "r"))
     # conn_weight_df = pd.read_csv("biophys_props/v1_edge_models.csv", sep=" ")
 
-    conn_weight_df = conn_weight_df[~(conn_weight_df["source_label"] == "LGN")]
-    for _, row in conn_weight_df.iterrows():
+    conn_df = pd.read_csv("glif_props/v1_edge_models.csv", sep=" ")
+
+    # conn_weight_df = conn_weight_df[~(conn_weight_df["source_label"] == "LGN")]
+    for _, row in conn_df.iterrows():
         node_type_id = row["target_model_id"]
-        src_type = row["source_label"]
-        trg_type = row["target_label"]
-        src_trg_params = compute_pair_type_parameters(src_type, trg_type, cc_prob_dict)
-        # print(src_trg_params)
+        src_pop_name = row["source_pop_name"]
+        trg_pop_name = row["target_pop_name"]
+        src_trg_params = compute_pair_type_parameters(row)
 
         prop_query = ["x", "z", "tuning_angle"]
-        src_criteria = {"pop_name": src_type}
+        src_criteria = {"pop_name": src_pop_name}
         net.nodes()  # this line is necessary to activate nodes... (I don't know why.)
         source_nodes = NodePool(net, **src_criteria)
         source_nodes_df = pd.DataFrame(
@@ -407,8 +405,8 @@ def add_edges_v1(net, core_radius):
         )
 
         # TODO: check if these values should be used
-        weight_fnc, weight_sigma = find_direction_rule(src_type, trg_type)
-        if src_trg_params["A_new"] > 0.0:
+        weight_fnc, weight_sigma = find_direction_rule(src_pop_name, trg_pop_name)
+        if src_trg_params["pmax"] > 0.0:
             # if src_type.startswith("LIF"):
             #     net.add_edges(
             #         source={"pop_name": src_type},
@@ -424,7 +422,7 @@ def add_edges_v1(net, core_radius):
             #     )
             # else:
             # tentative fix for non-negative inhibitory connections
-            if src_type[0] == "i":
+            if src_pop_name[0] == "i":
                 pspsign = -1
             else:
                 pspsign = 1
@@ -475,8 +473,8 @@ def add_edges_v1(net, core_radius):
                 ["syn_weight", "n_syns_"],
                 rule=syn_weight_by_experimental_distribution,
                 rule_params={
-                    "src_type": src_type,
-                    "trg_type": trg_type,
+                    "src_pop_name": src_pop_name,
+                    "trg_pop_name": trg_pop_name,
                     # "PSP_correction": row["PSP_scale_factor"],
                     "PSP_correction": np.abs(row["PSP_scale_factor"]) * pspsign,
                     "PSP_lognorm_shape": row["lognorm_shape"],

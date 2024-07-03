@@ -26,85 +26,16 @@ lgn_shift_dict = {
 }
 
 
-def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
-    """Takes in two strings for the source and target type. It determined the connectivity parameters needed based on
-    distance dependence and orientation tuning dependence and returns a dictionary of these parameters. A description
-    of the calculation and resulting formulas used herein can be found in the accompanying documentation. Note that the
-    source and target can be the same as this function works on cell TYPES and not individual nodes. The first step of
-    this function is getting the parameters that determine the connectivity probabilities reported in the literature.
-    From there the calculation proceed based on adapting these values to our model implementation.
+def compute_pair_type_parameters(edge_model):
+    """simplified version of the function."""
+    pmax = edge_model["pmax"]
+    sigma = edge_model["sigma"]
+    b_ratio = edge_model["b_ratio"]
+    src_ei = edge_model["source_pop_name"][0]
+    trg_ei = edge_model["target_pop_name"][0]
 
-    :param source_type: string of the cell type that will be the source (pre-synaptic)
-    :param target_type: string of the cell type that will be the targer (post-synaptic)
-    :return: dictionary with the values to be used for distance dependent connectivity
-             and orientation tuning dependent connectivity (when applicable, else nans populate the dictionary).
-    """
-    # this part is not used anymore
-    # src_new = source_type[3:] if source_type[0:3] == "LIF" else source_type
-    # trg_new = target_type[3:] if target_type[0:3] == "LIF" else target_type
-
-    # src_tmp = src_new[0:2]
-    # if src_new[0] == "i":
-    #     src_tmp = src_new[0:3]
-    # if src_new[0:2] == "i2":
-    #     src_tmp = src_new[0:2] + src_new[3]
-
-    # trg_tmp = trg_new[0:2]
-    # if trg_new[0] == "i":
-    #     trg_tmp = trg_new[0:3]
-    # if trg_new[0:2] == "i2":
-    #     trg_tmp = trg_new[0:2] + trg_new[3]
-
-    # cc_props = cc_prob_dict[src_tmp + "-" + trg_tmp]
-    cc_props = cc_prob_dict[source_type + "-" + target_type]
-    ##### For distance dependence which is modeled as a Gaussian ####
-    # P = A * exp(-r^2 / sigma^2)
-    # Since papers reported probabilities of connection having measured from 50um to 100um intersomatic distance
-    # we had to normalize ensure A. In short, A had to be set such that the integral from 0 to 75um of the above
-    # function was equal to the reported A in the literature. Please see accompanying documentation for the derivation
-    # of equations which should explain how A_new is determined.
-    # Note we intergrate upto 75um as an approximate mid-point from the reported literature.
-
-    # A_literature is different for every source-target pair and was estimated from the literature.
-    A_literature = cc_props["A_literature"][
-        0
-    ]  # TODO: remove [0] after fixing the json file
-
-    # R0 read from the dictionary, but setting it now at 75um for all cases but this allows us to change it
-    R0 = cc_props["R0"]
-
-    # Sigma is measure from the literature or internally at the Allen Institute
-    sigma = cc_props["sigma"]
-
-    # Gaussian equation was intergrated to and solved to calculate new A_new. See accompanying documentation.
-    if cc_props["is_pmax"] == 1:
-        A_new = A_literature
-    else:
-        A_new = A_literature / ((sigma / R0) ** 2 * (1 - np.exp(-((R0 / sigma) ** 2))))
-
-    # Due to the measured values in the literature being from multiple sources and approximations that were
-    # made by us and the literature (for instance R0 = 75um and sigma from the literature), we found that it is
-    # possible for A_new to go slightly above 1.0 in which case we rescale it to 1.0. We confirmed that if this
-    # does happen, it is for a few cases and is not much higher than 1.0.
-    if A_new > 1.0:
-        # print('WARNING: Adjusted calculated probability based on distance dependence is coming out to be ' \
-        #       'greater than 1 for ' + source_type + ' and ' + target_type + '. Setting to 1.0')
-        A_new = 1.0
-
-    ##### To include orientation tuning ####
-    # Many cells will show orientation tuning and the relative different in orientation tuning angle will influence
-    # probability of connections as has been extensively report in the literature. This is modeled here with a linear
-    # where B in the largest value from 0 to 90 (if the profile decays, then B is the intercept, if the profile
-    # increases, then B is the value at 90). The value of G is the gradient of the curve.
-    # The calculations and explanation can be found in the accompanying documentation with this code.
-
-    # Extract the values from the dictionary for B, the maximum value and G the gradient
-    B_ratio = cc_props["B_ratio"]
-    B_ratio = np.nan if B_ratio is None else B_ratio
-
-    # Check if there is orientation dependence in this source-target pair type. If yes, then a parallel calculation
-    # to the one done above for distance dependence is made though with the assumption of a linear profile.
-    if not np.isnan(B_ratio):
+    # calculation of the gradient and intercept
+    if b_ratio > 0.0:
         # The scaling for distance and orientation must remain less than 1 which is calculated here and reset
         # if it is greater than one. We also ensure that the area under the p(delta_phi) curve is always equal
         # to one (see documentation). Hence the desired ratio by the user may not be possible, in which case
@@ -113,49 +44,45 @@ def compute_pair_type_parameters(source_type, target_type, cc_prob_dict):
 
         # B1 is the intercept which occurs at (0, B1)
         # B2 is the value when delta_phi equals 90 degree and hence the point (90, B2)
-        B1 = 2.0 / (1.0 + B_ratio)
-        B2 = B_ratio * B1
+        B1 = 2.0 / (1.0 + b_ratio)
+        B2 = b_ratio * B1
 
-        AB = A_new * max(B1, B2)
+        AB = pmax * max(B1, B2)
         if AB > 1.0:
             if B1 >= B2:
-                B1_new = 1.0 / A_new
+                B1_new = 1.0 / pmax
                 delta = B1 - B1_new
                 B1 = B1_new
                 B2 = B2 + delta
             elif B2 > B1:
-                B2_new = 1.0 / A_new
+                B2_new = 1.0 / pmax
                 delta = B2 - B2_new
                 B2 = B2_new
                 B1 = B1 + delta
 
-            B_ratio = B2 / B1
+            b_ratio = B2 / B1
             print(
                 "WARNING: Could not satisfy the desired B_ratio (probability of connectivity would become "
                 "greater than one in some cases). Rescaled and now for "
-                + source_type
+                + edge_model["source_pop_name"]
                 + " --> "
-                + target_type
+                + edge_model["target_pop_name"]
                 + " the ratio is set to: ",
-                B_ratio,
+                b_ratio,
             )
 
         G = (B2 - B1) / 90.0
-
-    # If there is no orientation dependent, record this by setting the intercept to Not a Number (NaN).
     else:
-        B1 = np.NaN
-        G = np.NaN
+        G = np.nan
+        B1 = np.nan
 
-    # Return the dictionary. Note, the new values are A_new and intercept. The rest are from CC_prob_dict.
     return {
-        "A_new": A_new,
+        "pmax": pmax,
         "sigma": sigma,
         "gradient": G,
         "intercept": B1,
-        "nsyn_range": cc_props["nsyn_range"],
-        "src_ei": source_type[0],  # for Rossi correction
-        "trg_ei": target_type[0],  # for Rossi
+        "src_ei": src_ei,  # for Rossi correction
+        "trg_ei": trg_ei,  # for Rossi
     }
 
 
@@ -168,6 +95,7 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
     information is returned by the function. This function calculates these probabilities based on the distance between
     two nodes and (if applicable) the orientation tuning angle difference.
 
+    TODO: These descriptions are wrong. Fix them.
     :param sid: the id of the source node
     :param source: the attributes of the source node
     :param tid: the id of the target node
@@ -183,10 +111,6 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
         # print("Warning: no sources for target: {}".format(target.node_id))
         return []
 
-    # TODO: remove list comprehension
-    # sources_x = np.array([s["x"] for s in sources])
-    # sources_z = np.array([s["z"] for s in sources])
-    # sources_tuning_angle = [s["tuning_angle"] for s in sources]
     sources_x = np.array(source_nodes["x"])
     sources_z = np.array(source_nodes["z"])
     sources_tuning_angle = np.array(source_nodes["tuning_angle"])
@@ -201,7 +125,8 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
     target_pop_mean_size = target["nsyn_size_mean"]
 
     # Read parameter values needed for distance and orientation dependence
-    A_new = params["A_new"]
+    # A_new = params["A_new"]
+    pmax = params["pmax"]
     sigma = params["sigma"]
     gradient = params["gradient"]
     intercept = params["intercept"]
@@ -272,7 +197,8 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
 
         # using Rossi:
         p_connect = (
-            A_new
+            # A_new
+            pmax
             * Rossi_mvNorm.pdf(intersomatic_xz)
             / Rossi_mvNorm.pdf(Rossi_mean)
             * (intercept + gradient * delta_orientation)
@@ -285,7 +211,10 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
 
         # using Rossi:
         p_connect = (
-            A_new * Rossi_mvNorm.pdf(intersomatic_xz) / Rossi_mvNorm.pdf(Rossi_mean)
+            # A_new * Rossi_mvNorm.pdf(intersomatic_xz) / Rossi_mvNorm.pdf(Rossi_mean)
+            pmax
+            * Rossi_mvNorm.pdf(intersomatic_xz)
+            / Rossi_mvNorm.pdf(Rossi_mean)
         )
 
     # # Sanity check warning
@@ -316,7 +245,9 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
     # )
 
     # TODO: remove list comprehension
-    nsyns_ret = [Nsyn if Nsyn != 0 else None for Nsyn in p_connected]
+    # nsyns_ret = [Nsyn if Nsyn != 0 else None for Nsyn in p_connected]
+    nsyns_ret = p_connected
+
     return nsyns_ret
 
 
@@ -411,7 +342,6 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     if lgn_circle.empty:
         # print("Warning: no candidate LGN cells for V1 cell id: ", target_id)
         return [None] * len(lgn_nodes)
-
 
     # RF center of LGN cell as a complex number
     lgn_complex = np.array(lgn_circle["x"] + 1j * lgn_circle["y"])
@@ -514,10 +444,10 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
 
     # there should be 1 synapse connections remaining
     nsyns_ret[selected_lgn_inds] = 1
-    nsyns_ret = list(nsyns_ret)
+    # nsyns_ret = list(nsyns_ret)
 
     # getting back to list
-    nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
+    # nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
     # return
     return nsyns_ret
 
@@ -531,9 +461,9 @@ def select_bkg_sources(sources, target, n_syns, n_conn):
     selected_units = np.random.choice(n_unit, size=n_conn, replace=False)
     nsyns_ret = np.zeros(n_unit, dtype=int)
     nsyns_ret[selected_units] = n_syns
-    nsyns_ret = list(nsyns_ret)
+    # nsyns_ret = list(nsyns_ret)
     # getting back to list
-    nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
+    # nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
     return nsyns_ret
 
 
