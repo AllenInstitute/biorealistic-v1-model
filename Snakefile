@@ -141,6 +141,7 @@ rule glif_requirements:
     output: "glif_props/v1_node_models.json"
     shell: "python {input.script} --double-alpha"
 
+
 rule v1_edge_model:
     input:
         script="make_v1_edge_models.py",
@@ -157,6 +158,7 @@ rule v1_edge_model:
         ]
     output: "glif_props/v1_edge_models.csv"
     shell: "python {input.script}"
+
 
 rule lgn_weight_model:
     input:
