@@ -5,7 +5,7 @@ build_files = [
     "glif_props/v1_edge_models.csv",
     "glif_props/lgn_weights_model.csv",
     "glif_props/bkg_weights_model.csv",
-    "glif_models/cell_models"
+    "glif_models/cell_models/313861608_glif_lif_asc_config.json" # representative model
 ]
 
 config_files = [
@@ -66,11 +66,31 @@ rule all:
     input: "tiny/output/spikes.h5"
 
 
+rule clean:
+    shell:
+        """
+        rm -rf cell_types
+        rm -rf glif_models
+        rm -rf glif_props
+        rm -rf glif_requisite
+        rm -rf full
+        rm -rf small
+        rm -rf core
+        rm -rf tiny
+        rm -rf no_recurrent_full
+        rm -rf profile
+        rm -rf out.prof
+        """
+
+
+
+
+
 rule synaptic_models:
     input:
         script="create_syn_models.py",
         data=[
-            "base_props/tau_syn.csv",
+            "base_props/tau_syn_fast.csv",
             "base_props/tau_syn_slow.csv",
             "base_props/amp_slow.csv",
         ]
@@ -155,6 +175,7 @@ rule bkg_weight_model:
         script="make_bkg_weights.py",
         data=[
             "base_props/bkg_weights_population_init.csv",
+            "glif_props/v1_node_models.json",
             "precomputed_props/v1_synapse_amps.json"
         ]
     output: "glif_props/bkg_weights_model.csv"
