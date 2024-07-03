@@ -2,6 +2,7 @@
 ~*
 *~
 .DS_Store
+.snakemake
 cell_types/*
 glif_models/*
 glif_props/*
