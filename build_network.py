@@ -244,8 +244,6 @@ def syn_weight_by_experimental_distribution(
         orient_temp = 1 - delta_theta_cdf(
             connection_params["intercept"], delta_tuning_180
         )
-        # orient_temp = np.min([0.999, orient_temp])
-        # orient_temp = np.max([0.001, orient_temp])
         orient_temp = min(0.999, orient_temp)
         orient_temp = max(0.001, orient_temp)
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
@@ -287,8 +285,6 @@ def syn_weight_by_experimental_distribution(
         )
 
         orient_temp = 1 - (delta_tuning_180 / 180)
-        # orient_temp = np.min([0.999, orient_temp])
-        # orient_temp = np.max([0.001, orient_temp])
         orient_temp = min(0.999, orient_temp)
         orient_temp = max(0.001, orient_temp)
 
@@ -316,26 +312,6 @@ def syn_weight_by_experimental_distribution(
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
         # syn_weight = weight_rv.ppf(orient_temp)
         n_syns_ = 1
-
-    # Below was copied from Billeh to use as an initial correction factor, but it is not clear how applicable
-    # it is to the current Rossi Rule
-    # delta_x = (x_tar - x_src) * 0.07
-    # delta_z = (z_tar - z_src) * 0.04
-
-    # theta_pref = tar_tuning * (np.pi / 180.0)
-    # xz = delta_x * np.cos(theta_pref) + delta_z * np.sin(theta_pref)
-    # sigma_phase = 1.0
-    # phase_scale_ratio = np.exp(-(xz**2 / (2 * sigma_phase**2)))
-
-    # # To account for the 0.07 vs 0.04 dimensions. This ensures the horizontal neurons are scaled by 5.5/4 (from the
-    # # midpoint of 4 & 7). Also, ensures the vertical is scaled by 5.5/7. This was a basic linear estimate to get the
-    # # numbers (y = ax + b).
-    # theta_tar_scale = abs(
-    #     abs(abs(180.0 - np.mod(np.abs(tar_tuning), 360.0)) - 90.0) - 90.0
-    # )
-    # phase_scale_ratio = phase_scale_ratio * (
-    #     5.5 / 4.0 - 11.0 / 1680.0 * theta_tar_scale
-    # )
 
     syn_weight = (
         syn_weight
@@ -490,7 +466,9 @@ def add_edges_v1(net, core_radius):
 
 
 def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
-    lgn_models = json.load(open("base_props/lgn_models.json", "r"))
+    # lgn_models = json.load(open("base_props/lgn_models.json", "r"))
+    with open("base_props/lgn_models.json", "r") as f:
+        lgn_models = json.load(f)
 
     lgn = NetworkBuilder("lgn")
     X_len = x_block * X_grids  # default is 120 degrees

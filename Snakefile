@@ -1,6 +1,8 @@
 main_scripts = ["build_network.py", "edge_funcs.py", "node_funcs.py"]
 build_files = [
     "base_props/lgn_weights_population.csv",
+    "base_props/lgn_params.csv",
+    "base_props/lgn_models.json",
     "glif_props/v1_node_models.json",
     "glif_props/v1_edge_models.csv",
     "glif_props/lgn_weights_model.csv",
@@ -46,6 +48,9 @@ filter_files = [network_files[2], network_files[3]] # just lgn nodes
 
 
 networks = {
+    "profile": {
+        "fraction": 0.05
+    },
     "tiny": {
         "fraction": 0.005
     },
@@ -65,6 +70,8 @@ n_threads = 8
 rule all:
     input: "tiny/output/spikes.h5"
 
+rule core_spikes:
+    input: "core/output/spikes.h5"
 
 rule clean:
     shell:
@@ -77,13 +84,9 @@ rule clean:
         rm -rf small
         rm -rf core
         rm -rf tiny
-        rm -rf no_recurrent_full
         rm -rf profile
         rm -rf out.prof
         """
-
-
-
 
 
 rule synaptic_models:
@@ -189,6 +192,7 @@ rule build_network:
         script=main_scripts,
         data=build_files
     output: ["{network_name}" + name for name in network_files]
+    threads: n_threads
     params:
         fraction = lambda wildcards: networks[wildcards.network_name]["fraction"]
     shell:
@@ -237,12 +241,13 @@ rule config_files:
     """
     
 
+# {opt} can be "" or "_bkgtune"
 rule filternet_spikes:
     input:
         script="run_filternet.py",
         network=["{network_name}" + name for name in filter_files],
-        config="{network_name}/configs/config_filternet.json"
-    output: "{network_name}/filternet/spikes.h5"
+        config="{network_name}/configs/config_filternet{opt}.json"
+    output: "{network_name}/filternet{opt}/spikes.h5"
     threads: n_threads
     shell: "mpirun -np {n_threads} python {input.script} {input.config}"
     
@@ -262,5 +267,37 @@ rule output_spikes:
     shell: "python {input.script} {input.config} -n {n_threads}"
 
 
+rule output_spikes_bkgtune:
+    input:
+        script="run_pointnet.py",
+        network=["{network_name}" + name for name in network_files],
+        config="{network_name}/configs/config_bkgtune.json",
+        components="{network_name}/components/synaptic_models/e4_to_e4.json",
+        data=[
+            "{network_name}/filternet_bkgtune/spikes.h5",
+            "{network_name}/bkg/bkg_spikes_250Hz_10s.h5",
+        ]
+    output: "{network_name}/output_bkgtune/spikes.h5"
+    threads: n_threads
+    shell: "python {input.script} {input.config} -n {n_threads}"
+
+
+rule bkg_adjustment:
+    input:
+        config="small/output_bkgtune/spikes.h5"
+    output: "small/network/bkg_v1_edge_types_adjusted.csv"
+    threads: n_threads
+    shell: """
+        python bkg_weight_adjustment.py
+        cp small/network/bkg_v1_edge_types.csv small/network/bkg_v1_edge_types_adjusted.csv
+        """
+
+
 rule graph:
     shell: "snakemake --dag | dot -Tpdf > workflow_graph.pdf"
+    
+
+rule profile_build:
+    input: ["profile" + name for name in network_files]
+    output: "out.prof"
+    shell: "python -m cProfile -o out.prof build_network.py -f -o profile/network --fraction 0.05"

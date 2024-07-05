@@ -275,8 +275,8 @@ if __name__ == "__main__":
         # config_file = f"{net}/output/ckpt-13/configs.json"
         # plt.figure(figsize=(15, 10))
         # plt.figure(figsize=(5, 3))
-        plt.figure(figsize=(6, 3.5))
-        # plt.figure(figsize=(10, 6))
+        # plt.figure(figsize=(6, 3.5))
+        plt.figure(figsize=(10, 6))
         if net in settings:
             ax = plot_raster(config_file, sortby=sortby, infer=True, **settings[net])
             # ax = plot_fr_histogram(

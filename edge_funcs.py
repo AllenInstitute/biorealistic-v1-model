@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 import numpy as np
 import math
 from random import random
@@ -7,7 +8,8 @@ from itertools import compress
 from scipy.stats import yulesimon, multivariate_normal
 
 
-lgn_params = json.load(open("base_props/lgn_params.json", "r"))
+# lgn_params = json.load(open("base_props/lgn_params.json", "r"))
+lgn_params = pd.read_csv("base_props/lgn_params.csv", sep=" ", index_col=0)
 lgn_shift_dict = {
     "sON_TF1": -1.0,
     "sON_TF2": -1.0,
@@ -286,7 +288,8 @@ def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
 
 def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     target_id = target.node_id
-    pop_name = [key for key in lgn_params if key in target["pop_name"]][0]
+    # pop_name = [key for key in lgn_params if key in target["pop_name"]][0]
+    pop_name = target["pop_name"]
 
     if target_id % 250 == 0:
         print("connection LGN cells to V1 cell #", target_id)
@@ -313,7 +316,7 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
             probability_sON = 1.0  # for testing purpose fix later
         else:
             rf_shift_vector = np.exp(1j * tuning_angle_rad)  # using complex expression
-            probability_sON = lgn_params[pop_name]["sON_ratio"]
+            probability_sON = lgn_params.loc[pop_name, "sON_ratio"]
         if np.random.random() < probability_sON:
             cell_ignore_unit = "sOFF"  # sON cell. ignore sOFF
         else:
@@ -321,9 +324,9 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
             rf_shift_vector = -rf_shift_vector  # This will be flipped.
 
     # not very comfortable with this.
-    cell_TF = np.random.poisson(lgn_params[pop_name]["poissonParameter"])
+    cell_TF = np.random.poisson(lgn_params.loc[pop_name, "poisson_parameter"])
     while cell_TF <= 0:
-        cell_TF = np.random.poisson(lgn_params[pop_name]["poissonParameter"])
+        cell_TF = np.random.poisson(lgn_params.loc[pop_name, "poisson_parameter"])
 
     subunit_freqs = {"sON": [1, 2, 4, 8], "sOFF": [1, 2, 4, 8, 15], "tOFF": [4, 8, 15]}
     # calculate probability for each subunit types separately
@@ -409,13 +412,13 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     num_syns_orig = (
         target["target_sizes"]
         * e4_lgn_fraction
-        * lgn_params[pop_name]["synapse_ratio_against_e4"]
+        * lgn_params.loc[pop_name, "synapse_ratio_against_e4"]
     )
 
     # We know the expected value for the number of synapses.
     # We estiamte the number of connections using it and the Yule distribution
     # parameter.
-    yule_param = lgn_params[pop_name]["yuleParameter"]
+    yule_param = lgn_params.loc[pop_name, "yule_parameter"]
     num_cons = int(np.round(num_syns_orig * (yule_param - 1) / yule_param))
 
     # This line is to avoid crashing when you don't have sufficinet number of source
