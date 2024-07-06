@@ -3,41 +3,47 @@
 # connections should be adjusted.
 import pandas as pd
 import numpy as np
+import sys
+
+
+# network = "tiny"
+# get the network name from the command line argument.
+network = sys.argv[1]
 
 
 target_current = pd.read_csv("glif_models/target_currents.csv", sep=" ", index_col=0)
 actuation_matrix = pd.read_csv(
-    "core/metrics/actuation_matrix.csv", sep=" ", index_col=0
+    f"{network}/metrics/actuation_matrix.csv", sep=" ", index_col=0
 )
-
+actuation_matrix
 
 # name conversion again...
-neme_conv = {
-    "i1H": "L1 Inh",
-    "e2": "L2/3 Exc",
-    "i23P": "L2/3 PV",
-    "i23S": "L2/3 SST",
-    "i23V": "L2/3 VIP",
-    "e4": "L4 Exc",
-    "i4P": "L4 PV",
-    "i4S": "L4 SST",
-    "i4V": "L4 VIP",
-    "e5ET": "L5 ET",
-    "e5IT": "L5 IT",
-    "e5NP": "L5 NP",
-    "i5P": "L5 PV",
-    "i5S": "L5 SST",
-    "i5V": "L5 VIP",
-    "e6": "L6 Exc",
-    "i6P": "L6 PV",
-    "i6S": "L6 SST",
-    "i6V": "L6 VIP",
+name_conv = {
+    "i1H": "L1_Inh",
+    "e2": "L2/3_Exc",
+    "i23P": "L2/3_PV",
+    "i23S": "L2/3_SST",
+    "i23V": "L2/3_VIP",
+    "e4": "L4_Exc",
+    "i4P": "L4_PV",
+    "i4S": "L4_SST",
+    "i4V": "L4_VIP",
+    "e5ET": "L5_ET",
+    "e5IT": "L5_IT",
+    "e5NP": "L5_NP",
+    "i5P": "L5_PV",
+    "i5S": "L5_SST",
+    "i5V": "L5_VIP",
+    "e6": "L6_Exc",
+    "i6P": "L6_PV",
+    "i6S": "L6_SST",
+    "i6V": "L6_VIP",
 }
-rev_name_conv = {v: k for k, v in neme_conv.items()}
+rev_name_conv = {v: k for k, v in name_conv.items()}
 
 # first, change the row and column names of the actuation matrix,
 # if they are contained in name_conv.
-actuation_matrix = actuation_matrix.rename(index=neme_conv, columns=neme_conv)
+actuation_matrix = actuation_matrix.rename(index=name_conv, columns=name_conv)
 # add the row of the target_current
 actuation_matrix = pd.concat([actuation_matrix, target_current.T])
 
@@ -56,23 +62,25 @@ actuation_matrix.loc["needed_rec"] = (
     - actuation_matrix.loc["lgn"] * lgn_adjust
 )
 
+actuation_matrix
+
 actuation_matrix.loc["total_exc"] = actuation_matrix.loc[
-    ["L2/3 Exc", "L4 Exc", "L5 ET", "L5 IT", "L5 NP", "L6 Exc"]
+    ["L2/3_Exc", "L4_Exc", "L5_ET", "L5_IT", "L5_NP", "L6_Exc"]
 ].sum()
 actuation_matrix.loc["total_inh"] = actuation_matrix.loc[
     [
-        "L2/3 PV",
-        "L2/3 SST",
-        "L2/3 VIP",
-        "L4 PV",
-        "L4 SST",
-        "L4 VIP",
-        "L5 PV",
-        "L5 SST",
-        "L5 VIP",
-        "L6 PV",
-        "L6 SST",
-        "L6 VIP",
+        "L2/3_PV",
+        "L2/3_SST",
+        "L2/3_VIP",
+        "L4_PV",
+        "L4_SST",
+        "L4_VIP",
+        "L5_PV",
+        "L5_SST",
+        "L5_VIP",
+        "L6_PV",
+        "L6_SST",
+        "L6_VIP",
     ]
 ].sum()
 
@@ -140,8 +148,8 @@ for col in actuation_matrix.columns:
 mod_df = pd.DataFrame(df_data)
 
 # write it down to csv, excluding the index.
-mod_df.to_csv("core/metrics/modulation.csv", sep=" ", index=False)
+mod_df.to_csv(f"{network}/metrics/modulation.csv", sep=" ", index=False)
 
 
 # %%
-actuation_matrix.loc["adjustment_factor"]
+# actuation_matrix.loc["adjustment_factor"]

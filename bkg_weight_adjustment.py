@@ -15,32 +15,6 @@ import utils
 
 # %% try getting FR
 # get the spike dataframe
-def pop_name_to_cell_type(pop_name):
-    """convert pop_name in the old format to cell types.
-    for example,
-    'e4Rorb' -> 'L4 Exc'
-    'i4Pvalb' -> 'L4 PV'
-    'i23Sst' -> 'L2/3 SST'
-    """
-    shift = 0  # letter shift for L23
-    layer = pop_name[1]
-    if layer == "2":
-        layer = "2/3"
-        shift = 1
-    elif layer == "1":
-        return "L1 Htr3a"  # special case
-
-    class_name = pop_name[2 + shift :]
-    if class_name == "Pvalb":
-        subclass = "PV"
-    elif class_name == "Sst":
-        subclass = "SST"
-    elif (class_name == "Vip") or (class_name == "Htr3a"):
-        subclass = "VIP"
-    else:  # excitatory
-        subclass = "Exc"
-
-    return f"L{layer} {subclass}"
 
 
 def get_spike_df(basedir, query="timestamps < 100000", recurrent=False, outdir=None):
@@ -82,10 +56,10 @@ def get_model_fr(basedir, recurrent=False, duration=100.0, target="mean", outdir
         # return the array of firing rates
         model_fr = v1df.groupby("node_type_id")["spike_rate"].apply(np.array)
     elif target == "type_median":
-        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type)
+        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type_old)
         model_fr = v1df.groupby("cell_type")["spike_rate"].median()
     elif target == "type_mean":
-        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type)
+        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type_old)
         model_fr = v1df.groupby("cell_type")["spike_rate"].mean()
     else:
         raise ValueError(f"Unknown target: {target}")

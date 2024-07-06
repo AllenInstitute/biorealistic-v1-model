@@ -1,3 +1,5 @@
+import os
+
 main_scripts = ["build_network.py", "edge_funcs.py", "node_funcs.py"]
 build_files = [
     "base_props/lgn_weights_population.csv",
@@ -11,6 +13,7 @@ build_files = [
 ]
 
 config_files = [
+    "config_adjusted.json",
     "config_bkg.json",
     "config_lgn.json",
     "config_lgnbkg.json",
@@ -55,20 +58,23 @@ networks = {
         "fraction": 0.005
     },
     "small": {
-        "fraction": 0.05
+        "fraction": 0.05,  # creates ~200 µm radius network
+        "core_radius": 100
     },
     "core": {
-        "fraction": 0.22145328719723 # creates a 400 µm radius network
+        "fraction": 0.22145328719723,  # creates a 400 µm radius network
+        "core_radius": 200
     },
     "full": {
-        "fraction": 1  # requires a cluster to build
+        "fraction": 1,  # 850 µm radius.
+        "core_radius": 400
     }
 }
 
 n_threads = 8
 
 rule all:
-    input: "tiny/output/spikes.h5"
+    input: "small/figures/OSI_DSI.png"
 
 rule core_spikes:
     input: "core/output/spikes.h5"
@@ -216,7 +222,9 @@ rule bkg_spikes:
             "{network_name}/network/bkg_nodes.h5",
             "{network_name}/network/bkg_v1_edge_types.csv",
         ]
-    output: "{network_name}/bkg/bkg_spikes_250Hz_3s.h5" # representative file
+    output:
+        "{network_name}/bkg/bkg_spikes_250Hz_3s.h5", # representative file
+        "{network_name}/bkg/bkg_spikes_250Hz_10s.h5"
     shell: "python {input.script} {wildcards.network_name}"
 
 
@@ -237,7 +245,7 @@ rule config_files:
     shell: """
         mkdir -p {wildcards.network_name}/configs
         cp config_templates/*.json {wildcards.network_name}/configs
-        ln -s config_plain.json {wildcards.network_name}/configs/config.json
+        ln -s config_adjusted.json {wildcards.network_name}/configs/config.json
     """
     
 
@@ -246,23 +254,34 @@ rule filternet_spikes:
     input:
         script="run_filternet.py",
         network=["{network_name}" + name for name in filter_files],
-        config="{network_name}/configs/config_filternet{opt}.json"
-    output: "{network_name}/filternet{opt}/spikes.h5"
+        config="{network_name}/configs/config_filternet.json"
+    output: "{network_name}/filternet/spikes.h5"
     threads: n_threads
     shell: "mpirun -np {n_threads} python {input.script} {input.config}"
     
+
+rule filternet_bkgtune_spikes:
+    input:
+        script="run_filternet.py",
+        network=["{network_name}" + name for name in filter_files],
+        config="{network_name}/configs/config_filternet_bkgtune.json"
+    output: "{network_name}/filternet_bkgtune/spikes.h5"
+    threads: n_threads
+    shell: "mpirun -np {n_threads} python {input.script} {input.config}"
+ 
 
 rule output_spikes:
     input:
         script="run_pointnet.py",
         network=["{network_name}" + name for name in network_files],
-        config="{network_name}/configs/config.json",
+        adjusted=lambda wildcards: f"{wildcards.network_name}/network/v1_v1_edges_adjusted.h5" if wildcards.run_opt == "_adjusted" else None,
+        config="{network_name}/configs/config{run_opt}.json",
         components="{network_name}/components/synaptic_models/e4_to_e4.json",
         data=[
             "{network_name}/filternet/spikes.h5",
-            "{network_name}/bkg/bkg_spikes_250Hz_3s.h5",
+            "{network_name}/bkg/bkg_spikes_250Hz_3s.h5",  # representative file
         ]
-    output: "{network_name}/output/spikes.h5"
+    output: "{network_name}/output{run_opt}/spikes.h5"
     threads: n_threads
     shell: "python {input.script} {input.config} -n {n_threads}"
 
@@ -280,6 +299,111 @@ rule output_spikes_bkgtune:
     output: "{network_name}/output_bkgtune/spikes.h5"
     threads: n_threads
     shell: "python {input.script} {input.config} -n {n_threads}"
+
+
+rule actuation_matrix:
+    input:
+        script="plot_actuation_matrix.py",
+        network=["{network_name}" + name for name in network_files]
+    output:
+        "{network_name}/metrics/actuation_matrix.csv",
+        "{network_name}/figures/actuation_matrix.pdf"
+    shell: "python {input.script} {wildcards.network_name}"
+
+
+rule model_target_current:
+    input:
+        script="calculate_target_current.py",
+        data=[
+            "neuropixels/metrics/OSI_DSI_DF_data.csv",
+            "glif_requisite/glif_models_prop.csv",
+            "glif_models/if_curves_all.csv"
+        ]
+    output: "glif_models/target_currents.csv"
+    shell: "python {input.script}"
+
+
+rule if_curves:
+    input:
+        script="calculate_if_curves.py",
+        data=[
+            "glif_requisite/glif_models_prop.csv",
+            "glif_models/cell_models/313861608_glif_lif_asc_config.json"
+        ]
+    output:
+        "glif_models/if_curves_all.csv",
+    shell: "python {input.script}"
+
+
+rule current_adjustment_factor:
+    input:
+        script="calculate_adjustment_factor.py",
+        network="{network_name}/metrics/actuation_matrix.csv",
+        data="glif_models/target_currents.csv"
+    output: "{network_name}/metrics/modulation.csv"
+    shell: "python {input.script} {wildcards.network_name}"
+
+
+rule recurrent_edge_adjustment:
+    input:
+        script="make_adjusted_network.py",
+        network=["{network_name}" + name for name in network_files],
+        data="{network_name}/metrics/modulation.csv"
+    output: "{network_name}/network/v1_v1_edges_adjusted.h5"
+    shell: "python {input.script} {wildcards.network_name}"
+
+
+rule filternet_osi_job:
+    input:
+        script="make_osi_jobs.py",
+        network=["{network_name}" + name for name in filter_files],
+        data="{network_name}/configs/config_filternet.json"
+    output: "{network_name}/jobs/filternet_8dir_10trials.sh"
+    shell: "python {input.script} {wildcards.network_name} --filternet"
+        
+
+rule osi_job:
+    input:
+        script="make_osi_jobs.py",
+        network=["{network_name}" + name for name in network_files],
+        adjusted="{network_name}/network/v1_v1_edges_adjusted.h5",
+        data="{network_name}/configs/config.json"
+    output: "{network_name}/jobs/8dir_10trials.sh"
+    shell: "python {input.script} {wildcards.network_name}"
+
+
+curdir = os.getcwd()
+rule run_filternet_osi_job:
+    input:
+        script="{network_name}/jobs/filternet_8dir_10trials.sh"
+    output: "{network_name}/filternet_8dir_10trials/angle0_trial0/spikes.h5"
+    params: curdir=curdir
+    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    
+
+rule run_osi_job:
+    input:
+        script="{network_name}/jobs/8dir_10trials.sh",
+        data="{network_name}/filternet_8dir_10trials/angle0_trial0/spikes.h5"
+    output: "{network_name}/8dir_10trials/angle0_trial0/spikes.h5"
+    params: curdir=curdir
+    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+
+
+rule odsi_metrics:
+    input:
+        script="calculate_odsi.py",
+        data="{network_name}/8dir_10trials/angle0_trial0/spikes.h5"
+    output: "{network_name}/metrics/OSI_DSI_DF.csv"
+    shell: "python {input.script} {wildcards.network_name}"
+
+
+rule plot_odsi:
+    input:
+        script="plot_odsi.py",
+        data="{network_name}/metrics/OSI_DSI_DF.csv"
+    output: "{network_name}/figures/OSI_DSI.png"
+    shell: "python {input.script} {wildcards.network_name}"
 
 
 rule bkg_adjustment:

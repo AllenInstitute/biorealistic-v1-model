@@ -24,7 +24,6 @@ def get_rheobase(pops):
 
 
 if __name__ == "__main__":
-
     # parse the argument.
     # argument is the basedir and the core radius.
     # core radius is optional (default, None (auto recognition))
@@ -84,7 +83,10 @@ if __name__ == "__main__":
     # converting to actuation matrix
 
     npdf = pd.read_csv("neuropixels/metrics/OSI_DSI_DF.csv", sep=" ")
+
     sp_rates = npdf.groupby("cell_type").mean()["Avg_Rate(Hz)"]
+    # replacing the white space with _ in case the OSI_DSI_DF is old.
+    sp_rates.index = sp_rates.index.str.replace(" ", "_")
 
     # add LGN and bkg firing rates. LGN is mixture of the spont (1/3) and
     # stimulated (2/3) periods.
@@ -94,13 +96,13 @@ if __name__ == "__main__":
 
     # duplicate L5 FR in sp_rates.
     # delete 'L5 Exc' row and replace it with L5 IT, L5 PT, and L5 NP.
-    l5e = sp_rates["L5 Exc"]
-    l5e_index = sp_rates.index.get_loc("L5 Exc")
-    sp_rates = sp_rates.drop("L5 Exc")
+    l5e = sp_rates["L5_Exc"]
+    l5e_index = sp_rates.index.get_loc("L5_Exc")
+    sp_rates = sp_rates.drop("L5_Exc")
 
     # insert the new values.
     sp_rates = pd.concat(
-        [sp_rates, pd.Series([l5e, l5e, l5e], index=["L5 ET", "L5 IT", "L5 NP"])]
+        [sp_rates, pd.Series([l5e, l5e, l5e], index=["L5_ET", "L5_IT", "L5_NP"])]
     )
 
     # sort the index.

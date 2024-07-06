@@ -37,6 +37,8 @@ base_props/exclude_list.csv: Cells listed in this file will be excluded from the
 
 base_props/bkg_weights_population.csv: This file defines synaptic weights from background cell (currently, there is only one entity for background source) to each cell population. The synaptic weights in this file are copied from the previous model (except for L5 which is average of the two types in the previous model), and are parameters of the optimization stage later.
 
+Preferred data storage option is CSV format, as long as the data are not large. All the csv files are 'space' separarated (to match with SONATA format). Larger data can be stored as h5 data frame. All should be readable in pandas.
+
 ## Main contributors
 
 * Shinya Ito

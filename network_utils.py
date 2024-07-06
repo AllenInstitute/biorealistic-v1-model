@@ -372,16 +372,6 @@ def infer_core_radius(basedir):
         return 200
 
 
-# class ReccurentNetwork(object):
-#     def __init__(self, basedir, core_radius=200):
-#         self.basedir = basedir
-#         self.nodes = load_nodes(basedir, "v1", core_radius)
-#         self.edges = load_edges(basedir, "v1", "v1")
-
-
-#     def
-
-
 class SonataNetwork(object):
     def __init__(self, basedir, exclude=[]):
         self.basedir = basedir
@@ -437,7 +427,3 @@ class SonataNetwork(object):
         if not hasattr(self, "_networks"):
             self._networks = self.detect_networks()
         return self._networks
-
-
-# self test in the end
-# if __name__ == "__main__":

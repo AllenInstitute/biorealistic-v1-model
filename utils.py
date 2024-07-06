@@ -1,3 +1,17 @@
+import pandas as pd
+
+# I suggest directly reading the csv file, but these are kept for old scripts.
+
+cell_type_df = pd.read_csv(
+    "base_props/cell_type_naming_scheme.csv", sep=" ", index_col=0
+)
+
+pop_name_to_syn_type = cell_type_df["cell_type_synaptic"]
+pop_name_to_cell_type = cell_type_df["cell_type"]
+pop_name_to_cell_type_old = cell_type_df["cell_type_old"]
+
+
+""" These are deprecated. let's use the new scheme above.
 # general utilities for the project.
 pop_name_to_syn_type = {
     "i1Htr3a": "vip",
@@ -74,3 +88,4 @@ pop_name_to_cell_type2 = {
     "i6Pvalb": "L6 PV",
     "i6Sst": "L6 SST",
 }
+"""

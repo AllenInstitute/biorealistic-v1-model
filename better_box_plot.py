@@ -10,34 +10,7 @@ import sys
 import pathlib
 from matplotlib.patches import Rectangle
 from plotting_utils import pick_core
-
-
-def pop_name_to_cell_type(pop_name):
-    """convert pop_name in the old format to cell types.
-    for example,
-    'e4Rorb' -> 'L4 Exc'
-    'i4Pvalb' -> 'L4 PV'
-    'i23Sst' -> 'L2/3 SST'
-    """
-    shift = 0  # letter shift for L23
-    layer = pop_name[1]
-    if layer == "2":
-        layer = "2/3"
-        shift = 1
-    elif layer == "1":
-        return "L1 Htr3a"  # special case
-
-    class_name = pop_name[2 + shift :]
-    if class_name == "Pvalb":
-        subclass = "PV"
-    elif class_name == "Sst":
-        subclass = "SST"
-    elif (class_name == "Vip") or (class_name == "Htr3a"):
-        subclass = "VIP"
-    else:  # excitatory
-        subclass = "Exc"
-
-    return f"L{layer} {subclass}"
+import utils
 
 
 # basedir = 'small'
@@ -52,7 +25,8 @@ def get_osi_df(basedir, metric_file="OSI_DSI_DF.csv", metric_name="", radius=400
         v1df = net.nodes["v1"].to_dataframe()
         osi_df = pd.read_csv(f"{basedir}/metrics/{metric_file}", sep=" ")
         df = v1df.merge(osi_df)
-        df["cell_type"] = df["pop_name"].apply(pop_name_to_cell_type)
+        df["cell_type"] = df["pop_name"].map(utils.pop_name_to_cell_type)
+        df["ei"] = df["pop_name"].map(utils.pop_name_to_ei)
         df = pick_core(df, radius=radius)
 
     df.rename(
@@ -101,7 +75,8 @@ def plot_one(ax, df, metric_name, ylim, cpal=None, e_only=False):
     if e_only:
         # first, filter out cell type == nan
         df = df[~df["cell_type"].isna()]
-        df = df[df["cell_type"].str.contains("Exc")]
+        # df = df[df["cell_type"].str.contains("Exc")]
+        df = df[df["ei"] == "e"]
     sns.boxplot(
         x="cell_type",
         y=metric_name,
