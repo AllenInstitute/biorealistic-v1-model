@@ -467,8 +467,9 @@ def add_edges_v1(net, core_radius):
 
 def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
     # lgn_models = json.load(open("base_props/lgn_models.json", "r"))
-    with open("base_props/lgn_models.json", "r") as f:
-        lgn_models = json.load(f)
+    # with open("base_props/lgn_models.json", "r") as f:
+    # lgn_models = json.load(f)
+    lgn_models = pd.read_csv("base_props/lgn_models.csv", sep=" ", index_col=0)
 
     lgn = NetworkBuilder("lgn")
     X_len = x_block * X_grids  # default is 120 degrees
@@ -476,7 +477,8 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
 
     xcoords = []
     ycoords = []
-    for model, params in lgn_models.items():
+    # for model, params in lgn_models.items():
+    for model, params in lgn_models.iterrows():
         # Get position of lgn cells and keep track of the averaged location
         # For now, use randomly generated values
         total_N = params["N"] * X_grids * Y_grids
@@ -490,7 +492,7 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
 
         # Get spatial filter size of cells
         filter_sizes = get_filter_spatial_size(
-            params["N"], X_grids, Y_grids, params["size_range"]
+            params["N"], X_grids, Y_grids, params["min_size"], params["max_size"]
         )
 
         # Get filter temporal parameters
@@ -501,7 +503,8 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
 
         lgn.add_nodes(
             N=total_N,
-            pop_name=params["model_id"],
+            # pop_name=params["model_id"],
+            pop_name=params["pop_name"],
             model_type="virtual",
             ei="e",
             location="LGN",
