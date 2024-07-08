@@ -5,9 +5,9 @@ the goal is to make the cluter running as easy as possible, while permitting nec
 manipulations of the parameters.
 
 Eventually, the command to run is like this
-mpirun -np 8 python run_filternet.py <config_file>
+mpirun --oversubscribe -np 8 python run_filternet.py <config_file>
 or
-mpirun -np 8 python run_pointnet.py <config_file>
+python run_pointnet.py -n 8 <config_file>
 8 should be changed to an appropriate number of cores (using a big number may not be helpful)
 
 These commands should be stored in the job file
@@ -34,7 +34,7 @@ def sbatch_boilerplate(file, logdir, config_counts, memory=32, jobs=1, threads=8
     time = "2:00:00" if (jobs * threads) <= 4 else "1:00:00"
 
     file.write("#!/bin/bash\n")
-    file.write("#SBATCH --partition=braintv\n")
+    file.write("#SBATCH --partition=d3\n")
     # if full_memory:  # full model needs a lot of memory
     #     file.write("#SBATCH -N1 -c1 -n4\n")
     #     file.write("#SBATCH --mem-per-cpu=60G\n")
@@ -43,19 +43,20 @@ def sbatch_boilerplate(file, logdir, config_counts, memory=32, jobs=1, threads=8
     #     file.write("#SBATCH -N1 -c1 -n8\n")
     #     file.write("#SBATCH --mem-per-cpu=15G\n")
     #     file.write("#SBATCH -t1:00:00\n")
-    file.write(f"#SBATCH -N1 -c1 -n{jobs * threads}\n")
+    file.write(f"#SBATCH -N1 -n1 -c{jobs * threads}\n")
     # file.write(f"#SBATCH --mem-per-cpu={memory}G\n")
     # now better to specify the total memory
     file.write(f"#SBATCH --mem={memory}G\n")
     file.write(f"#SBATCH -t{time}\n")
 
-    file.write("#SBATCH --qos=braintv\n")
+    file.write("#SBATCH --qos=d3\n")
     file.write(f"#SBATCH --output={logdir}/slurm-%A_%a.out\n")
     file.write(f"#SBATCH --error={logdir}/slurm-%A_%a.err\n")
     # array ID range includes both edges
     file.write(f"#SBATCH --array=0-{config_counts-1}\n\n")
     file.write(
-        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest_sdk_develop.sh\n"
+        # "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest_sdk_develop.sh\n"
+        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/miniconda3/bin/activate new_v1\n"
     )
     # file.write(
     #     "module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles\n"
@@ -146,7 +147,9 @@ def write_filternet_job(basedir, config_counts):
 
         config_array = configdir + "/config_filternet_$SLURM_ARRAY_TASK_ID.json"
         # f.write(f"srun --mpi=pmi2 python run_filternet.py {config_array}")
-        f.write(f"mpirun -np {jobs * cores} python run_filternet.py {config_array}")
+        f.write(
+            f"mpirun --oversubscribe -np {jobs * cores} python run_filternet.py {config_array}"
+        )
 
 
 if __name__ == "__main__":

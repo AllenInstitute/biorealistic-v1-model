@@ -274,7 +274,7 @@ rule output_spikes:
     input:
         script="run_pointnet.py",
         network=["{network_name}" + name for name in network_files],
-        adjusted=lambda wildcards: f"{wildcards.network_name}/network/v1_v1_edges_adjusted.h5" if wildcards.run_opt == "_adjusted" else None,
+        adjusted=lambda wildcards: f"{wildcards.network_name}/network/v1_v1_edges_adjusted.h5" if wildcards.run_opt == "_adjusted" else [],
         config="{network_name}/configs/config{run_opt}.json",
         components="{network_name}/components/synaptic_models/e4_to_e4.json",
         data=[

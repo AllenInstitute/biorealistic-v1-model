@@ -55,7 +55,8 @@ def sbatch_boilerplate(file, logdir, config_counts, memory=32, jobs=1, threads=8
     # array ID range includes both edges
     file.write(f"#SBATCH --array=0-{config_counts-1}\n\n")
     file.write(
-        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest_sdk_develop.sh\n"
+        # "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest_sdk_develop.sh\n"
+        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/miniconda3/bin/activate new_v1\n"
     )
     # file.write(
     #     "module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles\n"
@@ -146,7 +147,9 @@ def write_filternet_job(basedir, config_counts):
 
         config_array = configdir + "/config_filternet_$SLURM_ARRAY_TASK_ID.json"
         # f.write(f"srun --mpi=pmi2 python run_filternet.py {config_array}")
-        f.write(f"mpirun -np {jobs * cores} python run_filternet.py {config_array}")
+        f.write(
+            f"mpirun --oversubscribe -np {jobs * cores} python run_filternet.py {config_array}"
+        )
 
 
 if __name__ == "__main__":

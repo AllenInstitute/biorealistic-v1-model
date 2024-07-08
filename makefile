@@ -139,7 +139,7 @@ diagnose/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 
 small/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p small
-	mpirun -np 8 python build_network.py -f -o small/network --fraction 0.05 --compression gzip
+	mpirun -np 4 python build_network.py -f -o small/network --fraction 0.05 --compression gzip
 
 forty/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	# forty is the largest network that can run on a single core.

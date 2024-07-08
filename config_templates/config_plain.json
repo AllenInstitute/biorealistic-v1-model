@@ -3,7 +3,7 @@
     "$BASE_DIR": "${configdir}/..",
     "$NETWORK_DIR": "$BASE_DIR/network",
     "$MODELS_DIR": "$BASE_DIR/components",
-    "$OUTPUT_DIR": "$BASE_DIR/output",
+    "$OUTPUT_DIR": "$BASE_DIR/output_plain",
     "$LGNINPUT_DIR": "$BASE_DIR/filternet",
     "$BKGINPUT_DIR": "$BASE_DIR/bkg"
   },
