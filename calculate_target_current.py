@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 # rev_pname = {v: k for k, v in pnames.items()}
 
 
-npdf = pd.read_csv("neuropixels/metrics/OSI_DSI_DF.csv", sep=" ")
+npdf = pd.read_csv("neuropixels/metrics/OSI_DSI_DF_data.csv", sep=" ")
 sp_rates = npdf.groupby("cell_type").mean()["Avg_Rate(Hz)"]
 # sp_rates = npdf.groupby("cell_type").median()["Avg_Rate(Hz)"]
 sp_rates

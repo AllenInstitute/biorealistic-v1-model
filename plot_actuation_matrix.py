@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     # converting to actuation matrix
 
-    npdf = pd.read_csv("neuropixels/metrics/OSI_DSI_DF.csv", sep=" ")
+    npdf = pd.read_csv("neuropixels/metrics/OSI_DSI_DF_data.csv", sep=" ")
 
     sp_rates = npdf.groupby("cell_type").mean()["Avg_Rate(Hz)"]
     # replacing the white space with _ in case the OSI_DSI_DF is old.

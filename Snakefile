@@ -4,7 +4,7 @@ main_scripts = ["build_network.py", "edge_funcs.py", "node_funcs.py"]
 build_files = [
     "base_props/lgn_weights_population.csv",
     "base_props/lgn_params.csv",
-    "base_props/lgn_models.json",
+    "base_props/lgn_models.csv",
     "glif_props/v1_node_models.json",
     "glif_props/v1_edge_models.csv",
     "glif_props/lgn_weights_model.csv",
@@ -304,7 +304,8 @@ rule output_spikes_bkgtune:
 rule actuation_matrix:
     input:
         script="plot_actuation_matrix.py",
-        network=["{network_name}" + name for name in network_files]
+        network=["{network_name}" + name for name in network_files],
+        data="neuropixels/metrics/OSI_DSI_DF_data.csv"
     output:
         "{network_name}/metrics/actuation_matrix.csv",
         "{network_name}/figures/actuation_matrix.pdf"
