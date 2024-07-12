@@ -8,7 +8,6 @@ from itertools import compress
 from scipy.stats import yulesimon, multivariate_normal
 
 
-# lgn_params = json.load(open("base_props/lgn_params.json", "r"))
 lgn_params = pd.read_csv("base_props/lgn_params.csv", sep=" ", index_col=0)
 lgn_shift_dict = {
     "sON_TF1": -1.0,
@@ -117,22 +116,15 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
     sources_z = np.array(source_nodes["z"])
     sources_tuning_angle = np.array(source_nodes["tuning_angle"])
 
-    # Get target id
-    tid = target.node_id
-    # if tid % 1000 == 0:
-    #     print('target {}'.format(tid))
-
     # size of target cell (total syn number) will modulate connection probability
     target_size = target["target_sizes"]
     target_pop_mean_size = target["nsyn_size_mean"]
 
     # Read parameter values needed for distance and orientation dependence
-    # A_new = params["A_new"]
     pmax = params["pmax"]
     sigma = params["sigma"]
     gradient = params["gradient"]
     intercept = params["intercept"]
-    # nsyn_range = params["nsyn_range"]
 
     # Calculate the intersomatic distance between the current two cells (in 2D - not including depth)
     intersomatic_distance = np.sqrt(
@@ -177,9 +169,6 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
 
     Rossi_mvNorm = multivariate_normal(Rossi_mean, Rossi_cov)
 
-    # if target.node_id % 10000 == 0:
-    #     print("Working on tid: ", target.node_id)
-
     ### Check if there is orientation dependence
     if not np.isnan(gradient):
         # Calculate the difference in orientation tuning between the cells
@@ -190,16 +179,8 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
         # For OSI, convert to quadrant from 0 - 90 degrees
         delta_orientation = abs(abs(abs(180.0 - abs(delta_orientation)) - 90.0) - 90.0)
 
-        # Calculate the probability two cells are connected based on distance and orientation
-        # p_connect = (
-        #    A_new
-        #    * np.exp(-((intersomatic_distance / sigma) ** 2))
-        #    * (intercept + gradient * delta_orientation)
-        # )
-
         # using Rossi:
         p_connect = (
-            # A_new
             pmax
             * Rossi_mvNorm.pdf(intersomatic_xz)
             / Rossi_mvNorm.pdf(Rossi_mean)
@@ -209,22 +190,10 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
     ### If no orientation dependence
     else:
         # Calculate the probability two cells are connection based on distance only
-        # p_connect = A_new * np.exp(-((intersomatic_distance / sigma) ** 2))
-
         # using Rossi:
         p_connect = (
-            # A_new * Rossi_mvNorm.pdf(intersomatic_xz) / Rossi_mvNorm.pdf(Rossi_mean)
-            pmax
-            * Rossi_mvNorm.pdf(intersomatic_xz)
-            / Rossi_mvNorm.pdf(Rossi_mean)
+            pmax * Rossi_mvNorm.pdf(intersomatic_xz) / Rossi_mvNorm.pdf(Rossi_mean)
         )
-
-    # # Sanity check warning
-    # if p_connect > 1:
-    #    print(
-    #        "WARNING WARNING WARNING: p_connect is greater that 1.0 it is: "
-    #        + str(p_connect)
-    #    )
 
     # If not the same cell (no self-connections)
     if 0.0 in intersomatic_distance:
@@ -239,15 +208,6 @@ def connect_cells(sources, target, params, source_nodes, core_radius):
     # Decide which cells get a connection based on the p_connect value calculated
     p_connected = np.random.binomial(1, p_connect)
 
-    # Synapse number only used for calculating numbers of "leftover" syns to assign as background; N_syn_ will be added through 'add_properties'
-    # p_connected[p_connected == 1] = 1
-
-    # p_connected[p_connected == 1] = np.random.randint(
-    #    nsyn_range[0], nsyn_range[1], len(p_connected[p_connected == 1])
-    # )
-
-    # TODO: remove list comprehension
-    # nsyns_ret = [Nsyn if Nsyn != 0 else None for Nsyn in p_connected]
     nsyns_ret = p_connected
 
     return nsyns_ret
@@ -288,15 +248,12 @@ def within_ellipse(x, y, tuning_angle, e_x, e_y, e_cos, e_sin, e_a, e_b):
 
 def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     target_id = target.node_id
-    # pop_name = [key for key in lgn_params if key in target["pop_name"]][0]
     pop_name = target["pop_name"]
 
     if target_id % 250 == 0:
         print("connection LGN cells to V1 cell #", target_id)
 
-    # x_position_lin_degrees = convert_x_to_lindegs(target["x"])
-    # y_position_lin_degrees = convert_z_to_lindegs(target["z"])
-    # this is simpler for the new coordinate
+    # the coordinates are already in visual field space, so simple multiplication is all you need.
     x_position_lin_degrees = target["x"] * 0.07
     y_position_lin_degrees = target["z"] * 0.04
 
@@ -354,10 +311,7 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
         shift = 2.5  # amount to shift the RF
     else:
         shift = 2.5  # amount to shift the RF
-    # TODO: test str.startswith
-    # lgn_complex[lgn_circle["pop_name"].str.startswith("sON_")] -= rf_shift_vector * shift
-    # lgn_complex[lgn_circle["pop_name"].str.startswith("sOFF_")] -= rf_shift_vector * shift
-    # lgn_complex[lgn_circle["pop_name"].str.startswith("tOFF_")] += rf_shift_vector * shift
+
     lgn_complex += np.array(
         lgn_circle["pop_name"].map(lgn_shift_dict) * rf_shift_vector * shift
     )
@@ -371,7 +325,6 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
     lgn_strech = lgn_rotate.real * sq_asr + 1j * lgn_rotate.imag / sq_asr
     lgn_back = lgn_strech * rf_shift_vector
 
-    # relative_rf_dist = np.abs(lgn_complex - rf_center)
     relative_rf_dist = np.abs(lgn_back)
 
     gauss_radius = 5.0  # extention of LGN axons in degrees
@@ -390,7 +343,6 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
         for i in range(len(probs)):
             # construct the name
             typename = f"{subname}_TF{freqs[i]}"
-            # subunit_prob[lgn_circle["pop_name"].str.startswith(typename)] = probs[i]
             subunit_dict_keys.append(typename)
             subunit_dict_values.append(probs[i])
 
@@ -447,11 +399,7 @@ def select_lgn_sources_powerlaw(sources, target, lgn_mean, lgn_nodes):
 
     # there should be 1 synapse connections remaining
     nsyns_ret[selected_lgn_inds] = 1
-    # nsyns_ret = list(nsyns_ret)
 
-    # getting back to list
-    # nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
-    # return
     return nsyns_ret
 
 
@@ -464,9 +412,6 @@ def select_bkg_sources(sources, target, n_syns, n_conn):
     selected_units = np.random.choice(n_unit, size=n_conn, replace=False)
     nsyns_ret = np.zeros(n_unit, dtype=int)
     nsyns_ret[selected_units] = n_syns
-    # nsyns_ret = list(nsyns_ret)
-    # getting back to list
-    # nsyns_ret = [None if n == 0 else n for n in nsyns_ret]
     return nsyns_ret
 
 
