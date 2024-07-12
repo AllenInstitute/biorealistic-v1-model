@@ -309,7 +309,9 @@ rule actuation_matrix:
     output:
         "{network_name}/metrics/actuation_matrix.csv",
         "{network_name}/figures/actuation_matrix.pdf"
-    shell: "python {input.script} {wildcards.network_name}"
+    params:
+        core_radius=lambda wildcards: networks[wildcards.network_name]["core_radius"]
+    shell: "python {input.script} {wildcards.network_name} -c {params.core_radius}"
 
 
 rule model_target_current:
