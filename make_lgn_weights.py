@@ -24,14 +24,7 @@ def parse_args():
 def make_pop_model_dict(double_alpha=False):
     # make the pop_model_dict first.
     #
-    # v1_node_model = json.load(open("glif_props/v1_node_models.json"))
     v1_node_model = pd.read_csv("glif_props/v1_node_models.csv", sep=" ", index_col=0)
-    # flatten down to population
-    # pop_model_dict = {}
-    # for loc, locdict in v1_node_model["locations"].items():
-    #     for pop, popdict in locdict.items():
-    #         for m in popdict["models"]:
-    #             pop_model_dict[m["node_type_id"]] = pop
     pop_model_dict = v1_node_model["pop_name"].to_dict()
 
     # pop_models_name replaces the pop_name with syn_name.
@@ -91,7 +84,7 @@ if __name__ == "__main__":
     pop_all = mix_in_population_weights(basename, pop_model_dict, v1unitary_ser)
 
     # do a bit of treatment of the highly active models.
-    # these models are too active just with the LGN inputs, so reduce the weights by 10%
+    # these models are too active just with the LGN inputs, so reduce the weights
     # [model_id, reduction_factor]
     active_models = [
         [479179020, 0.9],
