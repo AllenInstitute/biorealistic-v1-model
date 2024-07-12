@@ -29,7 +29,6 @@ def draw_billeh_line(ax, x, y, color, length):
 if __name__ == "__main__":
     basedir = sys.argv[1]
     # basedir = "original_mini"
-    # basedir = "miniature"
     # basedir = 'small'
 
     net = File(basedir + "/network/v1_nodes.h5", basedir + "/network/v1_node_types.csv")
@@ -55,7 +54,6 @@ if __name__ == "__main__":
         df_core.boxplot("max_mean_rate(Hz)", "pop_name", ax=ax[0])
     ax[0].set_ylim([0, 35])
 
-
     if billeh_compare:
         df_core[resp].boxplot("DSI", ["location", "ei"], ax=ax[1])
         x = ax[1].get_xlim()[1] + 0.5
@@ -64,7 +62,6 @@ if __name__ == "__main__":
     else:
         df_core[resp].boxplot("DSI", "pop_name", ax=ax[1])
     ax[1].set_ylim([0, 1])
-        
 
     if billeh_compare:
         df_core[resp].boxplot("OSI", ["location", "ei"], ax=ax[2])
@@ -83,4 +80,3 @@ if __name__ == "__main__":
     plt.tight_layout()
     pathlib.Path(basedir + "/figures").mkdir(parents=True, exist_ok=True)
     plt.savefig(basedir + "/figures/OSI_DSI.png")
-

@@ -30,7 +30,6 @@ model_processing: 'aibs_perisomatic'
 rotation_angle_zaxis: -2.728849956000004
 """
 
-
 # %% reading excel file to get the population info
 import pylightxl as xl
 import numpy as np
@@ -82,45 +81,6 @@ def distribute_nums(n, m):
 
 
 def pick_glif_models(models_df, row, douple_alpha=False):
-    # # Need short names for indexing (leaving these here temporarily in case they are needed elsewhere)
-    # pop_name_long2short = {
-    #     "i1Htr3a": "vip",
-    #     "e23Cux2": "e23",
-    #     "i23Vip": "vip",
-    #     "i23Pvalb": "pv",
-    #     "i23Sst": "sst",
-    #     "e4Nr5a1": "e4",
-    #     "e4Rorb": "e4",
-    #     "e4Scnn1a": "e4",
-    #     "e4other": "e4",
-    #     "i4Vip": "vip",
-    #     "i4Pvalb": "pv",
-    #     "i4Sst": "sst",
-    #     "e5IT": "e5it",
-    #     "e5ET": "e5et",
-    #     "e5NP": "e5np",
-    #     "i5Vip": "vip",
-    #     "i5Pvalb": "pv",
-    #     "i5Sst": "sst",
-    #     "e6Ntsr1": "e6",
-    #     "i6Vip": "vip",
-    #     "i6Pvalb": "pv",
-    #     "i6Sst": "sst",
-    # }
-    # cell_pops_pre = [
-    #     "e23",
-    #     "e4",
-    #     "e5et",
-    #     "e5it",
-    #     "e5np",
-    #     "e6",
-    #     "pv",
-    #     "sst",
-    #     "vip",
-    #     "lgn",
-    # ]
-    # cell_pops_post = ["e23", "e4", "e5et", "e5it", "e5np", "e6", "pv", "sst", "vip"]
-
     # models are pre-selected, so you can directly search with pop_name
     selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
 
@@ -186,12 +146,8 @@ def pick_bio_models(models_df, row):
 
 
 def make_v1_node_models(args):
-    if args.miniature:
-        filepath = "base_props/V1model_seed_file_miniature.xlsx"
-        outfilepath = "glif_props/v1_node_models_miniature.json"
-    else:
-        filepath = "base_props/V1model_seed_file.xlsx"
-        outfilepath = "glif_props/v1_node_models.json"
+    filepath = "base_props/V1model_seed_file.xlsx"
+    outfilepath = "glif_props/v1_node_models.json"
 
     db = xl.readxl(filepath)
     table = db.ws("cell_models").ssd(keycols="pop_id", keyrows="pop_id")
@@ -244,13 +200,6 @@ def pop_name_change(pop_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Make a required node definition file for the GLIF model"
-    )
-    parser.add_argument(
-        "-m",
-        "--miniature",
-        action="store_true",
-        default=False,
-        help="make a miniature version of the simualtion for debugging",
     )
     parser.add_argument(
         "-d",

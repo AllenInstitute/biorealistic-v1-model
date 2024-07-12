@@ -39,11 +39,8 @@ import logging
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=1.00, miniature=False, flat=False):
-    if miniature:
-        node_props = "glif_props/v1_node_models_miniature.json"
-    else:
-        node_props = "glif_props/v1_node_models.json"
+def add_nodes_v1(fraction=1.00, flat=False):
+    node_props = "glif_props/v1_node_models.json"
     # v1_models = json.load(open(node_props, "r"))
     with open(node_props, "r") as f:
         v1_models = json.load(f)
@@ -530,11 +527,8 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
     return lgn
 
 
-def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0, miniature=False):
-    if miniature:
-        node_props = "glif_props/v1_node_models_miniature.json"
-    else:
-        node_props = "glif_props/v1_node_models.json"
+def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
+    node_props = "glif_props/v1_node_models.json"
     v1_models = json.load(open(node_props, "r"))
 
     # skipping the 'locations' (e.g. VisL1) key and make a population-based
@@ -709,12 +703,6 @@ if __name__ == "__main__":
         help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes (radius is reduced; density is kept)",
     )
     parser.add_argument(
-        "--miniature",
-        action="store_true",
-        default=False,
-        help="Make a miniture network with a small LGN. Only for debugging",
-    )
-    parser.add_argument(
         "--flat",
         action="store_true",
         default=False,
@@ -795,9 +783,7 @@ if __name__ == "__main__":
         print("Building v1 network")
         # check_files_exists(args.output_dir, 'v1', 'v1', args.force_overwrite)
         set_seed(seed_v1_nodes)
-        v1 = add_nodes_v1(
-            fraction=args.fraction, miniature=args.miniature, flat=args.flat
-        )
+        v1 = add_nodes_v1(fraction=args.fraction, flat=args.flat)
         if not args.no_recurrent:
             set_seed(seed_v1_edges)
             v1 = add_edges_v1(v1, args.core_radius)
@@ -829,12 +815,7 @@ if __name__ == "__main__":
 
         # now regardless of settings, LGN models are the same
         set_seed(seed_lgn_nodes)
-        if args.miniature:
-            lgn = add_nodes_lgn(
-                X_grids=1, Y_grids=2, x_block=x_block_unit, y_block=y_block_unit
-            )
-        else:
-            lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
+        lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
         set_seed(seed_lgn_edges)
         lgn = lgn_v1_edge_func(
             v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit

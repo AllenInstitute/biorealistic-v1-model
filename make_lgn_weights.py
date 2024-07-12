@@ -11,13 +11,6 @@ def parse_args():
         description="Make a required node definition file for the GLIF model"
     )
     parser.add_argument(
-        "-m",
-        "--miniature",
-        action="store_true",
-        default=False,
-        help="make a miniature version of the simualtion for debugging",
-    )
-    parser.add_argument(
         "-d",
         "--double-alpha",
         action="store_true",

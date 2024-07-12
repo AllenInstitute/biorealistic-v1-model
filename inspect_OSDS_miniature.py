@@ -1,4 +1,4 @@
-# %% simple script to inspect miniature network's tuning properties]
+# %% simple script to inspect network's tuning properties]
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltticker
@@ -6,7 +6,6 @@ import numpy as np
 from sonata.circuit import File
 import h5py
 
-# d = "miniature/"
 d = "small/"
 # d = "single/"
 # d = "original_mini/"

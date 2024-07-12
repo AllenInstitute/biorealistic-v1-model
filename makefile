@@ -4,9 +4,9 @@ makeopt?=
 mainscripts := build_network.py edge_funcs.py node_funcs.py
 
 #whatever is needed for above should go here:
-buildfiles := glif_props/v1_node_models.json glif_props/v1_node_models_miniature.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
+buildfiles := glif_props/v1_node_models.json glif_props/lgn_weights_model.csv glif_props/bkg_weights_model.csv base_props/lgn_weights_population.csv glif_models/cell_models
 
-networks = miniature full small tiny forty single flat twenty core diagnose
+networks = full small tiny forty single flat twenty core diagnose
 
 lgn_node_targets = $(addsuffix /network/bkg_nodes.h5, $(networks))
 config_targets = $(addsuffix /configs/config.json, $(networks))
@@ -125,10 +125,6 @@ flat/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p flat
 	mpirun -np 4 python build_network.py -f -o flat/network --flat
 
-miniature/network/bkg_nodes.h5: $(mainscripts) $(buildfiles) glif_props/v1_node_models_miniature.json
-	mkdir -p miniature
-	mpirun -np 4 python build_network.py -f -o miniature/network --miniature 
-	
 tiny/network/bkg_nodes.h5: $(mainscripts) $(buildfiles)
 	mkdir -p tiny
 	mpirun -np 4 python build_network.py -f -o tiny/network --fraction 0.005
@@ -209,9 +205,6 @@ glif_requisite/glif_models_prop.csv: make_glif_models_prop.py cell_types/cells_w
 glif_props/v1_node_models.json: make_glif_requirements.py base_props/V1model_seed_file.xlsx glif_requisite/glif_models_prop.csv
 	python make_glif_requirements.py --double-alpha
 
-glif_props/v1_node_models_miniature.json: make_glif_requirements.py base_props/V1model_seed_file_miniature.xlsx glif_requisite/glif_models_prop.csv
-	python make_glif_requirements.py --miniature --double-alpha
-
 cell_types/cells_with_glif_pop_name.csv: pick_glif_all.py base_props/V1model_seed_file.xlsx cell_types/glif_explained_variance_ratio.csv
 	python pick_glif_all.py
 
@@ -237,7 +230,6 @@ clean:
 	rm -rf glif_requisite
 	rm -rf v1nodes
 	rm -rf no_recurrent
-	rm -rf miniature
 	rm -rf full
 	rm -rf small
 	rm -rf forty
