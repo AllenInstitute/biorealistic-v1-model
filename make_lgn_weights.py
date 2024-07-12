@@ -24,13 +24,15 @@ def parse_args():
 def make_pop_model_dict(double_alpha=False):
     # make the pop_model_dict first.
     #
-    v1_node_model = json.load(open("glif_props/v1_node_models.json"))
+    # v1_node_model = json.load(open("glif_props/v1_node_models.json"))
+    v1_node_model = pd.read_csv("glif_props/v1_node_models.csv", sep=" ", index_col=0)
     # flatten down to population
-    pop_model_dict = {}
-    for loc, locdict in v1_node_model["locations"].items():
-        for pop, popdict in locdict.items():
-            for m in popdict["models"]:
-                pop_model_dict[m["node_type_id"]] = pop
+    # pop_model_dict = {}
+    # for loc, locdict in v1_node_model["locations"].items():
+    #     for pop, popdict in locdict.items():
+    #         for m in popdict["models"]:
+    #             pop_model_dict[m["node_type_id"]] = pop
+    pop_model_dict = v1_node_model["pop_name"].to_dict()
 
     # pop_models_name replaces the pop_name with syn_name.
     id_to_syn_type = {

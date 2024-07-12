@@ -5,7 +5,7 @@ build_files = [
     "base_props/lgn_weights_population.csv",
     "base_props/lgn_params.csv",
     "base_props/lgn_models.csv",
-    "glif_props/v1_node_models.json",
+    "glif_props/v1_node_models.csv",
     "glif_props/v1_edge_models.csv",
     "glif_props/lgn_weights_model.csv",
     "glif_props/bkg_weights_model.csv",
@@ -147,7 +147,7 @@ rule glif_requirements:
             "base_props/V1model_seed_file.xlsx",
             "glif_requisite/glif_models_prop.csv"
         ]
-    output: "glif_props/v1_node_models.json"
+    output: "glif_props/v1_node_models.csv"
     shell: "python {input.script} --double-alpha"
 
 
@@ -174,7 +174,7 @@ rule lgn_weight_model:
         script="make_lgn_weights.py",
         data=[
             "base_props/lgn_weights_population.csv",
-            "glif_props/v1_node_models.json",
+            "glif_props/v1_node_models.csv",
             "precomputed_props/v1_synapse_amps.json"
         ]
     output: "glif_props/lgn_weights_model.csv"
@@ -186,7 +186,7 @@ rule bkg_weight_model:
         script="make_bkg_weights.py",
         data=[
             "base_props/bkg_weights_population_init.csv",
-            "glif_props/v1_node_models.json",
+            "glif_props/v1_node_models.csv",
             "precomputed_props/v1_synapse_amps.json"
         ]
     output: "glif_props/bkg_weights_model.csv"

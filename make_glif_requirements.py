@@ -5,7 +5,7 @@ input files:
 base_props/V1model_seed_file.xlsx: human editable file that contains information of each population
 glif_requisite/glif_models_prop.csv: file that contains LIF cell types from cell type database
 
-output files: glif_props/v1_node_models.json
+output files: glif_props/v1_node_models.csv
 # dependencies are written in makefile, so refer to that as a part of documentation.
 
 
@@ -14,7 +14,8 @@ locations e.g. 'VisL23'
 pop_name e.g. 'e23Cux2'
 ncells 56057
 ei 'e'
-depth_range [100.0, 310.0]
+upper_bound e.g. 100.0
+lower_bound e.g. 310.0
 and models nested
 
 models
@@ -34,19 +35,27 @@ rotation_angle_zaxis: -2.728849956000004
 import pylightxl as xl
 import numpy as np
 import pandas as pd
-import json
-import os
 import argparse
+from pathlib import Path
 
 
 def extract_info(row):
     d = {}
+    # exception
     d["ncells"] = row["pop_combined_count"]
-    d["ei"] = row["ei"]
-    d["depth_range"] = [row["upper_bound"], row["lower_bound"]]
-    # Adding lognormal parameters for distribution of "size"/synapse numbers
-    d["nsyn_lognorm_shape"] = row["nsyn_lognorm_shape"]
-    d["nsyn_lognorm_scale"] = row["nsyn_lognorm_scale"]
+
+    prop_names = [
+        "ei",
+        "pop_name",
+        "upper_bound",
+        "lower_bound",
+        "nsyn_lognorm_shape",
+        "nsyn_lognorm_scale",
+    ]
+
+    for prop in prop_names:
+        d[prop] = row[prop]
+
     return d
 
 
@@ -89,7 +98,6 @@ def pick_glif_models(models_df, row, douple_alpha=False):
     assert n_models > 0
     model_cell_count = distribute_nums(ncell_all, n_models)
 
-    post_pop = row["pop_name"]
     models = []
     for i in range(n_models):
         poprow = selected_df.iloc[i]
@@ -147,45 +155,43 @@ def pick_bio_models(models_df, row):
 
 def make_v1_node_models(args):
     filepath = "base_props/V1model_seed_file.xlsx"
-    outfilepath = "glif_props/v1_node_models.json"
+    outfilepath = "glif_props/v1_node_models.csv"
 
     db = xl.readxl(filepath)
     table = db.ws("cell_models").ssd(keycols="pop_id", keyrows="pop_id")
     t0 = table[0]
     seed_df = pd.DataFrame(data=t0["data"], index=t0["keyrows"], columns=t0["keycols"])
     glif_models_df = pd.read_csv("glif_requisite/glif_models_prop.csv", sep=" ")
-    node_models = {"locations": {}}
+    # node_models = {"locations": {}}
     # Load unitary v1 synapse amps:
+    node_models = {}  # make a dataframe to store in csv
 
     for location, subdf in seed_df.groupby("location"):
         location_dict = {}
-        for pop_id, row in subdf.iterrows():
+        for pop_name, row in subdf.iterrows():
             pop_dict = extract_info(row)
             models = pick_glif_models(glif_models_df, row, args.double_alpha)
-            pop_dict["models"] = models
-            location_dict[pop_name_change(row["pop_name"])] = pop_dict
+            # pop_dict["models"] = models
+            # instead of containing it, let's update the dict.
+            for m in models:
+                m.update(pop_dict)
+                m["locations"] = location
+                node_type_id = m.pop("node_type_id")
+                node_models[node_type_id] = m
 
-        node_models["locations"][location] = location_dict
+            # location_dict[pop_name_change(row["pop_name"])] = pop_dict
 
-    # node_models["inner_radial_range"] = [1.0, 400.0]
-    # node_models["outer_radial_range"] = [400.0, 845.0]
+        # node_models["locations"][location] = location_dict
 
-    # process general properties
-    general_table = db.ws("general_parameters").ssd(
-        keycols="properties", keyrows="properties"
-    )
-    tg = general_table[0]
-    general_df = pd.DataFrame(
-        data=tg["data"], index=tg["keyrows"], columns=tg["keycols"]
-    )
-    node_models["core_radius"] = float(general_df.loc["core_radius"])
-    node_models["radius"] = float(general_df.loc["radius"])
+    # change it to pathlib versino
+    Path("glif_props").mkdir(parents=True, exist_ok=True)
 
-    if not os.path.exists("glif_props"):
-        os.mkdir("glif_props")
+    # with open(outfilepath, "w") as f:
+    # json.dump(node_models, f, indent=2)
 
-    with open(outfilepath, "w") as f:
-        json.dump(node_models, f, indent=2)
+    node_models_df = pd.DataFrame(node_models).T
+    node_models_df.index.name = "node_type_id"
+    node_models_df.to_csv(outfilepath, sep=" ")
 
 
 def pop_name_change(pop_name):

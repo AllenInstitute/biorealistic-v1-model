@@ -40,94 +40,108 @@ pd.set_option("display.max_columns", None)
 
 
 def add_nodes_v1(fraction=1.00, flat=False):
-    node_props = "glif_props/v1_node_models.json"
+    node_props = "glif_props/v1_node_models.csv"
     # v1_models = json.load(open(node_props, "r"))
-    with open(node_props, "r") as f:
-        v1_models = json.load(f)
+    # with open(node_props, "r") as f:
+    # v1_models = json.load(f)
+
+    v1_models = pd.read_csv(node_props, sep=" ", index_col=0)
 
     min_radius = 1.0  # to avoid diverging density near 0
-    radius = v1_models["radius"] * np.sqrt(fraction)
+    base_radius = 850.0
+    # This is the base radius of the model, it needs to be coordinated with the
+    # model seed file in base_props, it cannot be arbitrarily changed.
+
+    radius = base_radius * np.sqrt(fraction)
+    # radius = v1_models["radius"] * np.sqrt(fraction)
     radial_range = [min_radius, radius]
 
     net = NetworkBuilder("v1")
 
-    for location, loc_dict in v1_models["locations"].items():
-        for pop_name, pop_dict in loc_dict.items():
-            pop_size = pop_dict["ncells"]
-            depth_range = -np.array(pop_dict["depth_range"], dtype=float)
-            ei = pop_dict["ei"]
-            nsyn_lognorm_shape = pop_dict["nsyn_lognorm_shape"]
-            nsyn_lognorm_scale = pop_dict["nsyn_lognorm_scale"]
+    # for location, loc_df in v1_models.groupby("locations"):
+    # for pop_name, pop_df in loc_df.groupby("pop_name"):
+    # pop_size = pop_df["ncells"]
+    # depth_range = -np.array(pop_df["depth_range"], dtype=float)
+    # ei = pop_df["ei"]
+    # nsyn_lognorm_shape = pop_df["nsyn_lognorm_shape"]
+    # nsyn_lognorm_scale = pop_df["nsyn_lognorm_scale"]
 
-            for model in pop_dict["models"]:
-                if "N" not in model:
-                    # Assumes a 'proportion' key with a value from 0.0 to 1.0, N will be a proportion of pop_size
-                    model["N"] = model["proportion"] * pop_size
-                    del model["proportion"]
+    for node_type_id, model in v1_models.iterrows():
+        pop_size = model["ncells"]
+        ei = model["ei"]
+        nsyn_lognorm_shape = model["nsyn_lognorm_shape"]
+        nsyn_lognorm_scale = model["nsyn_lognorm_scale"]
 
-                if fraction != 1.0:
-                    # Each model will use only a fraction of the of the number of cells for each model
-                    # NOTE: We are using a ceiling function so there is atleast 1 cell of each type - however for models
-                    #  with only a few initial cells they can be over-represented.
-                    model["N"] = int(np.ceil(fraction * model["N"]))
+        # depth is defined as a negative value in y axis from the surface.
+        depth_range = -np.array(
+            [model["upper_bound"], model["lower_bound"]], dtype=float
+        )
+        if "N" not in model:
+            # Assumes a 'proportion' key with a value from 0.0 to 1.0, N will be a proportion of pop_size
+            model["N"] = model["proportion"] * pop_size
+            del model["proportion"]
 
-                if flat:
-                    N = 100
-                else:
-                    N = model["N"]
-                # create a list of randomized cell positions for each cell type
-                positions = generate_random_positions(N, depth_range, radial_range)
+        if fraction != 1.0:
+            # Each model will use only a fraction of the of the number of cells for each model
+            # NOTE: We are using a ceiling function so there is atleast 1 cell of each type - however for models
+            #  with only a few initial cells they can be over-represented.
+            model["N"] = int(np.ceil(fraction * model["N"]))
 
-                # properties used to build the cells for each cell-type
-                node_props = {
-                    "N": N,
-                    "node_type_id": model["node_type_id"],
-                    "model_type": model["model_type"],
-                    "model_template": model["model_template"],
-                    "dynamics_params": model["dynamics_params"],
-                    "ei": ei,
-                    "location": location,
-                    "pop_name": pop_name,
-                    # "pop_name": (
-                    #     "LIF" if model["model_type"] == "point_process" else ""
-                    # )
-                    # + pop_name,
-                    "population": "v1",
-                    "x": positions[:, 0],
-                    "y": positions[:, 1],
-                    "z": positions[:, 2],
-                    "tuning_angle": np.linspace(0.0, 360.0, N, endpoint=False),
-                    "target_sizes": generate_target_sizes(
-                        N, nsyn_lognorm_shape, nsyn_lognorm_scale
-                    ),
-                    # "EPSP_unitary": model["EPSP_unitary"],
-                    # "IPSP_unitary": model["IPSP_unitary"],
-                    "nsyn_size_shape": nsyn_lognorm_shape,
-                    "nsyn_size_scale": nsyn_lognorm_scale,
-                    "nsyn_size_mean": int(
-                        lognorm(
-                            s=nsyn_lognorm_shape, loc=0, scale=nsyn_lognorm_scale
-                        ).stats(moments="m")
-                    ),
-                    # "size_connectivity_correction":
+        if flat:
+            N = 100
+        else:
+            N = model["N"]
+        # create a list of randomized cell positions for each cell type
+        positions = generate_random_positions(N, depth_range, radial_range)
+
+        # properties used to build the cells for each cell-type
+        node_props = {
+            "N": N,
+            "node_type_id": node_type_id,
+            "model_type": model["model_type"],
+            "model_template": model["model_template"],
+            "dynamics_params": model["dynamics_params"],
+            "ei": ei,
+            "location": model["locations"],
+            "pop_name": model["pop_name"],
+            # "pop_name": (
+            #     "LIF" if model["model_type"] == "point_process" else ""
+            # )
+            # + pop_name,
+            "population": "v1",
+            "x": positions[:, 0],
+            "y": positions[:, 1],
+            "z": positions[:, 2],
+            "tuning_angle": np.linspace(0.0, 360.0, N, endpoint=False),
+            "target_sizes": generate_target_sizes(
+                N, nsyn_lognorm_shape, nsyn_lognorm_scale
+            ),
+            # "EPSP_unitary": model["EPSP_unitary"],
+            # "IPSP_unitary": model["IPSP_unitary"],
+            "nsyn_size_shape": nsyn_lognorm_shape,
+            "nsyn_size_scale": nsyn_lognorm_scale,
+            "nsyn_size_mean": int(
+                lognorm(s=nsyn_lognorm_shape, loc=0, scale=nsyn_lognorm_scale).stats(
+                    moments="m"
+                )
+            ),
+            # "size_connectivity_correction":
+        }
+        if model["model_type"] == "biophysical":
+            # for biophysically detailed cell-types add info about rotations and morphology
+            node_props.update(
+                {
+                    # for RTNeuron store explicity store the x-rotations (even though it should be 0 by default).
+                    "rotation_angle_xaxis": np.zeros(N),
+                    "rotation_angle_yaxis": 2 * np.pi * np.random.random(N),
+                    # for RTNeuron we need to store z-rotation in the h5 file.
+                    "rotation_angle_zaxis": np.full(N, model["rotation_angle_zaxis"]),
+                    "model_processing": model["model_processing"],
+                    "morphology": model["morphology"],
                 }
-                if model["model_type"] == "biophysical":
-                    # for biophysically detailed cell-types add info about rotations and morphology
-                    node_props.update(
-                        {
-                            # for RTNeuron store explicity store the x-rotations (even though it should be 0 by default).
-                            "rotation_angle_xaxis": np.zeros(N),
-                            "rotation_angle_yaxis": 2 * np.pi * np.random.random(N),
-                            # for RTNeuron we need to store z-rotation in the h5 file.
-                            "rotation_angle_zaxis": np.full(
-                                N, model["rotation_angle_zaxis"]
-                            ),
-                            "model_processing": model["model_processing"],
-                            "morphology": model["morphology"],
-                        }
-                    )
+            )
 
-                net.add_nodes(**node_props)
+        net.add_nodes(**node_props)
 
     return net
 
@@ -528,14 +542,12 @@ def add_nodes_lgn(X_grids=15, Y_grids=10, x_block=8.0, y_block=8.0):
 
 
 def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
-    node_props = "glif_props/v1_node_models.json"
-    v1_models = json.load(open(node_props, "r"))
+    node_props = "glif_props/v1_node_models.csv"
+    # v1_models = json.load(open(node_props, "r"))
+    v1_models = pd.read_csv(node_props, sep=" ", index_col=0)
 
     # skipping the 'locations' (e.g. VisL1) key and make a population-based
     # (e.g. i1Htr3a) dictionary
-    v1_models_pop = {}
-    for l in v1_models["locations"]:
-        v1_models_pop.update(v1_models["locations"][l])
 
     # in this file, the values are specified for each target model
     conn_weight_df = pd.read_csv("glif_props/lgn_weights_model.csv", sep=" ")
@@ -565,8 +577,12 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
         # the e4 neurons and normalize all the cells using these values. By doing this,
         # we can avoid injecting too much current to the populations with large target
         # sizes.
-        lognorm_shape = v1_models_pop["e4other"]["nsyn_lognorm_shape"]
-        lognorm_scale = v1_models_pop["e4other"]["nsyn_lognorm_scale"]
+        # lognorm_shape = v1_models_pop["e4other"]["nsyn_lognorm_shape"]
+        # lognorm_scale = v1_models_pop["e4other"]["nsyn_lognorm_scale"]
+        # 479993900 is a representative model_id for e4other
+        lognorm_shape = v1_models.loc[479993900]["nsyn_lognorm_shape"]
+        lognorm_scale = v1_models.loc[479993900]["nsyn_lognorm_scale"]
+
         e4_mean_size = np.exp(np.log(lognorm_scale) + (lognorm_shape**2) / 2)
 
         edge_params = {
@@ -709,6 +725,12 @@ if __name__ == "__main__":
         help="Make the number of neurons for each population 100. For BKG tuning.",
     )
     parser.add_argument(
+        "--small-lgn",
+        action="store_true",
+        default=False,
+        help="Make the LGN network smaller for faster testing.",
+    )
+    parser.add_argument(
         "--bkg-unit-num",
         type=int,
         default=100,
@@ -810,8 +832,12 @@ if __name__ == "__main__":
         check_files_exists(args.output_dir, "lgn", "v1", args.force_overwrite)
 
         lgn_v1_edge_func = add_lgn_v1_edges
-        x_block_unit = 8.0  # spherical coordinate
-        y_block_unit = 8.0
+        if args.small_lgn:
+            x_block_unit = 2.0  # for fast testing purpose
+            y_block_unit = 2.0
+        else:
+            x_block_unit = 8.0  # spherical coordinate
+            y_block_unit = 8.0
 
         # now regardless of settings, LGN models are the same
         set_seed(seed_lgn_nodes)
