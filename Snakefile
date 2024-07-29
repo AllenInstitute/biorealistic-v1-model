@@ -71,7 +71,7 @@ networks = {
     }
 }
 
-n_threads = 8
+n_threads = 6
 
 rule all:
     input: "small/figures/OSI_DSI.png"
