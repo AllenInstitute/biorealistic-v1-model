@@ -2,6 +2,7 @@
 import numpy as np
 import h5py
 import pandas as pd
+import polars as pl
 from pathlib import Path
 import json
 import seaborn as sns
@@ -11,6 +12,27 @@ import sonata
 from math import exp
 
 debug = False
+
+
+def get_cell_type_table(src=None, tgt=None):
+    """
+    Define the cell type table and converter.
+    if src is specified, it will set the index to src and remove duplicates
+    if tgt is specified, it will select the columns that contain tgt
+    tgt can be either a string (returns Series) or a list of strings (returns DataFrame)
+    """
+    ctdf = pd.read_csv("base_props/cell_type_naming_scheme.csv", sep=" ", index_col=0)
+    if src is not None:
+        # reindex the dataframe with the source
+        ctdf = ctdf.set_index(src)
+        # remove elements that are duplicated in the index
+        ctdf = ctdf[~ctdf.index.duplicated(keep="first")]
+
+    if tgt is not None:
+        # select the columns that contain tgt
+        ctdf = ctdf[tgt]
+
+    return ctdf
 
 
 def get_tau_syn(synaptic_folder="glif_models/synaptic_models/", double_alpha=True):
@@ -27,8 +49,8 @@ def get_tau_syn(synaptic_folder="glif_models/synaptic_models/", double_alpha=Tru
     return tau_syn_dict
 
 
-def load_edges(basedir, src="v1", tgt="v1"):
-    edgeh5 = h5py.File(f"{basedir}/network/{src}_{tgt}_edges.h5", "r")
+def load_edges(basedir, src="v1", tgt="v1", appendix=""):
+    edgeh5 = h5py.File(f"{basedir}/network/{src}_{tgt}_edges{appendix}.h5", "r")
     edges = {}
     edges["source_id"] = np.array(edgeh5[f"edges/{src}_to_{tgt}/source_node_id"])
     edges["target_id"] = np.array(edgeh5[f"edges/{src}_to_{tgt}/target_node_id"])
@@ -67,6 +89,21 @@ def load_edges(basedir, src="v1", tgt="v1"):
     edges["types"]["tau_syn"] = edges["types"]["dynamics_params"].map(tau_syn_dict)
 
     return edges
+
+
+def load_edges_pl(basedir, src="v1", tgt="v1", appendix=""):
+    edges_dict = load_edges(basedir, src, tgt, appendix)
+
+    edges_types = edges_dict["types"]
+    edges_dict["edge_type_id"] = edges_dict["edge_type_id"].astype(np.int64)
+    del edges_dict["types"]
+
+    edges_pl = pl.DataFrame(edges_dict).lazy()
+
+    edge_types_pl = pl.DataFrame(edges_types.reset_index()).lazy()
+    edges_with_props = edges_pl.join(edge_types_pl, on="edge_type_id", how="left")
+
+    return edges_with_props
 
 
 def get_all_tau_syn(edges):
@@ -166,6 +203,23 @@ def filter_by_truthtable(edges, truthtable):
         k: (v[truthtable] if len(v) == n_edges else v) for k, v in edges.items()
     }
     return new_edges
+
+
+def load_nodes_pl(basedir, loc="v1", core_radius=400):
+    node_dict = load_nodes(basedir, loc, core_radius)
+    node_types = node_dict["types"]
+
+    node_dict["node_type_id"] = node_dict["node_type_id"].astype(np.int64)
+    # remove ["types"] from the dictionary
+    del node_dict["types"]
+    # define the data frame in polars
+
+    nodes = pl.DataFrame(node_dict).lazy()
+    node_types = pl.DataFrame(node_types.reset_index()).lazy()
+    # join them
+    nodes = nodes.join(node_types, on="node_type_id", how="left")
+
+    return nodes
 
 
 def load_nodes(basedir, loc="v1", core_radius=400):
