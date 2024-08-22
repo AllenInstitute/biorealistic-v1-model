@@ -48,6 +48,7 @@ You can create a custom size if you define parameters in `Snakefile`.
 
 Also, you can edit `V1model_seed_file.xlsx` to change what cell types are be included. For example, if you want to make L4 only network, you can delete all the cell types other than L4 from this file.
 
+Building the `full` model requires a few hundreds of GBs of memory. It usually needs to be run on a cluster computer, but it is not incorporated in the snakemake workflow yet. If you really need the `full` network, running the build script should be done manually. The subsequent processes should work fine once you build the model.
 
 ## Folders and files
 
