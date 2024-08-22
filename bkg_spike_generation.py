@@ -109,12 +109,23 @@ if __name__ == "__main__":
 
     # for the 8 direction stimuli (10 repetition)
     start_seed = 381583
+    print(f"Generating bkg spikes for orientation stimuli...")
     for i in range(8):
         for j in range(10):
             seed = start_seed + i * 10 + j
             dirname = f"{basedir}/bkg_8dir_10trials/angle{i*45}_trial{j}"
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
-            # write_bkg(f"{dirname}/bkg_spikes_1kHz_3s.h5", n_neu, seed=seed)
             write_bkg(f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed)
-            # write_bkg(f"{dirname}/bkg_spikes_2kHz_3s.h5", n_neu, rate=2000, seed=seed)
-            # write_bkg(f"{dirname}/bkg_spikes_full_3s.h5", n_neu, rate=4000, seed=seed)
+
+    start_seed2 = 451958
+    contrasts = [0.05, 0.10, 0.20, 0.40, 0.60, 0.80]
+    for i in range(8):  # angle
+        print(f"Generating bkg spikes for contrast stimuli {i+1}/8...")
+        for j in range(6):  # contrast
+            for k in range(10):  # trials
+                seed = start_seed2 + i * 6 * 10 + j * 10 + k
+                dirname = f"{basedir}/bkg_contrasts/angle{i*45}_contrast{contrasts[j]}_trial{k}"
+                pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+                write_bkg(
+                    f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed
+                )

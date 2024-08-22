@@ -99,25 +99,15 @@ def memory_jobs(basedir):
     return memory, jobs, threads
 
 
-def write_job(basedir, config_counts, modfile):
-    configdir = basedir + "/configs/8dir_10trials"
+def write_job(basedir, config_counts, modfile, job_name, arg_memory):
+    configdir = basedir + f"/configs/{job_name}"
     jobdir = basedir + "/jobs"
     logdir = jobdir + "/logs"
 
-    with open(jobdir + "/8dir_10trials.sh", "w") as f:
+    with open(jobdir + f"/{job_name}.sh", "w") as f:
         memory, jobs, threads = memory_jobs(basedir)
-        # if "full" in basedir:
-        #     memory = 60
-        #     jobs = 4
-        # elif "forty" in basedir:
-        #     memory = 30
-        #     jobs = 8
-        # elif ("core" in basedir) or ("twenty" in basedir):
-        #     memory = 15
-        #     jobs = 8
-        # else:  # including small, tiny, etc.
-        #     memory = 4
-        #     jobs = 8
+        # override memory and jobs
+        memory = arg_memory
         sbatch_boilerplate(
             f, logdir, config_counts, memory=memory, jobs=jobs, threads=threads
         )
@@ -135,14 +125,14 @@ def write_job(basedir, config_counts, modfile):
             f.write(f"python run_pointnet.py {config_array} -n {threads}")
 
 
-def write_filternet_job(basedir, config_counts):
-    configdir = basedir + "/configs/filternet_8dir_10trials"
+def write_filternet_job(basedir, config_counts, job_name, arg_memory):
+    configdir = basedir + f"/configs/filternet_{job_name}"
     jobdir = basedir + "/jobs"
     logdir = jobdir + "/logs"
 
-    with open(jobdir + "/filternet_8dir_10trials.sh", "w") as f:
-        sbatch_boilerplate(f, logdir, config_counts)
+    with open(jobdir + f"/filternet_{job_name}.sh", "w") as f:
         memory, jobs, cores = memory_jobs(basedir)
+        sbatch_boilerplate(f, logdir, config_counts, memory=arg_memory)
         # f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_filternet_$SLURM_ARRAY_TASK_ID.json"
@@ -158,6 +148,9 @@ if __name__ == "__main__":
     parser.add_argument("--filternet", action="store_true")
     parser.add_argument(
         "-m", "--modfile", type=str, default=None, help="The modulation file to use."
+    )
+    parser.add_argument(
+        "--memory", type=int, default=20, help="The memory to use in GB."
     )
     args = parser.parse_args()
 
@@ -180,6 +173,7 @@ if __name__ == "__main__":
     js = json.load(open(base_config))
 
     # define necessary elements
+    job_name = "8dir_10trials"
     angles = np.linspace(0, 315, 8)
     trials = range(10)
     config_counts = 0
@@ -212,6 +206,6 @@ if __name__ == "__main__":
             json.dump(js, open(config_name, "w"), indent=2)
 
     if args.filternet:
-        write_filternet_job(args.basedir, config_counts)
+        write_filternet_job(args.basedir, config_counts, job_name, args.memory)
     else:
-        write_job(args.basedir, config_counts, args.modfile)
+        write_job(args.basedir, config_counts, args.modfile, job_name, args.memory)

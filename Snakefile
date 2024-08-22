@@ -59,15 +59,18 @@ networks = {
     },
     "small": {
         "fraction": 0.05,  # creates ~200 µm radius network
-        "core_radius": 100
+        "core_radius": 100,
+        "memory": 10  # GB, to run on HPC
     },
     "core": {
         "fraction": 0.22145328719723,  # creates a 400 µm radius network
-        "core_radius": 200
+        "core_radius": 200,
+        "memory": 20  # GB, to run on HPC
     },
     "full": {
         "fraction": 1,  # 850 µm radius.
-        "core_radius": 400
+        "core_radius": 400,
+        "memory": 80  # GB, to run on HPC
     }
 }
 
@@ -94,6 +97,31 @@ rule clean:
         rm -rf out.prof
         """
 
+rule tf_alpha_params:
+    input:
+        script="extract_tau_syns.py",
+        data=[
+            "base_props/tau_syn_fast.csv",
+            "base_props/tau_syn_slow.csv",
+            "base_props/amp_slow.csv",
+        ]
+    output:
+        "tf_props/double_alpha_params.csv",
+        "tf_props/double_alpha_params_full.csv",
+    shell: "python {input.script}"
+
+rule tf_basis_functions:
+    input:
+        script="bf_conv.py",
+        data=[
+            "tf_props/double_alpha_params.csv",
+            "tf_props/double_alpha_params_full.csv"
+        ]
+    output:
+        "tf_props/tau_basis.npy",
+        "tf_props/basis_function_weights.csv"
+    shell: "python {input.script}"
+    
 
 rule synaptic_models:
     input:
@@ -372,6 +400,26 @@ rule osi_job:
         adjusted="{network_name}/network/v1_v1_edges_adjusted.h5",
         data="{network_name}/configs/config.json"
     output: "{network_name}/jobs/8dir_10trials.sh"
+    params: memory=lambda wildcards: networks[wildcards.network_name]["memory"]
+    shell: "python {input.script} {wildcards.network_name} --memory {params.memory}"
+
+
+rule filternet_contrast_job:
+    input:
+        script="make_contrast_jobs.py",
+        network=["{network_name}" + name for name in filter_files],
+        data="{network_name}/configs/config_filternet.json"
+    output: "{network_name}/jobs/filternet_contrasts.sh"
+    shell: "python {input.script} {wildcards.network_name} --filternet"
+    
+
+rule contrast_job:
+    input:
+        script="make_contrast_jobs.py",
+        network=["{network_name}" + name for name in network_files],
+        adjusted="{network_name}/network/v1_v1_edges_adjusted.h5",
+        data="{network_name}/configs/config.json"
+    output: "{network_name}/jobs/contrasts.sh"
     shell: "python {input.script} {wildcards.network_name}"
 
 
@@ -391,6 +439,23 @@ rule run_osi_job:
     output: "{network_name}/8dir_10trials/angle0_trial0/spikes.h5"
     params: curdir=curdir
     shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+
+
+rule run_filternet_contrast_job:
+    input:
+        script="{network_name}/jobs/filternet_contrasts.sh"
+    output: "{network_name}/filternet_contrasts/angle0_contrast0.05_trial0/spikes.h5"
+    params: curdir=curdir
+    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+
+rule run_contrast_job:
+    input:
+        script="{network_name}/jobs/contrasts.sh",
+        data="{network_name}/filternet_contrasts/angle0_contrast0.05_trial0/spikes.h5"
+    output: "{network_name}/contrasts/angle0_contrast0.05_trial0/spikes.h5"
+    params: curdir=curdir
+    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+
 
 
 rule odsi_metrics:
@@ -428,3 +493,7 @@ rule profile_build:
     input: ["profile" + name for name in network_files]
     output: "out.prof"
     shell: "python -m cProfile -o out.prof build_network.py -f -o profile/network --fraction 0.05"
+    
+
+rule clean_logs:
+    shell: "rm */jobs/logs/*"
