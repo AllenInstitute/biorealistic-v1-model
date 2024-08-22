@@ -41,6 +41,7 @@ If you don't do this, it will try to load the system's CUDA library, which may n
 ## Make basis function coefficients of the receptors (This process should be automated)
 
 Run the following command
+
 `$ snakemake tf_basis_functions`
 
 You'll get `tf_props/tau_basis.npy` and `tf_props/basis_function_weights.csv`.
