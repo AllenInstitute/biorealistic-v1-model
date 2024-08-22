@@ -4,20 +4,21 @@ channels:
   - kaeldai
 
 dependencies:
-  # Basics ------------------
+  # Basics
   # 3.12 is not compatible with allensdk (as of 7/1/2024)
   - python=3.11
   - pip
 
-  # Nest   ------------------
+  # Nest (PointNet backend)
   - nest-simulator
     
-  # Convenience -------------
+  # Convenience
   - black
   - iminuit
   - snakemake
   - jupyter
   - pandarallel
+  - polars
   
   # bmtk
   - pytest
