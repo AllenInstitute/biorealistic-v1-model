@@ -40,5 +40,6 @@ billeh/*
 test*/*
 diagnose/*
 tensorflow/*
+tf_props/*
 base_props_deprecated/*
 connection_params_for_v1DD/*
