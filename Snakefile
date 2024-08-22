@@ -495,5 +495,5 @@ rule profile_build:
     shell: "python -m cProfile -o out.prof build_network.py -f -o profile/network --fraction 0.05"
     
 
-rule clean_logs:
+rule clear_logs:
     shell: "rm */jobs/logs/*"

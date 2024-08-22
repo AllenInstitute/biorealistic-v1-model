@@ -26,6 +26,7 @@ slurm*.out
 original_mini/*
 test/*
 configs/*
+figs/*
 obsolete/*
 normalize_by_e4/*
 normalize_by_type/*
