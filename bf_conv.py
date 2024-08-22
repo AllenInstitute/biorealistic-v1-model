@@ -183,7 +183,9 @@ fvals, params = optimize_params(5, da_params_full)
 # %% save the optimized weights to a csv file
 df = pd.DataFrame(params, columns=["w0", "w1", "w2", "w3", "w4"])
 df.index = da_params_full.index
-df.to_csv("tf_props/basis_function_weights.csv", sep=" ")
+
+# TODO: at one point, change it to sep=" "
+df.to_csv("tf_props/basis_function_weights.csv")
 
 
 # finally, save tau.

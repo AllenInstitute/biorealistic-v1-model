@@ -38,16 +38,6 @@ which content is
 If you don't do this, it will try to load the system's CUDA library, which may not be setup.
 
 
-## Make basis function coefficients of the receptors (This process should be automated)
-
-Run the following command
-
-`$ snakemake tf_basis_functions`
-
-You'll get `tf_props/tau_basis.npy` and `tf_props/basis_function_weights.csv`.
-
-
-
 ## Copy SONATA network to the TF directory
 Copy the network directory as `GLIF_network` in the base directory of the TF repository.
 If the directory structure looks like:
@@ -57,8 +47,6 @@ it's good.
 The `GLIF_network` directory should contain the following subdirctories\
 `network`: all the SONATA network files\
 `components`: should contain `cell_models` and `synaptic_models` subdirectories. Copy all the model files from the original network directory.
-
-Besides, create the `synaptic_data` directory at the base of the repo and copy the `tau_basis.npy` and `basis_function_weights.csv` files to it.
 
 The final file structure should look like this.
 
@@ -74,10 +62,6 @@ V1_GLIF_model/
             bkg_node_types.csv
             bkg_nodes.h5
             ...
-    synaptic_data/
-        tau_basis.npy
-        basis_function_weights.csv
-    ...
 ```
 
 
@@ -85,3 +69,12 @@ V1_GLIF_model/
 Example: 'multi_training_slurm.sh' (Please change sbatch fields for your need.)
 
 Before submitting the job, please activate the environment for TF in the hpc-login. (or write that in the script, which might be better.)
+
+
+
+## Synaptic dat for TensorFlow models
+This step is not necessary for running the model, but if you are interested in how the parameters of the files under `synaptic_data` directory in the TensorFlow model repo, you can run the following command to generate them.
+
+`$ snakemake tf_basis_functions`
+
+This will generate `tf_props/tau_basis.npy` and `tf_props/basis_function_weights.csv`.
