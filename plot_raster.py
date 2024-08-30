@@ -1,16 +1,13 @@
 # %% make one raster plot for the network
 
-import plotting_utils as pu
-import matplotlib.pyplot as plt
 import argparse
-import os
-
-
-# net = "core"
-# sortby = "tuning_angle"
 
 parser = argparse.ArgumentParser(description="Make a raster plot of the network.")
-parser.add_argument("outputdir", type=str, help="The network to plot.")
+parser.add_argument(
+    "outputdir",
+    type=str,
+    help="The output folder to plot that contains spikes file. e.g. core/output_adjusted.",
+)
 parser.add_argument(
     "--sortby",
     "-s",
@@ -23,11 +20,21 @@ args = parser.parse_args()
 sortby = args.sortby
 
 
+# delayed import for faster help response
+import plotting_utils as pu
+import matplotlib.pyplot as plt
+import os
+import pathlib
+
+# net = "core"
+# sortby = "tuning_angle"
+
 # config_file = f"{net}/output_plain/config.json"
 config_file = f"{args.outputdir}/config.json"
 
 
-net = os.path.split(args.outputdir)[0]
+# net = os.path.split(args.outputdir)[0]
+net = pathlib.Path(args.outputdir).parts[0]
 
 plt.figure(figsize=(10, 6))
 
