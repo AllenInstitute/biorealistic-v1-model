@@ -32,6 +32,7 @@
   "output": {
     "log_file": "log.txt",
     "output_dir": "$OUTPUT_DIR",
+    "spikes_csv": "spikes.csv",
     "spikes_h5": "spikes.h5",
     "overwrite_output_dir": true
   },
