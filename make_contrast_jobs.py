@@ -6,6 +6,7 @@ import argparse
 import os
 import make_osi_jobs as moj
 import pathlib
+import stimulus_trials as st
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -43,37 +44,39 @@ if __name__ == "__main__":
 
     # define necessary elements
     job_name = "contrasts"
-    contrasts = [0.05, 0.10, 0.20, 0.40, 0.60, 0.80]  # based on Millman et al. 2020
-    angles = np.linspace(0, 315, 8)
-    trials = range(10)  # for now to save time
+    # contrasts = [0.05, 0.10, 0.20, 0.40, 0.60, 0.80]  # based on Millman et al. 2020
+    # angles = np.linspace(0, 315, 8)
+    # trials = range(10)  # for now to save time
+    stim_iter = st.ContrastStimulus()
     config_counts = 0
+    for angle, contrast, trial in stim_iter:
+        filterdir_indv = f"$BASE_DIR/filternet_contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
+        outdir_indv = (
+            f"$BASE_DIR/contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
+        )
 
-    for angle in angles:
-        for contrast in contrasts:
-            for trial in trials:
-                filterdir_indv = f"$BASE_DIR/filternet_contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
-                outdir_indv = f"$BASE_DIR/contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
+        js["manifest"]["$BASE_DIR"] = "${configdir}/../.."
+        if args.filternet:
+            js["inputs"]["LGN_spikes"]["theta"] = angle
+            js["inputs"]["LGN_spikes"]["contrast"] = contrast
+            js["inputs"]["LGN_spikes"]["trial"] = trial
+            # important to match TF with Millman et al. 2020
+            js["inputs"]["LGN_spikes"]["temroral_f"] = 1.0
+            # randomize the phase for each trial
+            js["inputs"]["LGN_spikes"]["phase"] = np.random.rand() * 360
+            js["manifest"]["$OUTPUT_DIR"] = filterdir_indv
+            config_name = configdir + f"/config_filternet_{config_counts}.json"
+        else:  # main job
+            js["manifest"]["$LGNINPUT_DIR"] = filterdir_indv
+            js["manifest"]["$OUTPUT_DIR"] = outdir_indv
+            config_name = configdir + f"/config_{config_counts}.json"
+            # if the config file contains background input, change the input file
+            if "$BKGINPUT_DIR" in js["manifest"].keys():
+                bkgdir_indv = f"$BASE_DIR/bkg_contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
+                js["manifest"]["$BKGINPUT_DIR"] = bkgdir_indv
+        config_counts += 1
 
-                js["manifest"]["$BASE_DIR"] = "${configdir}/../.."
-                if args.filternet:
-                    js["inputs"]["LGN_spikes"]["theta"] = angle
-                    js["inputs"]["LGN_spikes"]["contrast"] = contrast
-                    js["inputs"]["LGN_spikes"]["trial"] = trial
-                    # important to match TF with Millman et al. 2020
-                    js["inputs"]["LGN_spikes"]["temroral_f"] = 1.0
-                    js["manifest"]["$OUTPUT_DIR"] = filterdir_indv
-                    config_name = configdir + f"/config_filternet_{config_counts}.json"
-                else:  # main job
-                    js["manifest"]["$LGNINPUT_DIR"] = filterdir_indv
-                    js["manifest"]["$OUTPUT_DIR"] = outdir_indv
-                    config_name = configdir + f"/config_{config_counts}.json"
-                    # if the config file contains background input, change the input file
-                    if "BKGINPUT_DIR" in js["manifest"].keys():
-                        bkgdir_indv = f"$BASE_DIR/bkg_contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
-                        js["manifest"]["$BKGINPUT_DIR"] = bkgdir_indv
-                config_counts += 1
-
-                json.dump(js, open(config_name, "w"), indent=2)
+        json.dump(js, open(config_name, "w"), indent=2)
 
     if args.filternet:
         moj.write_filternet_job(args.basedir, config_counts, job_name, args.memory)

@@ -4,6 +4,8 @@ import numpy as np
 import h5py
 import pathlib
 import sys
+import stimulus_trials as st
+from tqdm import tqdm
 
 
 def write_bkg(
@@ -118,14 +120,16 @@ if __name__ == "__main__":
             write_bkg(f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed)
 
     start_seed2 = 451958
-    contrasts = [0.05, 0.10, 0.20, 0.40, 0.60, 0.80]
-    for i in range(8):  # angle
-        print(f"Generating bkg spikes for contrast stimuli {i+1}/8...")
-        for j in range(6):  # contrast
-            for k in range(10):  # trials
-                seed = start_seed2 + i * 6 * 10 + j * 10 + k
-                dirname = f"{basedir}/bkg_contrasts/angle{i*45}_contrast{contrasts[j]}_trial{k}"
-                pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
-                write_bkg(
-                    f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed
-                )
+    seed = start_seed2
+    # contrasts = [0.05, 0.10, 0.20, 0.40, 0.60, 0.80]
+    stim_iter = st.ContrastStimulus()
+    stim_shape = stim_iter.get_shape()
+    total_reps = stim_shape[0] + np.prod(stim_shape[1])
+    print("Generating bkg spikes for contrast stimuli...")
+    for angle, contrast, trial in tqdm(stim_iter, total=total_reps):
+        dirname = (
+            f"{basedir}/bkg_contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
+        )
+        pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+        write_bkg(f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed)
+        seed += 1

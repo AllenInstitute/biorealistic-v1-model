@@ -25,13 +25,19 @@ def get_osi_df(basedir, metric_file="OSI_DSI_DF.csv", metric_name="", radius=400
         v1df = net.nodes["v1"].to_dataframe()
         osi_df = pd.read_csv(f"{basedir}/metrics/{metric_file}", sep=" ")
         df = v1df.merge(osi_df)
-        df["cell_type"] = df["pop_name"].map(utils.pop_name_to_cell_type)
-        df["ei"] = df["pop_name"].map(utils.pop_name_to_ei)
+        # df["cell_type"] = df["pop_name"].map(utils.cell_type_df["cell_type"])
+        df["cell_type"] = df["pop_name"].map(utils.cell_type_df["cell_type_old"])
+        df["ei"] = df["pop_name"].map(utils.cell_type_df["ei"])
         df = pick_core(df, radius=radius)
 
     df.rename(
         columns={"max_mean_rate(Hz)": "Rate at preferred direction (Hz)"}, inplace=True
     )
+
+    # replace white spaces in cell_type with underscore
+    df["cell_type"] = df["cell_type"].str.replace(" ", "_")
+    # also L1_Htr3a should be L1_Inh
+    df["cell_type"] = df["cell_type"].str.replace("L1_Htr3a", "L1_Inh")
 
     # exclude OSI and DSI for neurons with <0.5 Hz preferred direction response
     nonresponding = df["Rate at preferred direction (Hz)"] < 0.5
@@ -62,7 +68,7 @@ def get_borders(ticklabel):
 
 
 def draw_borders(ax, borders, ylim):
-    for i in range(0, len(borders), 2):
+    for i in range(0, len(borders) - 1, 2):
         w = borders[i + 1] - borders[i]
         h = ylim[1] - ylim[0]
         ax.add_patch(
@@ -134,7 +140,7 @@ osi_dfs = []
 
 color_pal = {
     "Billeh 2020, GLIF final": "tab:orange",
-    "Neuropixels": "tab:gray",
+    "Neuropixels": "tab:green",
     "Neuropixels v3": "tab:gray",
     # "Neuropixels": "k",
     "core 9am": "tab:pink",
@@ -160,23 +166,24 @@ color_pal = {
     "New model": "tab:orange",
     "small_new": "tab:blue",
     "core new": "tab:red",
-    "core default": "tab:orange",
+    "core default": "tab:blue",
     "core adjusted": "tab:blue",
+    "core trained": "tab:red",
     "small_before_tuning": "tab:blue",
     "small_after_tuning": "tab:pink",
 }
 
 
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels"))
-osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core default", radius=200.0))
-osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core adjusted", radius=200.0))
+osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels"))
+# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core adjusted", radius=200.0))
+osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core default", radius=200.0))
 # osi_dfs.append(
 #     get_osi_df("core_0427", "OSI_DSI_DF_recurrent.csv", "core recurrent", radius=200.0)
 # )
 # osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core new", radius=200.0))
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full recurrent", radius=400.0))
-df = pd.concat(osi_dfs)
+df = pd.concat(osi_dfs).reset_index()
 
 pattern = "normal"
 # pattern = "sac"
@@ -195,6 +202,7 @@ if pattern == "sac":
     plt.tight_layout()
     plt.savefig("box_simplified_SAC.png", dpi=150)
 elif pattern == "normal":
+    color_pal = None
     fig, axs = plt.subplots(4, 2, figsize=(24, 12))
     # fig, axs = plt.subplots(3, 1, figsize=(9, 12))
     plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
@@ -206,7 +214,7 @@ elif pattern == "normal":
     plot_scat(axs[3, 1], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
 
     plt.tight_layout()
-    plt.savefig("box.png", dpi=150)
+    plt.savefig("core/figures/box_plain.png", dpi=150)
     # plt.savefig("box_Dec12.svg", bbox="tight")
     # plt.savefig("box_Dec12.png", dpi=150)
 elif pattern == "scats":
@@ -298,3 +306,10 @@ for cell_type, df in np_df.groupby("cell_type"):
     ax.get_legend().remove()
     axcount += 1
 plt.tight_layout()
+
+
+# %%
+
+# df.index.duplicated().sum()
+
+# df.index

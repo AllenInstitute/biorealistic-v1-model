@@ -18,6 +18,7 @@ config_files = [
     "config_lgn.json",
     "config_lgnbkg.json",
     "config_plain.json",
+    "config_checkpoint.json",
     "config_bkgtune.json",
     "config_filternet.json",
     "config_filternet_bkgtune.json",
@@ -245,7 +246,7 @@ rule bkg_edges_override:
 
 rule bkg_spikes:
     input:
-        script="bkg_spike_generation.py",
+        script=["bkg_spike_generation.py", "stimulus_trials.py"],
         network=[
             "{network_name}/network/bkg_nodes.h5",
             "{network_name}/network/bkg_v1_edge_types.csv",
@@ -253,7 +254,7 @@ rule bkg_spikes:
     output:
         "{network_name}/bkg/bkg_spikes_250Hz_3s.h5", # representative file
         "{network_name}/bkg/bkg_spikes_250Hz_10s.h5"
-    shell: "python {input.script} {wildcards.network_name}"
+    shell: "python {input.script[0]} {wildcards.network_name}"
 
 
 rule network_synaptic_components:
@@ -415,12 +416,12 @@ rule filternet_contrast_job:
 
 rule contrast_job:
     input:
-        script="make_contrast_jobs.py",
+        script=["make_contrast_jobs.py", "stimulus_trials.py"],
         network=["{network_name}" + name for name in network_files],
         adjusted="{network_name}/network/v1_v1_edges_adjusted.h5",
         data="{network_name}/configs/config.json"
     output: "{network_name}/jobs/contrasts.sh"
-    shell: "python {input.script} {wildcards.network_name}"
+    shell: "python {input.script[0]} {wildcards.network_name}"
 
 
 curdir = os.getcwd()
@@ -457,6 +458,12 @@ rule run_contrast_job:
     shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
 
 
+rule contrast_spike_aggregation:
+    input:
+        script="contrast_spike_aggregation.py",
+        data="{network_name}/contrasts/angle0_contrast0.05_trial0/spikes.h5"
+    output: "{network_name}/contrasts/spike_counts.npz"
+    shell: "python {input.script} {wildcards.network_name}"
 
 rule odsi_metrics:
     input:

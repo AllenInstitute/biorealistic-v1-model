@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 import pathlib
+import argparse
 
 
-# billeh_compare = False # mode to compare with billeh et al (for e4)
-billeh_compare = True
+billeh_compare = False  # mode to compare with billeh et al (for e4)
+# billeh_compare = True
 keys = ["whislo", "q1", "med", "q3", "whishi"]
 billeh_rate = [dict(zip(keys, [0, 0.5, 2, 3, 8]))]
 billeh_DSI = [dict(zip(keys, [0, 0.08, 0.14, 0.24, 0.4]))]
@@ -27,7 +28,13 @@ def draw_billeh_line(ax, x, y, color, length):
 
 
 if __name__ == "__main__":
-    basedir = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("basedir", help="Base directory of the simulation")
+    args = parser.parse_args()
+    basedir = args.basedir
+
+    # basedir = sys.argv[1]
+    # basedir = "core"
     # basedir = "original_mini"
     # basedir = 'small'
 
