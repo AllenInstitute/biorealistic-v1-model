@@ -177,7 +177,7 @@ color_pal = {
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
 osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels"))
 # osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core adjusted", radius=200.0))
-osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core default", radius=200.0))
+osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core", radius=200.0))
 # osi_dfs.append(
 #     get_osi_df("core_0427", "OSI_DSI_DF_recurrent.csv", "core recurrent", radius=200.0)
 # )
