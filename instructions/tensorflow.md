@@ -13,12 +13,10 @@ Checkout the "master" branch.
 `git checkout master`
 
 ## Create environment with TensorFlow
-Create an environment using the following file, or install all the requirements in it.
-environment.yml
-![[environment.yml]]
+Create an environment using the `environment_tf.yml` file, or install all the requirements in it.
 
 The command to create the env should be:
-`conda env create -f environment.yml --name <env name>`
+`conda env create -f environment_tf.yml --name <env name>`
 
 
 ## Set environmental variable for the CUDA library
