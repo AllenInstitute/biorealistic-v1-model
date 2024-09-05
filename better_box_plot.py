@@ -276,11 +276,11 @@ osi_dfs[0].groupby("cell_type").median()["Spont_Rate(Hz)"]
 
 osi_dfs[0].value_counts("cell_type")
 
-osi_dfs[2].groupby("cell_type").median()
+osi_dfs[1].groupby("cell_type").median()
 
 # %%
 
-np_df = get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels")
+np_df = get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels")
 
 # for each cell type, plot the scatter plot of spont vs prefered rate.
 
