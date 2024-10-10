@@ -42,7 +42,8 @@ def pop_fano_table(table, bin_sizes, n_stim):
 # %%
 
 network = "core"
-output = "output_adjusted"
+# output = "output_adjusted"
+output = "output_checkpoint"
 spike_file = f"{network}/{output}/spikes.csv"
 
 spikes = pd.read_csv(spike_file, sep=" ")
@@ -50,7 +51,7 @@ spikes = pd.read_csv(spike_file, sep=" ")
 
 # %% load the cells
 
-nodes = nu.load_nodes(network, core_radius=200)
+nodes = nu.load_nodes(network, core_radius=400)
 core_mask = nodes["core"]
 core_id = nodes["node_id"][core_mask]
 
@@ -69,24 +70,36 @@ node_id_e = node_id[node_ei == "e"]
 # let's draw a sample number from a Gaussian distribution with mean 68 and std 10.
 
 fanos = []
-for i in range(30):
+n_trials = 100
+for i in range(n_trials):
     sample_num = int(np.random.normal(68, 10))
     sampled_ids = np.random.choice(node_id_e, sample_num, replace=False)
     bin_sizes = np.logspace(-3, 0, 20)
 
     spikes_sample = spikes[spikes["node_ids"].isin(sampled_ids)]
     fano = pop_fano(
-        spikes_sample["timestamps"].to_numpy() / 1000, bin_sizes, t_start=0.7, t_end=2.5
+        spikes_sample["timestamps"].to_numpy() / 1000, bin_sizes, t_start=0.1, t_end=0.5
     )
     fanos.append(fano)
 
 
 fanos = np.array(fanos)
 
+# %% artificial testing with sampling first 68 neurons
+# debugging block
+# sample_neurons = node_id_e[:68]
+# sample_neurons
+# spikes_sample = spikes[spikes["node_ids"].isin(sample_neurons)]
+# fano = pop_fano(
+#     spikes_sample["timestamps"].to_numpy() / 1000, bin_sizes, t_start=0.7, t_end=2.5
+# )
+# print(fano)
+
+
 # %%
 fanos_mean = fanos.mean(axis=0)
 fanos_std = fanos.std(axis=0)
-fanos_sem = fanos.std(axis=0) / np.sqrt(30)
+fanos_sem = fanos.std(axis=0) / np.sqrt(n_trials)
 
 plt.errorbar(bin_sizes, fanos_mean, yerr=fanos_sem)
 plt.xscale("log")

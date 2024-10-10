@@ -152,17 +152,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--memory", type=int, default=20, help="The memory to use in GB."
     )
+    parser.add_argument(
+        "--network_option",
+        type=str,
+        default="plain",
+        help="The network option. (plain, adjusted, checkpoint)",
+    )
     args = parser.parse_args()
 
     filterdir = args.basedir + "/filternet_8dir_10trials"
     if args.filternet:
         base_config = args.basedir + "/configs/config_filternet.json"
-        outdir = filterdir
         configdir = args.basedir + "/configs/filternet_8dir_10trials"
     else:
-        base_config = args.basedir + "/configs/config.json"
-        outdir = args.basedir + "/output_8dir_10trials"
-        configdir = args.basedir + "/configs/8dir_10trials"
+        base_config = args.basedir + "/configs/config_plain.json"
+        configdir = args.basedir + f"/configs/8dir_10trials_{args.network_option}"
 
     jobdir = args.basedir + "/jobs"
     logdir = args.basedir + "/jobs/logs"
@@ -173,7 +177,11 @@ if __name__ == "__main__":
     js = json.load(open(base_config))
 
     # define necessary elements
-    job_name = "8dir_10trials"
+    if args.filternet:
+        job_name = "8dir_10trials"
+    else:
+        job_name = f"8dir_10trials_{args.network_option}"
+
     angles = np.linspace(0, 315, 8)
     trials = range(10)
     config_counts = 0
@@ -183,7 +191,7 @@ if __name__ == "__main__":
             filterdir_indv = (
                 f"$BASE_DIR/filternet_8dir_10trials/angle{int(angle)}_trial{trial}"
             )
-            outdir_indv = f"$BASE_DIR/8dir_10trials/angle{int(angle)}_trial{trial}"
+            outdir_indv = f"$BASE_DIR/{job_name}/angle{int(angle)}_trial{trial}"
 
             js["manifest"]["$BASE_DIR"] = "${configdir}/../.."
             if args.filternet:
@@ -194,6 +202,18 @@ if __name__ == "__main__":
             else:  # main job
                 js["manifest"]["$LGNINPUT_DIR"] = filterdir_indv
                 js["manifest"]["$OUTPUT_DIR"] = outdir_indv
+
+                # change the edge file if not plain
+                if args.network_option != "plain":
+                    js["networks"]["edges"][0][
+                        "edges_file"
+                    ] = f"$NETWORK_DIR/v1_v1_edges_{args.network_option}.h5"
+                # also change the bkg for TF checkpoint
+                if args.network_option == "checkpoint":
+                    js["networks"]["edges"][2][
+                        "edges_file"
+                    ] = f"$NETWORK_DIR/bkg_v1_edges_checkpoint.h5"
+
                 config_name = configdir + f"/config_{config_counts}.json"
                 # if the config file contains background input, change the input file
                 if "$BKGINPUT_DIR" in js["manifest"].keys():

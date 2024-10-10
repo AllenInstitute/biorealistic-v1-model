@@ -18,8 +18,10 @@ parser = argparse.ArgumentParser(
     description="Summarize spike counts from contrast stimuli."
 )
 parser.add_argument("basedir", type=str, help="The base directory of the network.")
+parser.add_argument("network_option", type=str, help="The network option.")
 args = parser.parse_args()
 basedir = args.basedir
+network_option = args.network_option
 
 # %%
 
@@ -37,7 +39,7 @@ def get_spike_counts(filename, n_nodes, intervals):
 
 
 contrast_stim = st.ContrastStimulus()
-all_dirs = contrast_stim.get_all_result_paths(basedir)
+all_dirs = contrast_stim.get_all_result_paths(basedir, network_option)
 
 print("Counting spikes from all conditions")
 all_spikes = []
@@ -64,7 +66,7 @@ evoked_spikes = np.reshape(all_spikes[spont_len:], evoked_shape + (n_nodes,))
 
 # %%
 # store it in a file
-savename = f"{basedir}/contrasts/spike_counts.npz"
+savename = f"{basedir}/contrasts_{network_option}/spike_counts.npz"
 interval_length = np.diff(intervals[0])[0]
 np.savez_compressed(
     savename,

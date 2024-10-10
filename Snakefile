@@ -25,6 +25,13 @@ config_files = [
     "config_multimeter.json",
 ]
 
+# available network options
+network_options = [
+    "plain",
+    "adjusted",
+    "checkpoint",
+]
+
 network_files = [
     "bkg_node_types.csv",
     "bkg_nodes.h5",
@@ -75,13 +82,35 @@ networks = {
     }
 }
 
+# let's make 10 core networks in addition
+for i in range(10):
+    networks[f"core_{i}"] = {
+        "fraction": 0.22145328719723,
+        "core_radius": 200,
+        "memory": 20,
+        "seed": i * 1000
+    }
+
+
+# only include available ones
+wildcard_constraints:
+    # network_name = "^(?!neuropixels$).+",
+    # network_option = "^(?!data$).+"
+    network_name = "|".join(networks.keys()),
+    network_option = "|".join(network_options)
+
+
 n_threads = 6
+
+# rule to make all the core networks
+rule all_cores:
+    input: expand("core_{i}/output_adjusted/spikes.h5", i=range(10))
 
 rule all:
     input: "small/figures/OSI_DSI.png"
 
 rule core_spikes:
-    input: "core/output/spikes.h5"
+    input: "core/output_adjusted/spikes.h5"
 
 rule clean:
     shell:
@@ -229,9 +258,10 @@ rule build_network:
     output: ["{network_name}" + name for name in network_files]
     threads: n_threads
     params:
-        fraction = lambda wildcards: networks[wildcards.network_name]["fraction"]
+        fraction = lambda wildcards: networks[wildcards.network_name]["fraction"],
+        seed = lambda wildcards: networks[wildcards.network_name].get("seed", 153)
     shell:
-        "mpirun -np {n_threads} python {input.script[0]} -f -o {wildcards.network_name}/network --fraction {params.fraction}"
+        "mpirun -np {n_threads} python {input.script[0]} -f -o {wildcards.network_name}/network --fraction {params.fraction} --seed {params.seed}"
     
 
 rule bkg_edges_override:
@@ -400,9 +430,9 @@ rule osi_job:
         network=["{network_name}" + name for name in network_files],
         adjusted="{network_name}/network/v1_v1_edges_adjusted.h5",
         data="{network_name}/configs/config.json"
-    output: "{network_name}/jobs/8dir_10trials.sh"
+    output: "{network_name}/jobs/8dir_10trials_{network_option}.sh"
     params: memory=lambda wildcards: networks[wildcards.network_name]["memory"]
-    shell: "python {input.script} {wildcards.network_name} --memory {params.memory}"
+    shell: "python {input.script} {wildcards.network_name} --memory {params.memory} --network_option {wildcards.network_option}"
 
 
 rule filternet_contrast_job:
@@ -420,8 +450,9 @@ rule contrast_job:
         network=["{network_name}" + name for name in network_files],
         adjusted="{network_name}/network/v1_v1_edges_adjusted.h5",
         data="{network_name}/configs/config.json"
-    output: "{network_name}/jobs/contrasts.sh"
-    shell: "python {input.script[0]} {wildcards.network_name}"
+    output: "{network_name}/jobs/contrasts_{network_option}.sh"
+    params: memory=lambda wildcards: networks[wildcards.network_name]["memory"]
+    shell: "python {input.script[0]} {wildcards.network_name} --memory {params.memory} --network_option {wildcards.network_option}"
 
 
 curdir = os.getcwd()
@@ -435,9 +466,9 @@ rule run_filternet_osi_job:
 
 rule run_osi_job:
     input:
-        script="{network_name}/jobs/8dir_10trials.sh",
+        script="{network_name}/jobs/8dir_10trials_{network_option}.sh",
         data="{network_name}/filternet_8dir_10trials/angle0_trial0/spikes.h5"
-    output: "{network_name}/8dir_10trials/angle0_trial0/spikes.h5"
+    output: "{network_name}/8dir_10trials_{network_option}/angle0_trial0/spikes.h5"
     params: curdir=curdir
     shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
 
@@ -451,9 +482,10 @@ rule run_filternet_contrast_job:
 
 rule run_contrast_job:
     input:
-        script="{network_name}/jobs/contrasts.sh",
+        script="{network_name}/jobs/contrasts_{network_option}.sh",
+        network="{network_name}/network/v1_v1_edges_checkpoint.h5",
         data="{network_name}/filternet_contrasts/angle0_contrast0.05_trial0/spikes.h5"
-    output: "{network_name}/contrasts/angle0_contrast0.05_trial0/spikes.h5"
+    output: "{network_name}/contrasts_{network_option}/angle0_contrast0.05_trial0/spikes.h5"
     params: curdir=curdir
     shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
 
@@ -461,24 +493,24 @@ rule run_contrast_job:
 rule contrast_spike_aggregation:
     input:
         script="contrast_spike_aggregation.py",
-        data="{network_name}/contrasts/angle0_contrast0.05_trial0/spikes.h5"
-    output: "{network_name}/contrasts/spike_counts.npz"
-    shell: "python {input.script} {wildcards.network_name}"
+        data="{network_name}/contrasts_{network_option}/angle0_contrast0.05_trial0/spikes.h5"
+    output: "{network_name}/contrasts_{network_option}/spike_counts.npz"
+    shell: "python {input.script} {wildcards.network_name} {wildcards.network_option}"
 
 rule odsi_metrics:
     input:
         script="calculate_odsi.py",
-        data="{network_name}/8dir_10trials/angle0_trial0/spikes.h5"
-    output: "{network_name}/metrics/OSI_DSI_DF.csv"
-    shell: "python {input.script} {wildcards.network_name}"
+        data="{network_name}/8dir_10trials_{network_option}/angle0_trial0/spikes.h5"
+    output: "{network_name}/metrics/OSI_DSI_DF_{network_option}.csv"
+    shell: "python {input.script} {wildcards.network_name} {wildcards.network_option}"
 
 
 rule plot_odsi:
     input:
         script="plot_odsi.py",
-        data="{network_name}/metrics/OSI_DSI_DF.csv"
-    output: "{network_name}/figures/OSI_DSI.png"
-    shell: "python {input.script} {wildcards.network_name}"
+        data="{network_name}/metrics/OSI_DSI_DF_{network_option}.csv"
+    output: "{network_name}/figures/OSI_DSI_{network_option}.png"
+    shell: "python {input.script} {wildcards.network_name} {wildcards.network_option}"
 
 
 rule bkg_adjustment:

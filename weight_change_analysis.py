@@ -153,6 +153,8 @@ for i in range(n_elem):
 
 
 # %% create a matrix as df
+import matplotlib.pyplot as plt
+import seaborn as sns
 matrix_df = pd.DataFrame(matrix, index=cell_type_names, columns=cell_type_names)
 
 # plot with sns
@@ -174,4 +176,6 @@ for h in line_locs:
 plt.axis("image")
 plt.tight_layout()
 
-plt.savefig("syn_weight_change_matrix.pdf")
+plt.savefig("syn_weight_change_matrix2.pdf")
+
+# %%

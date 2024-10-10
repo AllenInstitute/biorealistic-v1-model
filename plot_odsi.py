@@ -30,8 +30,12 @@ def draw_billeh_line(ax, x, y, color, length):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("basedir", help="Base directory of the simulation")
+    parser.add_argument(
+        "network_option", help="The network option. (plain, adjusted, checkpoint)"
+    )
     args = parser.parse_args()
     basedir = args.basedir
+    network_option = args.network_option
 
     # basedir = sys.argv[1]
     # basedir = "core"
@@ -41,7 +45,7 @@ if __name__ == "__main__":
     net = File(basedir + "/network/v1_nodes.h5", basedir + "/network/v1_node_types.csv")
     v1df = net.nodes["v1"].to_dataframe()
 
-    osi_df = pd.read_csv(basedir + "/metrics/OSI_DSI_DF.csv", sep=" ")
+    osi_df = pd.read_csv(basedir + f"/metrics/OSI_DSI_DF_{network_option}.csv", sep=" ")
 
     df = v1df.merge(osi_df)
 
@@ -86,4 +90,4 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     pathlib.Path(basedir + "/figures").mkdir(parents=True, exist_ok=True)
-    plt.savefig(basedir + "/figures/OSI_DSI.png")
+    plt.savefig(basedir + f"/figures/OSI_DSI_{network_option}.png")

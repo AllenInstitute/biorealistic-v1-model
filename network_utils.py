@@ -222,17 +222,7 @@ def load_nodes_pl(basedir, loc="v1", core_radius=400):
     return nodes
 
 
-def load_nodes(basedir, loc="v1", core_radius=400):
-    # nodeh5 = h5py.File(f"{basedir}/network/v1_nodes.h5", "r")
-    # nodes = {}
-    # nodes["node_id"] = np.array(nodeh5["nodes/v1/node_id"])
-    # nodes["node_type_id"] = np.array(nodeh5["nodes/v1/node_type_id"])
-    # nodes["x"] = np.array(nodeh5["nodes/v1/0/x"])
-    # nodes["z"] = np.array(nodeh5["nodes/v1/0/z"])
-    # nodes["tuning_angle"] = np.array(nodeh5["nodes/v1/0/tuning_angle"])
-    # nodes["core"] = nodes["x"] ** 2 + nodes["z"] ** 2 < core_radius**2
-    # nodes["types"] = pd.read_csv(f"{basedir}/network/v1_node_types.csv", sep=" ")
-
+def load_nodes(basedir, loc="v1", core_radius=400, expand=False):
     # reproduce the code above replacing 'v1' with 'loc' using f-string
     nodeh5 = h5py.File(f"{basedir}/network/{loc}_nodes.h5", "r")
     nodes = {}
@@ -246,6 +236,23 @@ def load_nodes(basedir, loc="v1", core_radius=400):
     nodes["types"] = pd.read_csv(
         f"{basedir}/network/{loc}_node_types.csv", sep=" ", index_col="node_type_id"
     )
+
+    if expand:
+        # expand other properties into data frame
+        types = nodes["types"]
+        del nodes["types"]
+        nodes_df = pd.DataFrame(nodes)
+        nodes_df.set_index("node_id", inplace=True)
+        nodes_df = nodes_df.join(types, on="node_type_id", how="left")
+
+        # include cell types as well
+        ctdf = get_cell_type_table()
+        nodes_df = nodes_df.merge(
+            ctdf["cell_type"], left_on="pop_name", right_index=True
+        )
+
+        return nodes_df
+
     return nodes
 
 

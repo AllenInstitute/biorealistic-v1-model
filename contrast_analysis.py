@@ -11,7 +11,8 @@ from importlib import reload
 # load spike counts
 
 basedir = "core"
-spike_file_name = f"{basedir}/contrasts/spike_counts.npz"
+network_option = "checkpoint"
+spike_file_name = f"{basedir}/contrasts_{network_option}/spike_counts.npz"
 f = np.load(spike_file_name)
 spont_spikes = f["spont_spikes"]
 evoked_spikes = f["evoked_spikes"]

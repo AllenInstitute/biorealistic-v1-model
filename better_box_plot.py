@@ -140,7 +140,7 @@ osi_dfs = []
 
 color_pal = {
     "Billeh 2020, GLIF final": "tab:orange",
-    "Neuropixels": "tab:green",
+    "Neuropixels data": "tab:gray",
     "Neuropixels v3": "tab:gray",
     # "Neuropixels": "k",
     "core 9am": "tab:pink",
@@ -171,13 +171,20 @@ color_pal = {
     "core trained": "tab:red",
     "small_before_tuning": "tab:blue",
     "small_after_tuning": "tab:pink",
+    "Baseline Model": "tab:orange",
+    "Optimized Model": "tab:blue",
 }
 
 
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels"))
+osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels data"))
 # osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core adjusted", radius=200.0))
-osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core", radius=200.0))
+osi_dfs.append(
+    get_osi_df("core", "OSI_DSI_DF_orig.csv", "Baseline Model", radius=200.0)
+)
+osi_dfs.append(
+    get_osi_df("core", "OSI_DSI_DF_checkpoint.csv", "Optimized Model", radius=200.0)
+)
 # osi_dfs.append(
 #     get_osi_df("core_0427", "OSI_DSI_DF_recurrent.csv", "core recurrent", radius=200.0)
 # )
@@ -202,7 +209,7 @@ if pattern == "sac":
     plt.tight_layout()
     plt.savefig("box_simplified_SAC.png", dpi=150)
 elif pattern == "normal":
-    color_pal = None
+    # color_pal = None
     fig, axs = plt.subplots(4, 2, figsize=(24, 12))
     # fig, axs = plt.subplots(3, 1, figsize=(9, 12))
     plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], color_pal)

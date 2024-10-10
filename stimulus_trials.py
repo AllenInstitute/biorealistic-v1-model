@@ -21,11 +21,11 @@ class ContrastStimulus:
         self.trials = range(10)
         self.blanks = 30
 
-    def get_all_result_paths(self, basedir):
+    def get_all_result_paths(self, basedir, network_option):
         path_list = []
         for angle, contrast, trial in self:
             path_list.append(
-                f"{basedir}/contrasts/angle{int(angle)}_contrast{contrast}_trial{trial}"
+                f"{basedir}/contrasts_{network_option}/angle{int(angle)}_contrast{contrast}_trial{trial}"
             )
         return path_list
 

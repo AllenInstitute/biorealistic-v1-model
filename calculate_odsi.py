@@ -151,8 +151,9 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
 if __name__ == "__main__":
     args = sys.argv
     basedir = args[1]
+    network_option = args[2]
     network_dir = basedir + "/network"
-    set_name = basedir + "/8dir_10trials"
+    set_name = basedir + f"/8dir_10trials_{network_option}"
     metric_dir = basedir + "/metrics"
     # network_dir = args[1]
     # set_name = args[2]
@@ -180,7 +181,9 @@ if __name__ == "__main__":
         node_ids = np.load(set_name + "/node_ids.npy")
         Rates_DF = Rates_DF.loc[Rates_DF["node_id"].isin(node_ids)]
 
-    Rates_DF.to_csv(basedir + "/metrics/Rates_DF.csv", sep=" ", index=False)
+    Rates_DF.to_csv(
+        basedir + f"/metrics/Rates_DF_{network_option}.csv", sep=" ", index=False
+    )
     print("Done Rates DF!")
 
     # Rates_DF = pd.read_csv(set_name + "/Rates_DF.csv", sep=" ", index_col=False)
@@ -188,5 +191,7 @@ if __name__ == "__main__":
     if basedir == "tensorflow":
         # replace the node_ids with the node_ids
         osi_df["node_id"] = node_ids
-    osi_df.to_csv(basedir + "/metrics/OSI_DSI_DF.csv", sep=" ", index=False)
+    osi_df.to_csv(
+        basedir + f"/metrics/OSI_DSI_DF_{network_option}.csv", sep=" ", index=False
+    )
     print("Done with all!")

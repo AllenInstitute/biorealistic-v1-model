@@ -70,7 +70,7 @@ Before submitting the job, please activate the environment for TF in the hpc-log
 
 
 
-## Synaptic dat for TensorFlow models
+## Synaptic data for TensorFlow models
 This step is not necessary for running the model, but if you are interested in how the parameters of the files under `synaptic_data` directory in the TensorFlow model repo, you can run the following command to generate them.
 
 `$ snakemake tf_basis_functions`

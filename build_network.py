@@ -642,6 +642,7 @@ if __name__ == "__main__":
         help="The radius of the core region. This will be used to determine how the \
               Rossi rule will be applied. It will be applied within 1.5 * core_radius.",
     )
+    parser.add_argument("--seed", type=int, default=153, help="Random number seed")
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
     args = parser.parse_args()
 
@@ -658,12 +659,18 @@ if __name__ == "__main__":
     """
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-    seed_v1_nodes = 153
-    seed_v1_edges = 154 + rank
-    seed_lgn_nodes = 253
-    seed_lgn_edges = 254 + rank
-    seed_bkg_nodes = 353
-    seed_bkg_edges = 354 + rank
+    # seed_v1_nodes = 153
+    # seed_v1_edges = 154 + rank
+    # seed_lgn_nodes = 253
+    # seed_lgn_edges = 254 + rank
+    # seed_bkg_nodes = 353
+    # seed_bkg_edges = 354 + rank
+    seed_v1_nodes = args.seed
+    seed_v1_edges = args.seed + 1 + rank
+    seed_lgn_nodes = args.seed + 100
+    seed_lgn_edges = args.seed + 101 + rank
+    seed_bkg_nodes = args.seed + 200
+    seed_bkg_edges = args.seed + 201 + rank
 
     def set_seed(seed):
         random.seed(seed)
