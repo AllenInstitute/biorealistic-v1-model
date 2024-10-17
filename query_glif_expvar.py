@@ -8,6 +8,7 @@ import pandas as pd
 from allensdk.api.queries.glif_api import GlifApi
 import os
 import sys
+import time
 
 relative_path = os.path.dirname(os.getcwd())
 sys.path.append(os.path.join(relative_path, "libraries"))
@@ -34,15 +35,16 @@ def get_expVar(specimen_id_list, keyword):
         specimen_id_list: list of integers
             desired specimen ids of data in AIBS public database
         keyword: string
-            string to search for in the 'name' entry of the  AIBS public database 
+            string to search for in the 'name' entry of the  AIBS public database
     Outputs:
         ev: list of floats
             explained variance for input specimen ids
-        
+
     """
     ev = []
     for sp in specimen_id_list:
-        models = glif_api.get_neuronal_models(sp)[0]
+        # models = glif_api.get_neuronal_models(sp)[0]
+        models = safe_get_neuronal_models(sp)[0]
         for m in models["neuronal_models"]:
             #    print m['name']
             if keyword in m["name"]:
@@ -53,27 +55,42 @@ def get_expVar(specimen_id_list, keyword):
     return ev
 
 
+def safe_get_neuronal_models(specimen_id):
+    # let's try getting it 10 times with some intervals, and if it fails, raise an error
+    for i in range(10):
+        try:
+            return glif_api.get_neuronal_models(specimen_id)
+        except:
+            print(
+                f"retrieval failed for specimen {specimen_id}, retrying... (trial {i+1} of 10)"
+            )
+            time.sleep(0.5)
+            continue
+
+
 def find_model_spid(specimen_id_list, keyword):
     """Given a list of specimen ids, returns list that have a specified model
     inputs:
         specimen_id_list: list of integers
-            desired specimen ids of data in AIBS public database 
+            desired specimen ids of data in AIBS public database
         keyword: string
-            string to search for in the 'name' entry of the  AIBS public database 
+            string to search for in the 'name' entry of the  AIBS public database
     outputs:
         ev: list of integers
             specimen ids out of list that contain keywork in the 'name'
-        
+
     """
     reduced_ids = []
     for sp in specimen_id_list:
-        model_candidates = glif_api.get_neuronal_models(sp)
+        # model_candidates = glif_api.get_neuronal_models(sp)
+        model_candidates = safe_get_neuronal_models(sp)
         if len(model_candidates) == 0:  # no model available
             continue
         else:
             models = model_candidates[0]
 
-        models = glif_api.get_neuronal_models(sp)[0]
+        # models = glif_api.get_neuronal_models(sp)[0]
+        # models = safe_get_neuronal_models(sp)[0]
         for m in models["neuronal_models"]:
             #    print m['name']
             if keyword in m["name"]:
@@ -138,4 +155,3 @@ df = pd.DataFrame(
 
 df.to_csv("cell_types/glif_explained_variance_ratio.csv")
 print("Data written in cell_types/glif_explained_variance_ratio.csv.\nDone!")
-
