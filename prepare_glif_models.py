@@ -11,10 +11,12 @@ import pathlib
 import urllib.request
 import zipfile
 from tqdm import tqdm
+from query_glif_expvar import safe_get_neuronal_models
 
 
 def get_glif3_model(id):
-    models = glif_api.get_neuronal_models(id)[0]["neuronal_models"]
+    # models = glif_api.get_neuronal_models(id)[0]["neuronal_models"]
+    models = safe_get_neuronal_models(id)[0]["neuronal_models"]
     glif3id = int(np.where(["3 LIF" in m["name"] for m in models])[0])
     modelpath = models[glif3id]["well_known_files"][0]["path"]
     destination = f"glif_models/cell_models/{id}_glif_lif_asc_config.json"
