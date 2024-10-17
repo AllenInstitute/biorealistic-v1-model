@@ -12,6 +12,7 @@ import urllib.request
 import zipfile
 from tqdm import tqdm
 from query_glif_expvar import safe_get_neuronal_models
+import time
 
 
 def get_glif3_model(id):
@@ -27,13 +28,21 @@ def get_glif3_model(id):
     else:  # otherwise, download the file from the http link.
         modelid = models[glif3id]["well_known_files"][0]["attachable_id"]
         url = f"http://api.brain-map.org/neuronal_model/download/{modelid}"
-        urllib.request.urlretrieve(url, "./tmpfile.zip")
-        with zipfile.ZipFile("./tmpfile.zip", "r") as zip_ref:
-            zip_ref.extract("neuron_config.json", "./")
-        copyfile("./neuron_config.json", destination)
-        # and remove the temporary file
-        os.remove("./tmpfile.zip")
-        os.remove("./neuron_config.json")
+
+        # a layer of safety here as well.
+        for i in range(10):
+            try:
+                urllib.request.urlretrieve(url, "./tmpfile.zip")
+                with zipfile.ZipFile("./tmpfile.zip", "r") as zip_ref:
+                    zip_ref.extract("neuron_config.json", "./")
+                copyfile("./neuron_config.json", destination)
+                # and remove the temporary file
+                os.remove("./tmpfile.zip")
+                os.remove("./neuron_config.json")
+                break
+            except:
+                print(f"Failed to download {id} model, retrying, trial {i+1} of 10")
+                time.sleep(0.5)
 
 
 glif_api = GlifApi()

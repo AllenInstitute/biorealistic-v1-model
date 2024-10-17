@@ -65,7 +65,7 @@ def safe_get_neuronal_models(specimen_id):
                 f"retrieval failed for specimen {specimen_id}, retrying... (trial {i+1} of 10)"
             )
             time.sleep(0.5)
-            continue
+    raise ValueError(f"retrieval failed for specimen {specimen_id}")
 
 
 def find_model_spid(specimen_id_list, keyword):
