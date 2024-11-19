@@ -10,7 +10,7 @@ dependencies:
   - pip
 
   # Nest (PointNet backend)
-  - nest-simulator
+  - nest-simulator>=3.6  # after glif_psc_double_alpha implementation
     
   # Convenience
   - black
@@ -23,6 +23,7 @@ dependencies:
   # bmtk
   - pytest
   - mpi4py
+  - mpich  # for our cluster slurm compatibility
   - bmtk
   - numba
   
