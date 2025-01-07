@@ -4,7 +4,7 @@ channels:
   - kaeldai
 
 dependencies:
-  - tensorflow-gpu=2.15
+  - tensorflow-gpu=2.14
   - matplotlib
   - seaborn
   - numba
