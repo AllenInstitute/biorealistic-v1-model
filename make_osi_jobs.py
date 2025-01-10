@@ -137,9 +137,7 @@ def write_filternet_job(basedir, config_counts, job_name, arg_memory):
 
         config_array = configdir + "/config_filternet_$SLURM_ARRAY_TASK_ID.json"
         # f.write(f"srun --mpi=pmi2 python run_filternet.py {config_array}")
-        f.write(
-            f"mpirun --oversubscribe -np {jobs * cores} python run_filternet.py {config_array}"
-        )
+        f.write(f"mpirun -np {jobs * cores} python run_filternet.py {config_array}")
 
 
 if __name__ == "__main__":
@@ -165,7 +163,7 @@ if __name__ == "__main__":
         base_config = args.basedir + "/configs/config_filternet.json"
         configdir = args.basedir + "/configs/filternet_8dir_10trials"
     else:
-        base_config = args.basedir + "/configs/config_plain.json"
+        base_config = args.basedir + f"/configs/config_{args.network_option}.json"
         configdir = args.basedir + f"/configs/8dir_10trials_{args.network_option}"
 
     jobdir = args.basedir + "/jobs"
@@ -204,15 +202,17 @@ if __name__ == "__main__":
                 js["manifest"]["$OUTPUT_DIR"] = outdir_indv
 
                 # change the edge file if not plain
-                if args.network_option != "plain":
-                    js["networks"]["edges"][0][
-                        "edges_file"
-                    ] = f"$NETWORK_DIR/v1_v1_edges_{args.network_option}.h5"
+                # if (args.network_option != "plain") and (
+                #     args.network_option != "glif1"
+                # ):
+                #     js["networks"]["edges"][0][
+                #         "edges_file"
+                #     ] = f"$NETWORK_DIR/v1_v1_edges_{args.network_option}.h5"
                 # also change the bkg for TF checkpoint
-                if args.network_option == "checkpoint":
-                    js["networks"]["edges"][2][
-                        "edges_file"
-                    ] = f"$NETWORK_DIR/bkg_v1_edges_checkpoint.h5"
+                # if args.network_option == "checkpoint":
+                #     js["networks"]["edges"][2][
+                #         "edges_file"
+                #     ] = f"$NETWORK_DIR/bkg_v1_edges_checkpoint.h5"
 
                 config_name = configdir + f"/config_{config_counts}.json"
                 # if the config file contains background input, change the input file

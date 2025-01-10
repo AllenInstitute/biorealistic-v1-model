@@ -33,7 +33,7 @@ def calculateFiringRate(gids, ts, numNrns, start_time=0.0, duration=2.0):
     return mean_firing_rates
 
 
-def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir=None):
+def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), set_name=None):
     Rates_DF = pd.DataFrame(
         index=range(numNrns * len(angles)),
         columns=[
@@ -54,7 +54,8 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
 
         for trial in range(trials):
             spikes_file_name = (
-                f"{basedir}/8dir_10trials/angle{ori}_trial{trial}/spikes.csv"
+                # f"{basedir}/8dir_10trials/angle{ori}_trial{trial}/spikes.csv"
+                f"{set_name}/angle{ori}_trial{trial}/spikes.csv"
             )
             # spikes = np.loadtxt(spikes_file_name, unpack=True)
             # if the file is not found, skip it
@@ -79,7 +80,7 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
                 ts,
                 numNrns,
                 start_time=0.1,
-                duration=0.4
+                duration=0.4,
                 # gids,
                 # ts,
                 # numNrns,
@@ -102,9 +103,9 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), basedir
         Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "SD_rate(Hz)"] = np.nanstd(
             firingRatesTrials, axis=0
         )
-        Rates_DF.loc[
-            i * numNrns : (i + 1) * numNrns - 1, "Spont_rate(Hz)"
-        ] = np.nanmean(spontRatesTrials, axis=0)
+        Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "Spont_rate(Hz)"] = (
+            np.nanmean(spontRatesTrials, axis=0)
+        )
 
     return Rates_DF
 
@@ -174,7 +175,10 @@ if __name__ == "__main__":
 
     print("FR calculation started...")
     Rates_DF = calculate_Rates_DF(
-        numNrns, trials=trials, angles=angles, basedir=basedir
+        numNrns,
+        trials=trials,
+        angles=angles,
+        set_name=set_name,
     )
     # drop the rows that is not included in node_ids
     if basedir == "tensorflow":

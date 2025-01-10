@@ -117,7 +117,14 @@ if __name__ == "__main__":
             seed = start_seed + i * 10 + j
             dirname = f"{basedir}/bkg_8dir_10trials/angle{i*45}_trial{j}"
             pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
-            write_bkg(f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed)
+            if n_neu == 100:
+                write_bkg(
+                    f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed
+                )
+            elif n_neu == 1:
+                write_bkg(
+                    f"{dirname}/bkg_spikes_1kHz_3s.h5", n_neu, rate=1000, seed=seed
+                )
 
     start_seed2 = 451958
     seed = start_seed2

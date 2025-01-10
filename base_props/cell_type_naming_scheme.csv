@@ -14,6 +14,8 @@ i4Vip 4 4 i VIP VIP L4_VIP L4_VIP vip InhTC_4 VIP_L4 vip
 e5ET 5 5 e ET Exc L5_ET L5_Exc e5et L5ET EXC_L5 l5_ET_pyr
 e5IT 5 5 e IT Exc L5_IT L5_Exc e5it L5 EXC_L5 l5_IT_pyr
 e5NP 5 5 e NP Exc L5_NP L5_Exc e5np L5NP EXC_L5 l5_NP_pyr
+e5Rbp4 5 5 e Exc Exc L5_Exc L5_Exc e5it L5 EXC_L5 l5_IT_pyr
+e5noRbp4 5 5 e Exc Exc L5_Exc L5_Exc e5it L5 EXC_L5 l5_IT_pyr
 i5Pvalb 5 5 i PV PV L5_PV L5_PV pv ProxTC_5 PV_L5 pvalb
 i5Sst 5 5 i SST SST L5_SST L5_SST sst DistTC_5 SST_L5 sst
 i5Vip 5 5 i VIP VIP L5_VIP L5_VIP vip InhTC_5 VIP_L5 vip
