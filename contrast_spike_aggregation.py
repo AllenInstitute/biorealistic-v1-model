@@ -12,8 +12,7 @@ import argparse
 # fast way to summarize spike rates from one file
 
 # %% class is made so things should be easy now.
-# TODO: later make this an argument to the script and make a workflow
-basedir = "core"
+# basedir = "core"
 parser = argparse.ArgumentParser(
     description="Summarize spike counts from contrast stimuli."
 )

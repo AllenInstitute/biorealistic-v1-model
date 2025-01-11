@@ -7,11 +7,21 @@ import seaborn as sns
 import lazyscience as lz
 import stimulus_trials as st
 from importlib import reload
+import argparse
 
 # load spike counts
 
-basedir = "core"
-network_option = "checkpoint"
+# basedir = "core_2"
+# network_option = "checkpoint"
+parser = argparse.ArgumentParser(
+    description="Plot the contrast response of the network."
+)
+parser.add_argument("basedir", type=str, help="The base directory of the network.")
+parser.add_argument("network_option", type=str, help="The network option.")
+args = parser.parse_args()
+basedir = args.basedir
+network_option = args.network_option
+
 spike_file_name = f"{basedir}/contrasts_{network_option}/spike_counts.npz"
 f = np.load(spike_file_name)
 spont_spikes = f["spont_spikes"]
@@ -52,7 +62,7 @@ for cell_type, type_df in nodes_p.groupby("cell_type"):
 
 
 plt.tight_layout()
-fig.savefig(f"{basedir}/figures/contrast_response_heatmap.png", dpi=300)
+fig.savefig(f"{basedir}/figures/contrast_response_{network_option}.png", dpi=300)
 
 # %% Let's also make a normalized version of this plot
 
@@ -85,7 +95,7 @@ for cell_type, type_df in nodes_p.groupby("cell_type"):
     ax.set_title(cell_type)
 
 plt.tight_layout()
-fig.savefig(f"{basedir}/figures/contrast_response_heatmap_norm.png", dpi=300)
+fig.savefig(f"{basedir}/figures/contrast_response_norm_{network_option}.png", dpi=300)
 
 # %% OK. This yields nothing, so I'd need to extract significantly responding cells.
 reload(lz)
@@ -156,7 +166,7 @@ for label in ax.get_xticklabels():
 for label in ax2.get_xticklabels():
     label.set_color("C0")
 
-fig.savefig(f"{basedir}/figures/contrast_responsive_cells.pdf")
+fig.savefig(f"{basedir}/figures/contrast_responsive_cells_{network_option}.pdf")
 
 
 # %% Center of gravity analysis

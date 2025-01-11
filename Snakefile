@@ -88,7 +88,8 @@ for i in range(10):
         "fraction": 0.22145328719723,
         "core_radius": 200,
         "memory": 20,
-        "seed": i * 1000
+        "seed": i * 1000,
+        "other_options": "--fluctuate-nneu"
     }
 
 
@@ -255,13 +256,15 @@ rule build_network:
     input:
         script=main_scripts,
         data=build_files
+        # ignore=lambda wildcards: ["glif_props/v1_edge_models.csv", "glif_models/cell_models/313861608_glif_lif_asc_config.json", "gilf_props/bkg_weights_model.csv", "glif_props/v1_node_models.csv", "glif_props/lgn_weights_model.csv"]
     output: ["{network_name}" + name for name in network_files]
     threads: n_threads
     params:
         fraction = lambda wildcards: networks[wildcards.network_name]["fraction"],
-        seed = lambda wildcards: networks[wildcards.network_name].get("seed", 153)
+        seed = lambda wildcards: networks[wildcards.network_name].get("seed", 153),
+        other_options = lambda wildcards: networks[wildcards.network_name].get("other_options", "")
     shell:
-        "mpirun -np {n_threads} python {input.script[0]} -f -o {wildcards.network_name}/network --fraction {params.fraction} --seed {params.seed}"
+        "mpirun -np {n_threads} python {input.script[0]} -f -o {wildcards.network_name}/network --fraction {params.fraction} --seed {params.seed} {params.other_options}"
     
 
 rule bkg_edges_override:
@@ -495,6 +498,13 @@ rule contrast_spike_aggregation:
         script="contrast_spike_aggregation.py",
         data="{network_name}/contrasts_{network_option}/angle0_contrast0.05_trial0/spikes.h5"
     output: "{network_name}/contrasts_{network_option}/spike_counts.npz"
+    shell: "python {input.script} {wildcards.network_name} {wildcards.network_option}"
+    
+rule plot_contrast_response:
+    input:
+        script="contrast_analysis.py",
+        data="{network_name}/contrasts_{network_option}/spike_counts.npz"
+    output: "{network_name}/figures/contrast_responsive_cells_{network_option}.pdf"
     shell: "python {input.script} {wildcards.network_name} {wildcards.network_option}"
 
 rule odsi_metrics:

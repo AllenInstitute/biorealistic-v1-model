@@ -36,7 +36,7 @@ import logging
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=1.00, flat=False):
+def add_nodes_v1(fraction=1.00, flat=False, poisson_fluctuation=False):
     v1_models = pd.read_csv("glif_props/v1_node_models.csv", sep=" ", index_col=0)
 
     min_radius = 1.0  # to avoid diverging density near 0
@@ -60,7 +60,11 @@ def add_nodes_v1(fraction=1.00, flat=False):
         if flat:  # test network that has exactly 100 neurons for each population
             N = 100
         else:
-            N = model["N"]
+            if poisson_fluctuation:
+                # add some poisson fluctuation to the number of cells
+                N = np.random.poisson(model["N"])
+            else:
+                N = model["N"]
 
         # depth is defined as a negative value in y axis from the surface.
         depth_range = -np.array(
@@ -229,7 +233,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
+        tuning_rnd = float(np.random.randn(1)[0] * 5) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -247,7 +251,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 10) * randomizing_factor
+        tuning_rnd = float(np.random.randn(1)[0] * 10) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -266,7 +270,7 @@ def syn_weight_by_experimental_distribution(
         # delta_orientation directly with the PPF
 
         # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
+        tuning_rnd = float(np.random.randn(1)[0] * 5) * randomizing_factor
 
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
@@ -641,6 +645,12 @@ if __name__ == "__main__":
         default=400.0,
         help="The radius of the core region. This will be used to determine how the \
               Rossi rule will be applied. It will be applied within 1.5 * core_radius.",
+    )
+    parser.add_argument(
+        "--fluctuate-nneu",
+        action="store_true",
+        default=False,
+        help="Introduce Poisson fluctuation of the number of neurons for each cell model.",
     )
     parser.add_argument("--seed", type=int, default=153, help="Random number seed")
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
