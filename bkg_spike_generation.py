@@ -140,3 +140,17 @@ if __name__ == "__main__":
         pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
         write_bkg(f"{dirname}/bkg_spikes_250Hz_3s.h5", n_neu, rate=250, seed=seed)
         seed += 1
+
+    start_seed3 = 551358
+    print("Generating bkg spikes for imagenet...")
+    dirname = f"{basedir}/bkg_imagenet"
+    pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+    for chunk in tqdm(range(60)):
+        write_bkg(
+            f"{dirname}/bkg_imagenet_chunk_{chunk:02d}.h5",
+            n_neu,
+            rate=250,
+            duration=20.0,
+            seed=seed,
+        )
+        seed += 1
