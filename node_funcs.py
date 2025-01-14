@@ -9,8 +9,7 @@ def generate_random_positions(N, layer_range, radial_range):
 
     phi = 2.0 * np.pi * np.random.random([N])
     r = np.sqrt(
-        (radius_outer ** 2 - radius_inner ** 2) * np.random.random([N])
-        + radius_inner ** 2
+        (radius_outer**2 - radius_inner**2) * np.random.random([N]) + radius_inner**2
     )
     x = r * np.cos(phi)
     z = r * np.sin(phi)
@@ -43,17 +42,15 @@ def generate_positions_grids(N, x_grids, y_grids, x_len, y_len):
     return np.column_stack((X, Y))
 
 
-def get_filter_spatial_size(N, X_grids, Y_grids, size_range):
+def get_filter_spatial_size(N, X_grids, Y_grids, min_size, max_size):
     spatial_sizes = np.zeros(N * X_grids * Y_grids)
     counter = 0
     for i in range(X_grids):
         for j in range(Y_grids):
-            if len(size_range) == 1:
-                sizes = np.ones(N) * size_range[0]
+            if min_size == max_size:  # uniform distribution
+                sizes = np.ones(N) * min_size
             else:
-                sizes = np.random.triangular(
-                    size_range[0], size_range[0] + 1, size_range[1], N
-                )
+                sizes = np.random.triangular(min_size, min_size + 1, max_size, N)
             spatial_sizes[counter * N : (counter + 1) * N] = sizes
             counter = counter + 1
     return spatial_sizes
@@ -270,4 +267,3 @@ def get_filter_temporal_params(N, X_grids, Y_grids, model):
             sf_sep,
         )
     )
-

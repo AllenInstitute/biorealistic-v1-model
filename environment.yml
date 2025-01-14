@@ -1,27 +1,34 @@
 channels:
   - conda-forge
+  - bioconda
   - kaeldai
 
 dependencies:
-  # Basics ------------------
-  - python=3.8
+  # Basics
+  # 3.12 is not compatible with allensdk (as of 7/1/2024)
+  - python=3.11
   - pip
 
-  # Nest   ------------------
-  - nest-simulator
-
-  # Convenience -------------
+  # Nest (PointNet backend)
+  - nest-simulator>=3.6  # after glif_psc_double_alpha implementation
+    
+  # Convenience
   - black
   - iminuit
+  - snakemake
+  - jupyter
+  - pandarallel
+  - polars
   
   # bmtk
   - pytest
   - mpi4py
+  - mpich  # for our cluster slurm compatibility
   - bmtk
+  - numba
   
   # modeling
   - openpyxl
-  - numba
 
   # allensdk
   - future
@@ -30,6 +37,7 @@ dependencies:
   - psycopg2-binary
   - pynrrd
   - python-dateutil
+  - pytables
   - requests
   - scikit-build
   - scikit-image
@@ -49,3 +57,4 @@ dependencies:
     # for modeling
     - allensdk
     - pylightxl
+    - sonata

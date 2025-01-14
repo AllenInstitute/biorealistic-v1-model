@@ -5,9 +5,9 @@ the goal is to make the cluter running as easy as possible, while permitting nec
 manipulations of the parameters.
 
 Eventually, the command to run is like this
-mpirun -np 8 python run_filternet.py <config_file>
+mpirun --oversubscribe -np 8 python run_filternet.py <config_file>
 or
-mpirun -np 8 python run_pointnet.py <config_file>
+python run_pointnet.py -n 8 <config_file>
 8 should be changed to an appropriate number of cores (using a big number may not be helpful)
 
 These commands should be stored in the job file
@@ -30,11 +30,11 @@ import argparse
 import pathlib
 
 
-def sbatch_boilerplate(file, logdir, config_counts, memory=4, jobs=8):
-    time = "2:00:00" if jobs <= 4 else "1:00:00"
+def sbatch_boilerplate(file, logdir, config_counts, memory=32, jobs=1, threads=8):
+    time = "2:00:00" if (jobs * threads) <= 4 else "1:00:00"
 
     file.write("#!/bin/bash\n")
-    file.write("#SBATCH --partition=braintv\n")
+    file.write("#SBATCH --partition=d3\n")
     # if full_memory:  # full model needs a lot of memory
     #     file.write("#SBATCH -N1 -c1 -n4\n")
     #     file.write("#SBATCH --mem-per-cpu=60G\n")
@@ -43,23 +43,60 @@ def sbatch_boilerplate(file, logdir, config_counts, memory=4, jobs=8):
     #     file.write("#SBATCH -N1 -c1 -n8\n")
     #     file.write("#SBATCH --mem-per-cpu=15G\n")
     #     file.write("#SBATCH -t1:00:00\n")
-    file.write(f"#SBATCH -N1 -c1 -n{jobs}\n")
-    file.write(f"#SBATCH --mem-per-cpu={memory}G\n")
+    file.write(f"#SBATCH -N1 -n1 -c{jobs * threads}\n")
+    # file.write(f"#SBATCH --mem-per-cpu={memory}G\n")
+    # now better to specify the total memory
+    file.write(f"#SBATCH --mem={memory}G\n")
     file.write(f"#SBATCH -t{time}\n")
 
-    file.write("#SBATCH --qos=braintv\n")
+    file.write("#SBATCH --qos=d3\n")
     file.write(f"#SBATCH --output={logdir}/slurm-%A_%a.out\n")
     file.write(f"#SBATCH --error={logdir}/slurm-%A_%a.err\n")
     # array ID range includes both edges
     file.write(f"#SBATCH --array=0-{config_counts-1}\n\n")
     file.write(
-        "module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles\n"
+        # "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/activate_custom_nest_sdk_develop.sh\n"
+        "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/miniconda3/bin/activate new_v1\n"
     )
-    file.write("module load mpich/3.4.1-slurm\n")
-    file.write("module load conda/4.5.4\n")
+    # file.write(
+    #     "module use /allen/programs/braintv/workgroups/modelingsdk/modulefiles\n"
+    # )
+    # # activating double alpha version of nest.
+    # file.write(
+    #     "module load anaconda/22.10 cmake/3.25.2 gcc/10.1.0-centos7 openmpi/4.1.5-gcc10\n"
+    # )
+    # file.write(
+    #     "conda activate /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/miniconda3/envs/custom_nest\n"
+    # )
+    # file.write(
+    #     "source /allen/programs/mindscope/workgroups/realistic-model/shinya.ito/custom_nest/nest-simulator-3.4/build/bin/nest_vars.sh\n"
+    # )
+    # old code
+    # file.write("module load mpich/3.4.1-slurm\n")
+    # file.write("module load conda/4.5.4\n")
     # f.write("module load nest/2.20.1-py37-slurm\n")
     # f.write("source activate v1_glif_modeling\n")
-    file.write("source activate bmtk-latest-py37-slurm\n")
+    # file.write("source activate bmtk-latest-py37-slurm\n")
+
+
+def memory_jobs(basedir):
+    if "full" in basedir:
+        memory = 120
+        jobs = 1
+        threads = 8
+    elif "forty" in basedir:
+        memory = 60
+        jobs = 1
+        threads = 8
+    elif ("core" in basedir) or ("twenty" in basedir):
+        memory = 30
+        jobs = 1
+        threads = 8
+    else:  # including small, tiny, etc.
+        memory = 10
+        jobs = 1
+        threads = 8
+    return memory, jobs, threads
 
 
 def write_job(basedir, config_counts, modfile):
@@ -68,28 +105,34 @@ def write_job(basedir, config_counts, modfile):
     logdir = jobdir + "/logs"
 
     with open(jobdir + "/8dir_10trials.sh", "w") as f:
-        if "full" in basedir:
-            memory = 60
-            jobs = 4
-        elif "forty" in basedir:
-            memory = 30
-            jobs = 8
-        elif ("core" in basedir) or ("twenty" in basedir):
-            memory = 15
-            jobs = 8
-        else:  # including small, tiny, etc.
-            memory = 4
-            jobs = 8
-        sbatch_boilerplate(f, logdir, config_counts, memory=memory, jobs=jobs)
-        f.write("module load nest/2.20.1-py37-slurm\n")
+        memory, jobs, threads = memory_jobs(basedir)
+        # if "full" in basedir:
+        #     memory = 60
+        #     jobs = 4
+        # elif "forty" in basedir:
+        #     memory = 30
+        #     jobs = 8
+        # elif ("core" in basedir) or ("twenty" in basedir):
+        #     memory = 15
+        #     jobs = 8
+        # else:  # including small, tiny, etc.
+        #     memory = 4
+        #     jobs = 8
+        sbatch_boilerplate(
+            f, logdir, config_counts, memory=memory, jobs=jobs, threads=threads
+        )
+        # f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_$SLURM_ARRAY_TASK_ID.json"
         if modfile is not None:
             f.write(
-                f"srun --mpi=pmi2 python run_pointnet.py {config_array} -m {modfile}"
+                # f"srun --mpi=pmi2 python run_pointnet.py {config_array} -m {modfile}"
+                # f"mpirun -np {jobs} python run_pointnet.py {config_array} -m {modfile}"
+                f"python run_pointnet.py {config_array} -m {modfile} -n {threads}"
             )
         else:
-            f.write(f"srun --mpi=pmi2 python run_pointnet.py {config_array}")
+            # f.write(f"srun --mpi=pmi2 python run_pointnet.py {config_array}")
+            f.write(f"python run_pointnet.py {config_array} -n {threads}")
 
 
 def write_filternet_job(basedir, config_counts):
@@ -99,10 +142,14 @@ def write_filternet_job(basedir, config_counts):
 
     with open(jobdir + "/filternet_8dir_10trials.sh", "w") as f:
         sbatch_boilerplate(f, logdir, config_counts)
+        memory, jobs, cores = memory_jobs(basedir)
         # f.write("module load nest/2.20.1-py37-slurm\n")
 
         config_array = configdir + "/config_filternet_$SLURM_ARRAY_TASK_ID.json"
-        f.write(f"srun --mpi=pmi2 python run_filternet.py {config_array}")
+        # f.write(f"srun --mpi=pmi2 python run_filternet.py {config_array}")
+        f.write(
+            f"mpirun --oversubscribe -np {jobs * cores} python run_filternet.py {config_array}"
+        )
 
 
 if __name__ == "__main__":

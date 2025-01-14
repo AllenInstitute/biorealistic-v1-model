@@ -1,0 +1,15 @@
+model_id N ei location level_of_detail pop_name min_size max_size
+sON_TF1 7 e LGN filter sON_TF1 2 9
+sON_TF2 5 e LGN filter sON_TF2 2 9
+sON_TF4 7 e LGN filter sON_TF4 2 9
+sON_TF8 15 e LGN filter sON_TF8 2 9
+sOFF_TF1 8 e LGN filter sOFF_TF1 2 9
+sOFF_TF2 8 e LGN filter sOFF_TF2 2 9
+sOFF_TF4 15 e LGN filter sOFF_TF4 2 9
+sOFF_TF8 8 e LGN filter sOFF_TF8 2 9
+sOFF_TF15 7 e LGN filter sOFF_TF15 2 9
+tOFF_TF4 10 e LGN filter tOFF_TF4 2 9
+tOFF_TF8 5 e LGN filter tOFF_TF8 2 9
+tOFF_TF15 8 e LGN filter tOFF_TF15 2 9
+sONsOFF_001 8 e LGN filter sONsOFF_001 6 6
+sONtOFF_001 5 e LGN filter sONtOFF_001 9 9

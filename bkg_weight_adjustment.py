@@ -10,36 +10,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sonata.circuit
 import subprocess
+import utils
 
 
 # %% try getting FR
 # get the spike dataframe
-def pop_name_to_cell_type(pop_name):
-    """convert pop_name in the old format to cell types.
-    for example,
-    'e4Rorb' -> 'L4 Exc'
-    'i4Pvalb' -> 'L4 PV'
-    'i23Sst' -> 'L2/3 SST'
-    """
-    shift = 0  # letter shift for L23
-    layer = pop_name[1]
-    if layer == "2":
-        layer = "2/3"
-        shift = 1
-    elif layer == "1":
-        return "L1 Htr3a"  # special case
-
-    class_name = pop_name[2 + shift :]
-    if class_name == "Pvalb":
-        subclass = "PV"
-    elif class_name == "Sst":
-        subclass = "SST"
-    elif (class_name == "Vip") or (class_name == "Htr3a"):
-        subclass = "VIP"
-    else:  # excitatory
-        subclass = "Exc"
-
-    return f"L{layer} {subclass}"
 
 
 def get_spike_df(basedir, query="timestamps < 100000", recurrent=False, outdir=None):
@@ -80,6 +55,12 @@ def get_model_fr(basedir, recurrent=False, duration=100.0, target="mean", outdir
     elif target == "array":
         # return the array of firing rates
         model_fr = v1df.groupby("node_type_id")["spike_rate"].apply(np.array)
+    elif target == "type_median":
+        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type_old)
+        model_fr = v1df.groupby("cell_type")["spike_rate"].median()
+    elif target == "type_mean":
+        v1df["cell_type"] = v1df["pop_name"].map(utils.pop_name_to_cell_type_old)
+        model_fr = v1df.groupby("cell_type")["spike_rate"].mean()
     else:
         raise ValueError(f"Unknown target: {target}")
     return model_fr
@@ -217,7 +198,7 @@ def update_bkg_weights(basedir, new_weight):
     del bkg_edge_df["edge_type_id"]
     del bkg_edge_df["target_type_id"]
     bkg_edge_df.to_csv(bkg_edge_name, sep=" ")
-    return 0
+    return bkg_edge_df
 
 
 # this is a new version after synaptic weight dynamics change
@@ -245,7 +226,8 @@ def run_simulation(basedir, ncore=8, recurrent=False):
         config_file = basedir + "/configs/config_bkgtune_recurrent.json"
     else:
         config_file = basedir + "/configs/config_bkgtune.json"
-    command = f"mpirun -np {ncore} python run_pointnet.py {config_file}"
+    # command = f"mpirun -np {ncore} python run_pointnet.py {config_file}"
+    command = f"python run_pointnet.py {config_file} -n {ncore}"
     return run_command(command)
 
 
@@ -257,13 +239,14 @@ def run_simulation(basedir, ncore=8, recurrent=False):
 
 if __name__ == "__main__":
     # start with forming the problem.
+    # mode = "small_lgnbkg_lowspont"
     mode = "small_lgnbkg"
     # mode = "flat_wasser"
     target = "median"
 
-    if mode == "small_lgnbkg":
+    if mode == "small_lgnbkg" or mode == "small_lgnbkg_lowspont":
         basedir = "small"
-        duration = 100.0
+        duration = 10.0
     elif mode == "flat_wasser":
         # flat population (100 neurons for each model) with wasserstein distance
         basedir = "flat"
@@ -285,7 +268,7 @@ if __name__ == "__main__":
 
     # based on Reinhold et al., 2015, we try to set the background so that the
     # spontaneous firing rates are 27% of the measured rates that include the LGN.
-    if mode == "single":
+    if mode == "single" or mode == "small_lgnbkg_lowspont":
         tfr = tfr * 0.27
 
     tfr.keys()[0]
@@ -293,17 +276,18 @@ if __name__ == "__main__":
         solvers = {nid: MinuitPipeSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
     else:
         solvers = {nid: BisectionSolver(0, 64, tfr[nid]) for nid in tfr.keys()}
+        # solvers = {nid: BisectionSolver(0, 16, tfr[nid]) for nid in tfr.keys()}
 
     weight = tfr.copy()
     weight[:] = 0.0
     weight.name = "syn_weight"
 
-    for i in range(1000):
+    for i in range(20):  # 20 repetition would achieve ~6 digit accuracy
         if mode == "flat_wasser":
             update_bkg_weights_lognormal(basedir, weight)
         else:
             update_bkg_weights(basedir, weight)
-        run_simulation(basedir, recurrent=recurrent, ncore=6)
+        run_simulation(basedir, recurrent=recurrent, ncore=8)
         model_fr = get_model_fr(basedir, recurrent, duration=duration, target=target)
 
         # if new_weight does not exist, create it.

@@ -2,6 +2,7 @@
 ~*
 *~
 .DS_Store
+.snakemake
 cell_types/*
 glif_models/*
 glif_props/*
@@ -13,7 +14,6 @@ full*/*
 single*/*
 small*/*
 tiny*/*
-miniature*/*
 scaled_spont_lgn_5s/*
 core*/*
 no_recurrent/*
@@ -26,6 +26,7 @@ slurm*.out
 original_mini/*
 test/*
 configs/*
+figs/*
 obsolete/*
 normalize_by_e4/*
 normalize_by_type/*
@@ -37,3 +38,9 @@ images/
 billeh/*
 *.err
 *.out
+test*/*
+diagnose/*
+tensorflow/*
+tf_props/*
+base_props_deprecated/*
+connection_params_for_v1DD/*

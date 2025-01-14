@@ -10,34 +10,7 @@ import sys
 import pathlib
 from matplotlib.patches import Rectangle
 from plotting_utils import pick_core
-
-
-def pop_name_to_cell_type(pop_name):
-    """convert pop_name in the old format to cell types.
-    for example,
-    'e4Rorb' -> 'L4 Exc'
-    'i4Pvalb' -> 'L4 PV'
-    'i23Sst' -> 'L2/3 SST'
-    """
-    shift = 0  # letter shift for L23
-    layer = pop_name[1]
-    if layer == "2":
-        layer = "2/3"
-        shift = 1
-    elif layer == "1":
-        return "L1 Htr3a"  # special case
-
-    class_name = pop_name[2 + shift :]
-    if class_name == "Pvalb":
-        subclass = "PV"
-    elif class_name == "Sst":
-        subclass = "SST"
-    elif (class_name == "Vip") or (class_name == "Htr3a"):
-        subclass = "VIP"
-    else:  # excitatory
-        subclass = "Exc"
-
-    return f"L{layer} {subclass}"
+import utils
 
 
 # basedir = 'small'
@@ -52,12 +25,19 @@ def get_osi_df(basedir, metric_file="OSI_DSI_DF.csv", metric_name="", radius=400
         v1df = net.nodes["v1"].to_dataframe()
         osi_df = pd.read_csv(f"{basedir}/metrics/{metric_file}", sep=" ")
         df = v1df.merge(osi_df)
-        df["cell_type"] = df["pop_name"].apply(pop_name_to_cell_type)
+        # df["cell_type"] = df["pop_name"].map(utils.cell_type_df["cell_type"])
+        df["cell_type"] = df["pop_name"].map(utils.cell_type_df["cell_type_old"])
+        df["ei"] = df["pop_name"].map(utils.cell_type_df["ei"])
         df = pick_core(df, radius=radius)
 
     df.rename(
         columns={"max_mean_rate(Hz)": "Rate at preferred direction (Hz)"}, inplace=True
     )
+
+    # replace white spaces in cell_type with underscore
+    df["cell_type"] = df["cell_type"].str.replace(" ", "_")
+    # also L1_Htr3a should be L1_Inh
+    df["cell_type"] = df["cell_type"].str.replace("L1_Htr3a", "L1_Inh")
 
     # exclude OSI and DSI for neurons with <0.5 Hz preferred direction response
     nonresponding = df["Rate at preferred direction (Hz)"] < 0.5
@@ -88,7 +68,7 @@ def get_borders(ticklabel):
 
 
 def draw_borders(ax, borders, ylim):
-    for i in range(0, len(borders), 2):
+    for i in range(0, len(borders) - 1, 2):
         w = borders[i + 1] - borders[i]
         h = ylim[1] - ylim[0]
         ax.add_patch(
@@ -97,7 +77,12 @@ def draw_borders(ax, borders, ylim):
     return ax
 
 
-def plot_one(ax, df, metric_name, ylim, cpal=None):
+def plot_one(ax, df, metric_name, ylim, cpal=None, e_only=False):
+    if e_only:
+        # first, filter out cell type == nan
+        df = df[~df["cell_type"].isna()]
+        # df = df[df["cell_type"].str.contains("Exc")]
+        df = df[df["ei"] == "e"]
     sns.boxplot(
         x="cell_type",
         y=metric_name,
@@ -126,138 +111,142 @@ def plot_scat(ax, df, x, y, cpal=None, s=1):
     return ax
 
 
+def plot_normal(df, cpal):
+    fig, axs = plt.subplots(4, 2, figsize=(24, 12))
+    plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], cpal)
+    plot_one(axs[0, 1], df, "Avg_Rate(Hz)", [0, 50], cpal)
+    plot_one(axs[1, 0], df, "Rate at preferred direction (Hz)", [0, 50], cpal)
+    plot_one(axs[2, 0], df, "DSI", [0, 1], cpal)
+    plot_one(axs[2, 1], df, "OSI", [0, 1], cpal)
+    plot_scat(axs[3, 0], df, "Rate at preferred direction (Hz)", "DSI", cpal, s=5)
+    plot_scat(axs[3, 1], df, "Rate at preferred direction (Hz)", "OSI", cpal, s=5)
+    plt.tight_layout()
+    return fig, axs
+
+
+def plot_sac(df, cpal):
+    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+    # plot_one(axs[0], df, "Rate at preferred direction (Hz)", [0, 50], cpal, e_only=True)
+    plot_one(axs[0], df, "Avg_Rate(Hz)", [0, 25], cpal, e_only=True)
+    plot_one(axs[1], df, "OSI", [0, 1], cpal, e_only=True)
+    # remove the legend from axs[0], move the legend of axs[1] to outside the plot
+    axs[0].get_legend().remove()
+    axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    plt.tight_layout()
+    return fig, axs
+
+
 osi_dfs = []
 
 color_pal = {
     "Billeh 2020, GLIF final": "tab:orange",
-    "full, bkg=1.0": "tab:blue",
-    "full, bkg=0.5": "tab:cyan",
-    #  'small, bkg=1.0': 'tab:red',
-    #  'small, bkg=0.5': 'tab:pink',
-    "small all round1": "tab:red",
-    "small dendritic norm fix": "tab:pink",
-    "small dendritic norm fix, no rand": "tab:cyan",
-    "small dendritic norm fix, full bkg": "tab:cyan",
-    "small all round2": "tab:pink",
-    "small all round3": "tab:red",
-    "small all round4": "tab:pink",
-    "full all round4": "tab:blue",
-    "full all round3": "tab:blue",
-    "full all round2": "tab:cyan",
-    "full all round1": "tab:red",
-    "full, all": "tab:blue",
-    "small, lgnbkg": "tab:pink",
-    "small constBKG round6": "tab:cyan",
-    "full round6": "tab:pink",
-    "full round7": "tab:blue",
-    "full round9": "tab:blue",
-    "full corrected network": "tab:pink",
-    "small round7": "tab:cyan",
-    "small round9": "tab:blue",
-    "small corrected network": "tab:cyan",
-    "Lognorm, norecurrent": "tab:pink",
-    "New model": "tab:blue",
-    #  'small, lgnonly': 'tab:olive',
-    #  'small, lgn+bkg': 'tab:brown',
-    #  'small, +recurrent': 'tab:red',
-    "Neuropixels": "tab:gray",
+    "Neuropixels data": "tab:gray",
+    "Neuropixels v3": "tab:gray",
     # "Neuropixels": "k",
+    "core 9am": "tab:pink",
+    "core bkg minus4": "tab:cyan",
+    "core bkg minus6": "tab:pink",
+    "full recurrent": "tab:blue",
+    "core recurrent": "tab:pink",
+    "Tensorflow": "tab:blue",
+    "TF FR tuning": "tab:cyan",
+    "TF default": "tab:blue",
+    "Random weights": "tab:blue",
+    "After 1000 iter.": "tab:pink",
+    "After 7500 iter.": "tab:red",
+    "TF rand ckpt5": "tab:pink",
+    "TF rand ckpt10": "tab:red",
+    "TF rand ckpt50": "tab:green",
+    "TF rand ckpt75": "tab:blue",
+    "Trained": "tab:red",
+    "TF rand ckpt100": "tab:blue",
+    "TF OS tuning": "tab:pink",
+    "TF OS, core, 5": "tab:brown",
+    "Lognorm, norecurrent": "tab:pink",
+    "New model": "tab:orange",
+    "small_new": "tab:blue",
+    "core new": "tab:red",
+    "core default": "tab:blue",
+    "core adjusted": "tab:blue",
+    "core trained": "tab:red",
+    "small_before_tuning": "tab:blue",
+    "small_after_tuning": "tab:pink",
+    "Baseline Model": "tab:orange",
+    "Optimized Model": "tab:blue",
 }
 
 
-# Billeh, small, neuropixels set
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_27pBKG_lgnbkg.csv", "small, lgnbkg", radius=100.0))
-
-osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF.csv", "Neuropixels"))
+osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels data"))
+# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core adjusted", radius=200.0))
+osi_dfs.append(
+    get_osi_df("core", "OSI_DSI_DF_orig.csv", "Baseline Model", radius=200.0)
+)
+osi_dfs.append(
+    get_osi_df("core", "OSI_DSI_DF_checkpoint.csv", "Optimized Model", radius=200.0)
+)
 # osi_dfs.append(
-# get_osi_df("flat", "OSI_DSI_DF_round9.csv", "Lognorm, norecurrent", radius=850.0)
+#     get_osi_df("core_0427", "OSI_DSI_DF_recurrent.csv", "core recurrent", radius=200.0)
 # )
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round6.csv", "full round6"))
-osi_dfs.append(get_osi_df("full_0203", "OSI_DSI_DF_round9.csv", "full round9"))
-osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full corrected network"))
+# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core new", radius=200.0))
+# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full recurrent", radius=400.0))
+df = pd.concat(osi_dfs).reset_index()
 
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round7.csv", "full round7"))
-
-# osi_dfs.append(
-# get_osi_df("small_0202", "OSI_DSI_DF_round9.csv", "small round9", radius=100.0)
-# )
-# osi_dfs.append(
-# get_osi_df("small", "OSI_DSI_DF.csv", "small corrected network", radius=100.0)
-# )
-# osi_dfs.append(
-#     get_osi_df("small", "OSI_DSI_DF_round7.csv", "small round7", radius=100.0)
-# )
-# osi_dfs.append(
-#     get_osi_df("full", "OSI_DSI_DF.csv", "New model")
-# )
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF.csv", "small all round4", radius=100.0))
-# osi_dfs.append(
-#     get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small all round1", radius=100.0)
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "small", "OSI_DSI_DF_normfix.csv", "small dendritic norm fix", radius=100.0
-#     )
-# )
-# osi_dfs.append(
-#     get_osi_df(
-#         "small",
-#         "OSI_DSI_DF.csv",
-#         "small dendritic norm fix, full bkg",
-#         radius=100.0,
-#     )
-# )
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_round3_all.csv", "full all round3"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full all round4"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full all round1"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_27pBKG_all.csv", "full all round2"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_round3_all.csv", "small all round3", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_27pBKG_all.csv", "small all round2", radius=100.0))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_27pBKG_all.csv", "full, all", radius=400.0))
-
-# Billeh set
-# osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full, bkg=1.0"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg0.5.csv", "full, bkg=0.5"))
-
-# full-small set
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full, bkg=1.0"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small, bkg=1.0", radius=100.0))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg0.5.csv", "full, bkg=0.5"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg0.5.csv", "small, bkg=0.5", radius=100.0))
-
-# recurrent effect set
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_lgnonly.csv", "small, lgnonly", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_lgnbkg.csv", "small, lgn+bkg", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small, +recurrent", radius=100.0))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg0.5.csv", "small, bkg=0.5"))
-
-# osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg1.0.csv", "full, bkg=1.0"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg1.0.csv", "small, bkg=1.0"))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF_bkg0.5.csv", "full, bkg=0.5"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_bkg0.5.csv", "small, bkg=0.5"))
-# osi_dfs.append(get_osi_df("small", "OSI_DSI_DF_lgnbkg.csv", "small, lgn+bkg"))
-
-df = pd.concat(osi_dfs)
-
+pattern = "normal"
+# pattern = "sac"
 
 # fig, axs = plt.subplots(4, 1, figsize=(12, 20))
-fig, axs = plt.subplots(5, 1, figsize=(12, 20))
-# fig, axs = plt.subplots(3, 1, figsize=(9, 12))
-plot_one(axs[0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
-plot_one(axs[1], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
-plot_one(axs[2], df, "DSI", [0, 1], color_pal)
-plot_one(axs[3], df, "OSI", [0, 1], color_pal)
-plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "DSI", color_pal, s=5)
-# plot_scat(axs[4], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
+if pattern == "sac":
+    fig, axs = plot_sac(df, color_pal)
+    # fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+    # plot_one(
+    #     axs[0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal, e_only=True
+    # )
+    # plot_one(axs[1], df, "OSI", [0, 1], color_pal, e_only=True)
+    # # remove the legend from axs[0], move the legend of axs[1] to outside the plot
+    # axs[0].get_legend().remove()
+    # axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    plt.tight_layout()
+    plt.savefig("box_simplified_SAC.png", dpi=150)
+elif pattern == "normal":
+    # color_pal = None
+    fig, axs = plt.subplots(4, 2, figsize=(24, 12))
+    # fig, axs = plt.subplots(3, 1, figsize=(9, 12))
+    plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
+    plot_one(axs[0, 1], df, "Avg_Rate(Hz)", [0, 50], color_pal)
+    plot_one(axs[1, 0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
+    plot_one(axs[2, 0], df, "DSI", [0, 1], color_pal)
+    plot_one(axs[2, 1], df, "OSI", [0, 1], color_pal)
+    plot_scat(axs[3, 0], df, "Rate at preferred direction (Hz)", "DSI", color_pal, s=5)
+    plot_scat(axs[3, 1], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
 
-plt.tight_layout()
-plt.savefig("box_CorrectRecurrent_Feb6_full.png", dpi=150)
-# plt.savefig("box_Dec12.svg", bbox="tight")
-# plt.savefig("box_Dec12.png", dpi=150)
+    plt.tight_layout()
+    plt.savefig("core/figures/box_plain.png", dpi=150)
+    # plt.savefig("box_Dec12.svg", bbox="tight")
+    # plt.savefig("box_Dec12.png", dpi=150)
+elif pattern == "scats":
+    # scatter plots of the rates.
+    fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+    plot_scat(axs[0, 0], df, "Spont_Rate(Hz)", "Avg_Rate(Hz)", color_pal, s=5)
+    axs[0, 0].set_yscale("log")
+    axs[0, 0].set_aspect("equal")
+    # equality line
+    axs[0, 0].plot([0, 100], [0, 100], "k--")
+    plot_scat(
+        axs[0, 1],
+        df,
+        "Spont_Rate(Hz)",
+        "Rate at preferred direction (Hz)",
+        color_pal,
+        s=5,
+    )
+    axs[0, 1].set_yscale("log")
+    axs[0, 1].set_aspect("equal")
+    axs[0, 1].plot([0, 100], [0, 100], "k--")
+    plot_scat(axs[1, 0], df, "Spont_Rate(Hz)", "OSI", color_pal, s=5)
+    plot_scat(axs[1, 1], df, "Spont_Rate(Hz)", "DSI", color_pal, s=5)
+    plt.tight_layout()
+
 
 # %%
 l4df = df.query("data_type == 'full round9' and location == 'VisL4'")
@@ -288,3 +277,46 @@ sns.scatterplot(
 ax.set_xscale("log")
 
 # %%
+
+osi_dfs[0].groupby("cell_type").median()["Spont_Rate(Hz)"]
+
+
+osi_dfs[0].value_counts("cell_type")
+
+osi_dfs[1].groupby("cell_type").median()
+
+# %%
+
+np_df = get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels")
+
+# for each cell type, plot the scatter plot of spont vs prefered rate.
+
+
+fig, axs = plt.subplots(4, 5, figsize=(15, 15))
+axcount = 0
+for cell_type, df in np_df.groupby("cell_type"):
+    ax = axs[axcount // 5, axcount % 5]
+    sns.scatterplot(
+        ax=ax,
+        data=df,
+        y="OSI",
+        x="Spont_Rate(Hz)",
+        s=5,
+        hue="cell_type",
+    )
+    ax.set_xscale("log")
+    # ax.set_yscale("log")
+    # ax.plot([0, 100], [0, 100], "k--")
+    # ax.set_aspect("equal")
+    ax.set_title(cell_type)
+    # turn off legend
+    ax.get_legend().remove()
+    axcount += 1
+plt.tight_layout()
+
+
+# %%
+
+# df.index.duplicated().sum()
+
+# df.index

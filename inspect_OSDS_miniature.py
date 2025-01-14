@@ -1,4 +1,4 @@
-# %% simple script to inspect miniature network's tuning properties]
+# %% simple script to inspect network's tuning properties]
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltticker
@@ -6,7 +6,6 @@ import numpy as np
 from sonata.circuit import File
 import h5py
 
-# d = "miniature/"
 d = "small/"
 # d = "single/"
 # d = "original_mini/"
@@ -136,7 +135,7 @@ time, npd = get_np_data(f"{dout}cai_traces.h5")
 
 # pick e4 cells
 # v1df_sub = v1df.query("ei=='e' and location=='VisL4'").sample(2000)
-v1df_sub = v1df.query("ei=='e' and location=='VisL4'")
+v1df_sub = v1df.query("ei=='e' and location=='VisL4'").copy()
 # v1df_sub = v1df
 
 
@@ -167,6 +166,9 @@ v1df_sub["f1 I"] = f1_I[vi]
 v1df_sub["f1/evoked"] = f1_I[vi] / (stim_I[vi] - spont_I[vi])
 
 print(v1df_sub["evoked I"].mean())
+plt.hist(v1df_sub["evoked I"], bins=100)
+plt.xlabel("Evoked current (pA)")
+plt.ylabel("counts")
 
 v1df_sub.query("ei=='e' and location=='VisL4'")["evoked I"].mean()
 
@@ -217,6 +219,7 @@ np.mean(ncons)
 plt.scatter(ncons, v1df["FR"])
 
 sum(v1df["FR"] == 0)
+
 
 # %%
 def plot_one(df_e4, df_lgn, nid=None, nsyn_th=3):

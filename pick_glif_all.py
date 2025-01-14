@@ -26,7 +26,7 @@ df = df.join(type_df, on="specimen__id")
 print("GLIF explained variance ratio and ME types mixed in")
 
 # remove cells in the exclude_list
-excl_df = pd.read_csv("base_props/exclude_list.csv", index_col=0)
+excl_df = pd.read_csv("base_props/exclude_list.csv", sep=" ", index_col=0)
 df = df[~df["specimen__id"].isin(excl_df.index)]
 
 print(f"{len(df)} cells are available after excluding specific cells from a list.")

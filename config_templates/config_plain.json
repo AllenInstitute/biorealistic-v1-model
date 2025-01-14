@@ -3,7 +3,7 @@
     "$BASE_DIR": "${configdir}/..",
     "$NETWORK_DIR": "$BASE_DIR/network",
     "$MODELS_DIR": "$BASE_DIR/components",
-    "$OUTPUT_DIR": "$BASE_DIR/output",
+    "$OUTPUT_DIR": "$BASE_DIR/output_plain",
     "$LGNINPUT_DIR": "$BASE_DIR/filternet",
     "$BKGINPUT_DIR": "$BASE_DIR/bkg"
   },
@@ -23,7 +23,7 @@
     "BKG_spikes": {
       "input_type": "spikes",
       "module": "h5",
-      "input_file": "$BKGINPUT_DIR/bkg_spikes_full_3s.h5",
+      "input_file": "$BKGINPUT_DIR/bkg_spikes_250Hz_3s.h5",
       "node_set": "bkg"
     }
   },

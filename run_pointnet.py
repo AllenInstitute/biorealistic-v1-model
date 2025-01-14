@@ -14,6 +14,10 @@ try:
 except Exception as e:
     pass
 
+try:
+    nest.Install("glif_psc_double_alpha_module")
+except Exception as e:
+    pass
 
 # If you want to turn off modulation entirely, set this to True
 # turn_off_modulation = False  # this option is no longer needed.
@@ -41,27 +45,34 @@ def weight_function_recurrent(edges, src_nodes, trg_nodes):
     # now we have modulation_df.
     # modulation_df should have the following columns:
     # src_property, src_substring, trg_property, trg_substring, operation, value
+    weights = edges["syn_weight"].values
     for row in modulation_df.itertuples():
         src_prop = src_nodes[row.src_property].iloc[0]
         tgt_prop = trg_nodes[row.trg_property].iloc[0]
         if (row.src_substring in src_prop) and (row.trg_substring in tgt_prop):
             if row.operation == "*":
-                return edges["syn_weight"].values * row.value
+                # return edges["syn_weight"].values * row.value
+                weights *= row.value
             elif row.operation == "+":
-                return edges["syn_weight"].values + row.value
+                # return edges["syn_weight"].values + row.value
+                weights += row.value
             elif row.operation == "-":
-                return edges["syn_weight"].values - row.value
+                # return edges["syn_weight"].values - row.value
+                weights -= row.value
             elif row.operation == "/":
-                return edges["syn_weight"].values / row.value
+                # return edges["syn_weight"].values / row.value
+                weights /= row.value
             else:
-                raise ValueError("Operation not recognized")
+                raise ValueError(
+                    "Operation not recognized. Should be one of +, -, *, /"
+                )
 
     # if ("i4V" in src_pop) and ("i4V" in tgt_pop):
     # print("i4V to i4V")
     # return edges["syn_weight"].values * 10.0
 
     # if nothing is wanted, you can just return the original weight
-    return edges["syn_weight"].values
+    return weights
 
 
 @synaptic_weight
@@ -96,6 +107,7 @@ def DendriticConstancy_LGN(edges, src_nodes, trg_nodes):
 """
 
 
+# keeping these for backward compatibility
 @synaptic_weight
 def ConstantMultiplier_LGN(edges, src_nodes, trg_nodes):
     """
@@ -191,24 +203,6 @@ def insert_modfile_to_config(config, modfilename):
     return config
 
 
-def main(config_file, output_dir, modfilename):
-    configure = pointnet.Config.from_json(config_file)
-    # change the output directory if specified
-    # it will do nothing if output_dir is None
-    override_output(configure, output_dir)
-    insert_modfile_to_config(configure, modfilename)
-
-    configure.build_env()
-
-    graph = pointnet.PointNetwork.from_config(configure)
-    sim = pointnet.PointSimulator.from_config(configure, graph)
-
-    # if you want to initialize the network with random membrane potentials,
-    # uncomment the following line
-    # set_random_potentials(sim)
-    sim.run()
-
-
 def get_v1_node_nums(sim):
     node_ids = sim.net._node_sets["v1"]._populations[0]._node_pop.node_ids
     return len(node_ids)
@@ -218,6 +212,25 @@ def set_random_potentials(sim):
     node_nums = get_v1_node_nums(sim)
     random_potentials = np.random.uniform(low=-75.0, high=-55.0, size=node_nums)
     nest.SetStatus(range(1, node_nums + 1), "V_m", random_potentials)
+
+
+def main(config_file, output_dir, modfilename, n_thread):
+    configure = pointnet.Config.from_json(config_file)
+    # change the output directory if specified
+    # it will do nothing if output_dir is None
+    override_output(configure, output_dir)
+    insert_modfile_to_config(configure, modfilename)
+
+    configure.build_env()
+
+    graph = pointnet.PointNetwork.from_config(configure)
+    sim = pointnet.PointSimulator.from_config(configure, graph, n_thread=n_thread)
+    # sim = pointnet.PointSimulator.from_config(configure, graph)
+
+    # if you want to initialize the network with random membrane potentials,
+    # uncomment the following line
+    # set_random_potentials(sim)
+    sim.run()
 
 
 if __name__ == "__main__":
@@ -241,6 +254,9 @@ if __name__ == "__main__":
         default="config.json",
         help="The config file to use for the simulation.",
     )
+    parser.add_argument(
+        "-n", "--n_thread", type=int, default=1, help="Number of threads to use."
+    )
     args = parser.parse_args()
 
     if args.modfile is not None:
@@ -248,4 +264,9 @@ if __name__ == "__main__":
         # index column is not defined in the file, so make it up.
         modulation_df = pd.read_csv(args.modfile, sep=" ", index_col=False)
 
-    main(args.config_file, output_dir=args.output_dir, modfilename=args.modfile)
+    main(
+        args.config_file,
+        output_dir=args.output_dir,
+        modfilename=args.modfile,
+        n_thread=args.n_thread,
+    )

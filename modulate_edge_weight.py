@@ -10,7 +10,6 @@ def filter(str):
 
 
 if __name__ == "__main__":
-    # basedir = "miniature"
     basedir = sys.argv[1]
     popmult = pd.read_csv(
         basedir + "/configs/lgn_v1_population_multiplier.csv", sep=" "

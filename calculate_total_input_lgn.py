@@ -10,7 +10,6 @@ from sonata.circuit import File
 import h5py
 import sys
 
-# basedir = "miniature"
 basedir = sys.argv[1]
 # d = "original_mini/"
 dnet = basedir + "/network/"

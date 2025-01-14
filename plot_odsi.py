@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 import pathlib
+import argparse
 
 
-# billeh_compare = False # mode to compare with billeh et al (for e4)
-billeh_compare = True
+billeh_compare = False  # mode to compare with billeh et al (for e4)
+# billeh_compare = True
 keys = ["whislo", "q1", "med", "q3", "whishi"]
 billeh_rate = [dict(zip(keys, [0, 0.5, 2, 3, 8]))]
 billeh_DSI = [dict(zip(keys, [0, 0.08, 0.14, 0.24, 0.4]))]
@@ -27,15 +28,24 @@ def draw_billeh_line(ax, x, y, color, length):
 
 
 if __name__ == "__main__":
-    basedir = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("basedir", help="Base directory of the simulation")
+    parser.add_argument(
+        "network_option", help="The network option. (plain, adjusted, checkpoint)"
+    )
+    args = parser.parse_args()
+    basedir = args.basedir
+    network_option = args.network_option
+
+    # basedir = sys.argv[1]
+    # basedir = "core"
     # basedir = "original_mini"
-    # basedir = "miniature"
     # basedir = 'small'
 
     net = File(basedir + "/network/v1_nodes.h5", basedir + "/network/v1_node_types.csv")
     v1df = net.nodes["v1"].to_dataframe()
 
-    osi_df = pd.read_csv(basedir + "/metrics/OSI_DSI_DF.csv", sep=" ")
+    osi_df = pd.read_csv(basedir + f"/metrics/OSI_DSI_DF_{network_option}.csv", sep=" ")
 
     df = v1df.merge(osi_df)
 
@@ -55,7 +65,6 @@ if __name__ == "__main__":
         df_core.boxplot("max_mean_rate(Hz)", "pop_name", ax=ax[0])
     ax[0].set_ylim([0, 35])
 
-
     if billeh_compare:
         df_core[resp].boxplot("DSI", ["location", "ei"], ax=ax[1])
         x = ax[1].get_xlim()[1] + 0.5
@@ -64,7 +73,6 @@ if __name__ == "__main__":
     else:
         df_core[resp].boxplot("DSI", "pop_name", ax=ax[1])
     ax[1].set_ylim([0, 1])
-        
 
     if billeh_compare:
         df_core[resp].boxplot("OSI", ["location", "ei"], ax=ax[2])
@@ -82,5 +90,4 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     pathlib.Path(basedir + "/figures").mkdir(parents=True, exist_ok=True)
-    plt.savefig(basedir + "/figures/OSI_DSI.png")
-
+    plt.savefig(basedir + f"/figures/OSI_DSI_{network_option}.png")

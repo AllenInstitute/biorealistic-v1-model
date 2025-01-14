@@ -1,0 +1,16 @@
+name: tf
+channels:
+  - conda-forge
+  - kaeldai
+
+dependencies:
+  - tensorflow-gpu=2.14
+  - matplotlib
+  - seaborn
+  - numba
+  - pandas
+  - seaborn
+  - lz4
+  - memory_profiler
+  - pympler
+  - bmtk

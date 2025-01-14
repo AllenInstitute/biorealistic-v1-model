@@ -16,12 +16,13 @@
       "module": "graiting",
       "row_size": 80,
       "col_size": 120,
-      "gray_screen_dur": 100000.0,
+      "gray_screen_dur": 10000.0,
       "theta": 45.0,
       "cpd": 0.04,
       "trial": "trial_TRIALNUM",
       "temporal_f": 2.0,
       "contrast": 0.8,
+      "degrees_per_pixel": 1.0,
       "evaluation_options": {
         "downsample": 1,
         "separable": true

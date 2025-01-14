@@ -1,0 +1,91 @@
+import pandas as pd
+
+# I suggest directly reading the csv file, but these are kept for old scripts.
+
+cell_type_df = pd.read_csv(
+    "base_props/cell_type_naming_scheme.csv", sep=" ", index_col=0
+)
+
+pop_name_to_syn_type = cell_type_df["cell_type_synaptic"]
+pop_name_to_cell_type = cell_type_df["cell_type"]
+pop_name_to_cell_type_old = cell_type_df["cell_type_old"]
+
+
+""" These are deprecated. let's use the new scheme above.
+# general utilities for the project.
+pop_name_to_syn_type = {
+    "i1Htr3a": "vip",
+    "e23Cux2": "e23",
+    "i23Vip": "vip",
+    "i23Pvalb": "pv",
+    "i23Sst": "sst",
+    "e4Nr5a1": "e4",
+    "e4Rorb": "e4",
+    "e4Scnn1a": "e4",
+    "e4other": "e4",
+    "i4Vip": "vip",
+    "i4Pvalb": "pv",
+    "i4Sst": "sst",
+    "e5IT": "e5it",
+    "e5ET": "e5et",
+    "e5NP": "e5np",
+    "i5Vip": "vip",
+    "i5Pvalb": "pv",
+    "i5Sst": "sst",
+    "e6Ntsr1": "e6",
+    "i6Vip": "vip",
+    "i6Pvalb": "pv",
+    "i6Sst": "sst",
+}
+
+pop_name_to_cell_type = {
+    "i1Htr3a": "L1 Inh",
+    "e23Cux2": "L2/3 Exc",
+    "i23Vip": "L2/3 VIP",
+    "i23Pvalb": "L2/3 PV",
+    "i23Sst": "L2/3 SST",
+    "e4Nr5a1": "L4 Exc",
+    "e4Rorb": "L4 Exc",
+    "e4Scnn1a": "L4 Exc",
+    "e4other": "L4 Exc",
+    "i4Vip": "L4 VIP",
+    "i4Pvalb": "L4 PV",
+    "i4Sst": "L4 SST",
+    "e5IT": "L5 Exc",
+    "e5ET": "L5 Exc",
+    "e5NP": "L5 Exc",
+    "i5Vip": "L5 VIP",
+    "i5Pvalb": "L5 PV",
+    "i5Sst": "L5 SST",
+    "e6Ntsr1": "L6 Exc",
+    "i6Vip": "L6 VIP",
+    "i6Pvalb": "L6 PV",
+    "i6Sst": "L6 SST",
+}
+
+# a version with L5 cells split into IT, ET, and NP
+pop_name_to_cell_type2 = {
+    "i1Htr3a": "L1 Inh",
+    "e23Cux2": "L2/3 Exc",
+    "i23Vip": "L2/3 VIP",
+    "i23Pvalb": "L2/3 PV",
+    "i23Sst": "L2/3 SST",
+    "e4Nr5a1": "L4 Exc",
+    "e4Rorb": "L4 Exc",
+    "e4Scnn1a": "L4 Exc",
+    "e4other": "L4 Exc",
+    "i4Vip": "L4 VIP",
+    "i4Pvalb": "L4 PV",
+    "i4Sst": "L4 SST",
+    "e5IT": "L5 IT",
+    "e5ET": "L5 ET",
+    "e5NP": "L5 NP",
+    "i5Vip": "L5 VIP",
+    "i5Pvalb": "L5 PV",
+    "i5Sst": "L5 SST",
+    "e6Ntsr1": "L6 Exc",
+    "i6Vip": "L6 VIP",
+    "i6Pvalb": "L6 PV",
+    "i6Sst": "L6 SST",
+}
+"""

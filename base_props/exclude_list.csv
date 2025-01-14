@@ -1,33 +1,33 @@
-specimen__id,reason
-513593674,NSLS
-513531471,NSLS
-517319635,NSLS
-477880128,strange response
-323452245,spiny NSLS cell does not fire to ramp
-478447600,NSLS
-502978383,NSLS
-489885173,NSLS
-329557305,NSLS
-480648382,NSLS
-479508018,NSLS
-480124551,NSLS
-501023852,NSLS
-395785266,NSLS pretty late ramp 
-325464516,NSLS
-476218657,NSLS
-475894121,cell has no spike to ramp (but most other stimuli elicits spikes)
-579672464,cell has no spike to ramp (but most other stimuli elicits spikes)
-488708322,cell has no spike to ramp (but most other stimuli elicits spikes)
-341459814,few spikes to ramp
-487668030,CNSR
-503254105,CNSR
-330080937,CNSR
-481017021,CNSR
-599434799,CNSR
-471129934,NSLS
-479010903,only 1 spike in square
-473642382,NSLS
-556363725,NSLS
-480777144,aspiny L4other
-488491186,aspiny L4other
-484457747,aspiny L4other
+pre reason
+513593674 NSLS
+513531471 NSLS
+517319635 NSLS
+477880128 "strange response"
+323452245 "spiny NSLS cell does not fire to ramp"
+478447600 NSLS
+502978383 NSLS
+489885173 NSLS
+329557305 NSLS
+480648382 NSLS
+479508018 NSLS
+480124551 NSLS
+501023852 NSLS
+395785266 "NSLS pretty late ramp "
+325464516 NSLS
+476218657 NSLS
+475894121 "cell has no spike to ramp (but most other stimuli elicits spikes)"
+579672464 "cell has no spike to ramp (but most other stimuli elicits spikes)"
+488708322 "cell has no spike to ramp (but most other stimuli elicits spikes)"
+341459814 "few spikes to ramp"
+487668030 CNSR
+503254105 CNSR
+330080937 CNSR
+481017021 CNSR
+599434799 CNSR
+471129934 NSLS
+479010903 "only 1 spike in square"
+473642382 NSLS
+556363725 NSLS
+480777144 "aspiny L4other"
+488491186 "aspiny L4other"
+484457747 "aspiny L4other"
