@@ -36,22 +36,23 @@ import logging
 pd.set_option("display.max_columns", None)
 
 
-def add_nodes_v1(fraction=1.00, flat=False, poisson_fluctuation=False):
+def add_nodes_v1(radius=700.0, flat=False, fluctuate_nneu=False):
     v1_models = pd.read_csv("glif_props/v1_node_models.csv", sep=" ", index_col=0)
 
     min_radius = 1.0  # to avoid diverging density near 0
 
     # This is the base radius of the model, it needs to be coordinated with the
     # model seed file in base_props, it cannot be arbitrarily changed.
-    base_radius = 850.0
+    base_radius = 700.0
 
-    radius = base_radius * np.sqrt(fraction)
+    # radius = base_radius * np.sqrt(fraction)
+    fraction = (radius / base_radius) ** 2
     radial_range = [min_radius, radius]
 
     net = NetworkBuilder("v1")
 
     for node_type_id, model in v1_models.iterrows():
-        if fraction != 1.0:
+        if radius != 700.0:
             # Each model will use only a fraction of the of the number of cells for each model
             # NOTE: We are using a ceiling function so there is atleast 1 cell of each type - however for models
             #  with only a few initial cells they can be over-represented.
@@ -60,7 +61,7 @@ def add_nodes_v1(fraction=1.00, flat=False, poisson_fluctuation=False):
         if flat:  # test network that has exactly 100 neurons for each population
             N = 100
         else:
-            if poisson_fluctuation:
+            if fluctuate_nneu:
                 # add some poisson fluctuation to the number of cells
                 N = np.random.poisson(model["N"])
             else:
@@ -602,10 +603,10 @@ if __name__ == "__main__":
         help="Make no recurrent connections in V1. Just nodes and feed-forward connections.",
     )
     parser.add_argument(
-        "--fraction",
+        "--radius",
         type=float,
-        default=1.0,
-        help="Specify a value between (0, 1.0) to build a network with only a given fraction of the V1 nodes (radius is reduced; density is kept)",
+        default=400.0,
+        help="Specify the target radius of the network.",
     )
     parser.add_argument(
         "--flat",
@@ -642,7 +643,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--core-radius",
         type=float,
-        default=400.0,
+        default=200.0,
         help="The radius of the core region. This will be used to determine how the \
               Rossi rule will be applied. It will be applied within 1.5 * core_radius.",
     )
@@ -702,7 +703,7 @@ if __name__ == "__main__":
         print("Building v1 network")
         check_files_exists(args.output_dir, "v1", "v1", args.force_overwrite)
         set_seed(seed_v1_nodes)
-        v1 = add_nodes_v1(fraction=args.fraction, flat=args.flat)
+        v1 = add_nodes_v1(radius=args.radius, flat=args.flat)
         if not args.no_recurrent:
             set_seed(seed_v1_edges)
             v1 = add_edges_v1(v1, args.core_radius)
@@ -728,20 +729,28 @@ if __name__ == "__main__":
         print("Building lgn network")
         check_files_exists(args.output_dir, "lgn", "v1", args.force_overwrite)
 
-        lgn_v1_edge_func = add_lgn_v1_edges
         if args.small_lgn:
-            x_block_unit = 2.0  # for fast testing purpose
-            y_block_unit = 2.0
+            x_grids = 3
+            y_grids = 2
+            # x_block_unit = 2.0  # for fast testing purpose
+            # y_block_unit = 2.0
         else:
-            x_block_unit = 8.0  # spherical coordinate
-            y_block_unit = 8.0
+            x_grids = 15
+            y_grids = 10
+            # x_block_unit = 8.0  # spherical coordinate
+            # y_block_unit = 8.0
 
         # now regardless of settings, LGN models are the same
         set_seed(seed_lgn_nodes)
-        lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
+        # lgn = add_nodes_lgn(x_block=x_block_unit, y_block=y_block_unit)
+        lgn = add_nodes_lgn(X_grids=x_grids, Y_grids=y_grids)
         set_seed(seed_lgn_edges)
-        lgn = lgn_v1_edge_func(
-            v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
+        lgn = add_lgn_v1_edges(
+            v1,
+            lgn,
+            x_len=x_grids * 8.0,
+            y_len=y_grids * 8.0,
+            # v1, lgn, x_len=15 * x_block_unit, y_len=10 * y_block_unit
         )
 
         lgn.build()

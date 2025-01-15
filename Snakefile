@@ -60,24 +60,29 @@ filter_files = [network_files[2], network_files[3]] # just lgn nodes
 
 networks = {
     "profile": {
-        "fraction": 0.05
+        "radius": 100.0,
+        "core_radius": 50.0,
+        "other_options": "--small-lgn"
     },
     "tiny": {
-        "fraction": 0.005
+        "radius": 50.0,
+        "core_radius": 20.0,
+        "other_options": "--small-lgn"
     },
     "small": {
-        "fraction": 0.05,  # creates ~200 µm radius network
-        "core_radius": 100,
+        "radius": 200.0,
+        "core_radius": 100.0,
+        "other_options": "--small-lgn",
         "memory": 10  # GB, to run on HPC
     },
     "core": {
-        "fraction": 0.22145328719723,  # creates a 400 µm radius network
-        "core_radius": 200,
+        "radius": 400.0,
+        "core_radius": 200.0,
         "memory": 20  # GB, to run on HPC
     },
     "full": {
-        "fraction": 1,  # 850 µm radius.
-        "core_radius": 400,
+        "radius": 700.0,
+        "core_radius": 400.0,
         "memory": 80  # GB, to run on HPC
     }
 }
@@ -85,8 +90,8 @@ networks = {
 # let's make 10 core networks in addition
 for i in range(10):
     networks[f"core_{i}"] = {
-        "fraction": 0.22145328719723,
-        "core_radius": 200,
+        "radius": 400.0,
+        "core_radius": 200.0,
         "memory": 20,
         "seed": i * 1000,
         "other_options": "--fluctuate-nneu"
@@ -101,7 +106,7 @@ wildcard_constraints:
     network_option = "|".join(network_options)
 
 
-n_threads = 6
+n_threads = 4
 
 # rule to make all the core networks
 rule all_cores:
@@ -260,11 +265,12 @@ rule build_network:
     output: ["{network_name}" + name for name in network_files]
     threads: n_threads
     params:
-        fraction = lambda wildcards: networks[wildcards.network_name]["fraction"],
+        radius = lambda wildcards: networks[wildcards.network_name]["radius"],
+        core_radius = lambda wildcards: networks[wildcards.network_name]["core_radius"],
         seed = lambda wildcards: networks[wildcards.network_name].get("seed", 153),
         other_options = lambda wildcards: networks[wildcards.network_name].get("other_options", "")
     shell:
-        "mpirun -np {n_threads} python {input.script[0]} -f -o {wildcards.network_name}/network --fraction {params.fraction} --seed {params.seed} {params.other_options}"
+        "mpirun -np {n_threads} python {input.script[0]} -f -o {wildcards.network_name}/network --radius {params.radius} --core-radius {params.core_radius} --seed {params.seed} {params.other_options}"
     
 
 rule bkg_edges_override:
@@ -541,7 +547,7 @@ rule graph:
 rule profile_build:
     input: ["profile" + name for name in network_files]
     output: "out.prof"
-    shell: "python -m cProfile -o out.prof build_network.py -f -o profile/network --fraction 0.05"
+    shell: "python -m cProfile -o out.prof build_network.py -f -o profile/network --radius 100.0 --core-radius 50.0"
     
 
 rule clear_logs:

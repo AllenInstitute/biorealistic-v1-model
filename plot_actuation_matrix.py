@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # core radius is optional (default, None (auto recognition))
     parser = argparse.ArgumentParser(description="Plot the actuation matrix")
     parser.add_argument("basedir", type=str)
-    parser.add_argument("-c", "--core_radius", type=int, default=None)
+    parser.add_argument("-c", "--core_radius", type=float, default=None)
     parser.add_argument("--swap_etit", action="store_true")
     args = parser.parse_args()
 

@@ -69,17 +69,6 @@ def extract_criteria(row):
     return d
 
 
-def pick_lif_model(models_df, row):
-    selected_df = models_df[models_df["pop_name"] == row["pop_name"]]
-    model_dict = {}
-    model_dict["N"] = int(row["pop_peripheral_count"])
-    model_dict["node_type_id"] = int(selected_df["node_type_id"])
-    model_dict["model_type"] = "point_process"
-    model_dict["model_template"] = "nrn:IntFire1"
-    model_dict["dynamics_params"] = selected_df.iloc[0]["parameters_file"]
-    return model_dict
-
-
 def distribute_nums(n, m):
     # distribute n to m entities. used to distribute cells into models.
     base_num = n // m
@@ -110,44 +99,6 @@ def pick_glif_models(models_df, row, douple_alpha=False):
         else:
             model_dict["model_template"] = "nest:glif_psc"
         model_dict["dynamics_params"] = poprow["parameters_file"]
-        models.append(model_dict)
-
-    return models
-
-
-def pick_bio_models(models_df, row):
-    criteria = extract_criteria(row)
-    selected = (
-        (models_df["ei"] == criteria["ei"])
-        & (models_df["reporter_status"] == "positive")
-        & (models_df["location"] == criteria["location"])
-    )
-    selected &= (
-        models_df["cre_line"].isin(criteria["cre_line"])
-        if criteria["reporter_status"] == "positive"
-        else ~models_df["cre_line"].isin(criteria["cre_line"])
-    )
-    ncell_all = row["pop_core_count"]
-    models_pop_df = models_df[selected]
-    # set number of cells here
-    n_models = np.sum(selected)
-    # print(row["pop_name"])
-    assert n_models > 0
-    model_cell_count = distribute_nums(ncell_all, n_models)
-    # this will create something like [5 5 4 4 4], ncell_all == 22 & n_models == 5
-
-    models = []
-    for i in range(n_models):
-        poprow = models_pop_df.iloc[i]
-        model_dict = {}
-        model_dict["N"] = int(model_cell_count[i])
-        model_dict["node_type_id"] = int(poprow["node_type_id"])
-        model_dict["model_type"] = "biophysical"
-        model_dict["model_template"] = "ctdb:Biophys1.hoc"
-        model_dict["dynamics_params"] = poprow["parameters_file"]
-        model_dict["morphology"] = poprow["morphology_file"]
-        model_dict["model_processing"] = "aibs_perisomatic"
-        model_dict["rotation_angle_zaxis"] = poprow["rotation_angle_zaxis"]
         models.append(model_dict)
 
     return models
