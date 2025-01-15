@@ -225,12 +225,15 @@ settings = {
     "tensorflow_new": {"radius": 400, "s": 1},
     # "tensorflow": {"radius": 400, "s": 1},
 }
+
+for i in range(10):
+    settings[f"core_{i}"] = {"radius": 200.0, "s": 1}
 # %%time
 if __name__ == "__main__":
     simple = True
     # net = "full"
-    net = "core"
-    # net = "small"
+    # net = "core"
+    net = "small"
     # net = "tensorflow"
     # net = "tensorflow_new"
 
@@ -256,8 +259,8 @@ if __name__ == "__main__":
         # config_file = "small/8dir_10trials/angle0_trial0/config_0.json"
         # config_file = f"{net}/output/config.json"
         # config_file = f"{net}/output_plain/config_plain.json"
-        # config_file = f"{net}/output_adjusted/config_adjusted.json"
-        config_file = f"{net}/output_checkpoint/config_checkpoint.json"
+        config_file = f"{net}/output_adjusted/config_adjusted.json"
+        # config_file = f"{net}/output_checkpoint/config_checkpoint.json"
         # config_file = f"{net}/output_checkpoint_1k/config_checkpoint_1k.json"
         # config_file = f"{net}/output_2x/config_plain.json"
         # config_file = f"{net}/output_lgnbkg/config_lgnbkg.json"

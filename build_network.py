@@ -703,7 +703,9 @@ if __name__ == "__main__":
         print("Building v1 network")
         check_files_exists(args.output_dir, "v1", "v1", args.force_overwrite)
         set_seed(seed_v1_nodes)
-        v1 = add_nodes_v1(radius=args.radius, flat=args.flat)
+        v1 = add_nodes_v1(
+            radius=args.radius, flat=args.flat, fluctuate_nneu=args.fluctuate_nneu
+        )
         if not args.no_recurrent:
             set_seed(seed_v1_edges)
             v1 = add_edges_v1(v1, args.core_radius)

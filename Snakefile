@@ -112,6 +112,9 @@ n_threads = 4
 rule all_cores:
     input: expand("core_{i}/output_adjusted/spikes.h5", i=range(10))
 
+rule all_cores_plot:
+    input: expand("core_{i}/output_adjusted/raster_by_tuning_angle.png", i=range(10))
+
 rule all:
     input: "small/figures/OSI_DSI.png"
 
@@ -352,6 +355,14 @@ rule output_spikes:
     output: "{network_name}/output{run_opt}/spikes.h5"
     threads: n_threads
     shell: "python {input.script} {input.config} -n {n_threads}"
+
+
+rule output_rasters:
+    input:
+        script="plot_raster.py",
+        data="{network_name}/output{run_opt}/spikes.h5",
+    output: "{network_name}/output{run_opt}/raster_by_tuning_angle.png"
+    shell: "python {input.script} {wildcards.network_name}/output{wildcards.run_opt}"
 
 
 rule output_spikes_bkgtune:
