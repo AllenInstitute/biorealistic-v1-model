@@ -38,17 +38,19 @@ snakemake <network_name>/output_adjusted/spikes.h5
 ```
 
 where `<network_name>` is one of the defined names in `Snakefile`. Namely:
-- `full`: The full size network (850 µm radius, ~280k neurons)
-- `core`: 400 µm radius network. ~65k neurons
-- `small`: For testing. Contains 5% of neurons of the `full` network.
-- `tiny`: 0.5% network. Mainly for testing the build script.
-- `profile`: For profiling workflows. 5% network.
+
+* `full`: The full size network (700 µm radius, ~203k neurons)
+* `core`: 400 µm radius network. ~67k neurons.
+* `core_X`: X is {0-9}. The number of neurons in each cell model has Poisson fluctuation.
+* `small`: 200 µm radius network.
+* `tiny`: 100 µm radius network. Mainly for testing the build script.
+* `profile`: For profiling workflows. 200 µm radius.
 
 You can create a custom size if you define parameters in `Snakefile`.
 
 Also, you can edit `V1model_seed_file.xlsx` to change what cell types are be included. For example, if you want to make L4 only network, you can delete all the cell types other than L4 from this file.
 
-Building the `full` model requires a few hundreds of GBs of memory. It usually needs to be run on a cluster computer, but it is not incorporated in the snakemake workflow yet. If you really need the `full` network, running the build script should be done manually. The subsequent processes should work fine once you build the model.
+Building the `full` model requires hundreds of GBs of memory. It usually needs to be run on a cluster computer, but it is not incorporated in the snakemake workflow yet. If you really need the `full` network, running the build script should be done manually. The subsequent processes should work fine once you build the model.
 
 ## Folders and files
 
