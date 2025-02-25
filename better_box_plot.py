@@ -172,6 +172,7 @@ color_pal = {
     "small_before_tuning": "tab:blue",
     "small_after_tuning": "tab:pink",
     "Baseline Model": "tab:orange",
+    "Rate Adjusted Model": "tab:orange",
     "Optimized Model": "tab:blue",
 }
 
@@ -180,7 +181,7 @@ color_pal = {
 osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels data"))
 # osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core adjusted", radius=200.0))
 osi_dfs.append(
-    get_osi_df("core", "OSI_DSI_DF_orig.csv", "Baseline Model", radius=200.0)
+    get_osi_df("core_1", "OSI_DSI_DF_adjusted.csv", "Rate Adjusted Model", radius=200.0)
 )
 osi_dfs.append(
     get_osi_df("core", "OSI_DSI_DF_checkpoint.csv", "Optimized Model", radius=200.0)

@@ -56,7 +56,7 @@ def generate_basis_functions(n_basis, da_params, save_tau=False):
     max_tau = da_params["tau_syn_slow"].max()
     tau_basis = np.logspace(np.log10(min_tau), np.log10(max_tau), n_basis)
     if save_tau:
-        np.save("tf_props/tau_basis.npy", tau_basis)
+        np.save(f"tf_props/tau_basis_{n_basis}.npy", tau_basis)
 
     # define the basis alpha functions
     times = np.arange(0, 30, 0.1)
@@ -175,20 +175,26 @@ for i, idx in enumerate(worst_idx):
 da_params_full = pd.read_csv(
     "tf_props/double_alpha_params_full.csv", sep=" ", index_col=0
 )
-fvals, params = optimize_params(5, da_params_full)
+fvals_5, params_5 = optimize_params(5, da_params_full)
+fvals_4, params_4 = optimize_params(4, da_params_full)
 
 
 # now params contains each row of the optimized weights. I'd like to save it to
 # another csv file, specifying the weights for each basis function.
 # %% save the optimized weights to a csv file
-df = pd.DataFrame(params, columns=["w0", "w1", "w2", "w3", "w4"])
-df.index = da_params_full.index
+# df_5 = pd.DataFrame(params_5, columns=["w0", "w1", "w2", "w3", "w4"])
+df_4 = pd.DataFrame(params_4, columns=["w0", "w1", "w2", "w3"])
+# df_5.index = da_params_full.index
+df_4.index = da_params_full.index
 
 # TODO: at one point, change it to sep=" "
-df.to_csv("tf_props/basis_function_weights.csv")
+# df_5.to_csv(f"tf_props/basis_function_weights_5.csv")
+# df_4.to_csv(f"tf_props/basis_function_weights_4.csv")
+df_4.to_csv(f"tf_props/basis_function_weights.csv")
 
 
 # finally, save tau.
+_ = generate_basis_functions(4, da_params_full, save_tau=True)
 _ = generate_basis_functions(5, da_params_full, save_tau=True)
 
 print("Done!")

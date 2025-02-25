@@ -81,10 +81,10 @@ if __name__ == "__main__":
                     "edges_file"
                 ] = f"$NETWORK_DIR/v1_v1_edges_{args.network_option}.h5"
             # also change the bkg for TF checkpoint
-            if args.network_option == "checkpoint":
+            if "checkpoint" in args.network_option:
                 js["networks"]["edges"][2][
                     "edges_file"
-                ] = f"$NETWORK_DIR/bkg_v1_edges_checkpoint.h5"
+                ] = f"$NETWORK_DIR/bkg_v1_edges_{args.network_option}.h5"
 
             # if the config file contains background input, change the input file
             if "$BKGINPUT_DIR" in js["manifest"].keys():

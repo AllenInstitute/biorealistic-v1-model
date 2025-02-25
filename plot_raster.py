@@ -39,6 +39,10 @@ net = pathlib.Path(args.outputdir).parts[0]
 plt.figure(figsize=(10, 6))
 
 
+if "core" in net:
+    net = "core"  # fall back not to cause error in setting keys.
+
+
 ax = pu.plot_raster(config_file, sortby=sortby, infer=True, **pu.settings[net])
 ax.set_xlim([0, 2500])
 plt.tight_layout()

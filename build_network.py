@@ -181,6 +181,7 @@ def syn_weight_by_experimental_distribution(
     PSP_lognorm_shape,
     PSP_lognorm_scale,
     connection_params,
+    no_like_to_like_weight_rule,
     # delta_theta_dist,
 ):
     src_ei = src_pop_name[0]
@@ -203,86 +204,59 @@ def syn_weight_by_experimental_distribution(
     # To set syn_weight, use the PPF with the orientation difference:
     # if not np.isnan(src_trg_params["gradient"]):
 
-    randomizing_factor = 1.0
-    if (
-        src_ei == "e"
-        and trg_ei == "e"
-        and (not np.isnan(connection_params["gradient"]))
-    ):
-        # For e-to-e, there is a non-uniform distribution of delta_orientations.
-        # These need to be ordered and mapped uniformly over [0,1] using the cdf:
-
-        # adds some randomization to like-to-like and avoids 0-degree delta
-        # tuning_rnd = float(np.random.randn(1) * 5) * randomizing_factor
-        tuning_rnd = 0.0
-
-        delta_tuning_180 = np.abs(
-            np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
-            - 180.0
-        )
-
-        orient_temp = 1 - delta_theta_cdf(
-            connection_params["intercept"], delta_tuning_180
-        )
-        orient_temp = min(0.999, orient_temp)
-        orient_temp = max(0.001, orient_temp)
-        syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
-        n_syns_ = 1
-
-    elif (src_ei == "e" and trg_ei == "i") or (src_ei == "i" and trg_ei == "e"):
-        # If there was no like-to-like connection rule for the population, we can use
-        # delta_orientation directly with the PPF
-
-        # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1)[0] * 5) * randomizing_factor
-
-        delta_tuning_180 = np.abs(
-            np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
-            - 180.0
-        )
-
-        orient_temp = 1 - (delta_tuning_180 / 180)
-        orient_temp = min(0.999, orient_temp)
-        orient_temp = max(0.001, orient_temp)
-        syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
-        n_syns_ = 1
-
-    elif src_ei == "i" and trg_ei == "i":
-        # If there was no like-to-like connection rule for the population, we can use
-        # delta_orientation directly with the PPF
-
-        # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1)[0] * 10) * randomizing_factor
-
-        delta_tuning_180 = np.abs(
-            np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
-            - 180.0
-        )
-
-        orient_temp = 1 - (delta_tuning_180 / 180)
-        orient_temp = min(0.999, orient_temp)
-        orient_temp = max(0.001, orient_temp)
-
-        syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
-        n_syns_ = 1
-
+    if no_like_to_like_weight_rule:
+        # if no like-to-like rule, the connection is simply based on the
+        # lognormal_ppf for a uniform random distribution.
+        rand_val = np.random.rand(1)
+        rand_val = float(np.clip(rand_val, 0.001, 0.999))
+        syn_weight = lognorm_ppf(rand_val, weight_shape, loc=0, scale=weight_scale)
     else:
-        # If there was no like-to-like connection rule for the population, we can use
-        # delta_orientation directly with the PPF
+        randomizing_factor = 1.0
 
-        # adds some randomization to like-to-like and avoids 0-degree delta
-        tuning_rnd = float(np.random.randn(1)[0] * 5) * randomizing_factor
+        # Determine randomization parameters and computation mode
+        if (
+            src_ei == "e"
+            and trg_ei == "e"
+            and not np.isnan(connection_params["gradient"])
+        ):
+            tuning_rnd = 0.0
+            use_cdf = True
+            intercept = connection_params["intercept"]
+            multiplier = None  # Not needed because tuning_rnd is fixed at 0
+        elif src_ei == "i" and trg_ei == "i":
+            multiplier = 10
+            use_cdf = False
+            intercept = None
+            tuning_rnd = float(np.random.randn(1)[0] * multiplier) * randomizing_factor
+        elif (src_ei == "e" and trg_ei == "i") or (src_ei == "i" and trg_ei == "e"):
+            multiplier = 5
+            use_cdf = False
+            intercept = None
+            tuning_rnd = float(np.random.randn(1)[0] * multiplier) * randomizing_factor
+        else:
+            multiplier = 5
+            use_cdf = False
+            intercept = None
+            tuning_rnd = float(np.random.randn(1)[0] * multiplier) * randomizing_factor
 
+        # Compute the delta orientation (wrapped to [-180, 180])
         delta_tuning_180 = np.abs(
             np.abs(np.mod(np.abs(tar_tuning - src_tuning + tuning_rnd), 360.0) - 180.0)
             - 180.0
         )
 
-        orient_temp = 1 - (delta_tuning_180 / 180)
-        orient_temp = min(0.999, orient_temp)
-        orient_temp = max(0.001, orient_temp)
+        # Compute the orientation probability based on the selected rule
+        if use_cdf:
+            orient_temp = 1 - delta_theta_cdf(intercept, delta_tuning_180)
+        else:
+            orient_temp = 1 - (delta_tuning_180 / 180)
+
+        # Clamp the orientation to avoid extremes
+        orient_temp = np.clip(orient_temp, 0.001, 0.999)
+
         syn_weight = lognorm_ppf(orient_temp, weight_shape, loc=0, scale=weight_scale)
-        n_syns_ = 1
+
+    n_syns_ = 1
 
     syn_weight = (
         syn_weight
@@ -316,7 +290,7 @@ def delta_theta_cdf(intercept, d_theta):
         raise "d_theta must be <= 180, but was {}".format(d_theta)
 
 
-def add_edges_v1(net, core_radius):
+def add_edges_v1(net, core_radius, no_like_to_like_weight_rule):
     conn_df = pd.read_csv("glif_props/v1_edge_models.csv", sep=" ")
 
     for _, row in conn_df.iterrows():
@@ -368,6 +342,7 @@ def add_edges_v1(net, core_radius):
                     "PSP_lognorm_shape": row["lognorm_shape"],
                     "PSP_lognorm_scale": row["lognorm_scale"],
                     "connection_params": src_trg_params,
+                    "no_like_to_like_weight_rule": no_like_to_like_weight_rule,
                 },
                 dtypes=[float, np.int64],
             )
@@ -473,7 +448,7 @@ def add_lgn_v1_edges(v1_net, lgn_net, x_len=240.0, y_len=120.0):
 
         # LGN is configured based on e4 response. Here we use the mean target sizes of
         # the e4 neurons and normalize all the cells using these values. By doing this,
-        # we can avoid injecting too much current to the populations with large target
+        # we can avoid injecting too much current to populations with large target
         # sizes.
         # 479993900 is a representative model_id for e4other
         lognorm_shape = v1_models.loc[479993900]["nsyn_lognorm_shape"]
@@ -653,6 +628,13 @@ if __name__ == "__main__":
         default=False,
         help="Introduce Poisson fluctuation of the number of neurons for each cell model.",
     )
+    parser.add_argument(
+        "--no-like-to-like-weight-rule",
+        "-nll",
+        action="store_true",
+        default=False,
+        help="Do not use the like-to-like weight rule.",
+    )
     parser.add_argument("--seed", type=int, default=153, help="Random number seed")
     parser.add_argument("networks", type=str, nargs="*", default=["v1", "bkg", "lgn"])
     args = parser.parse_args()
@@ -708,7 +690,7 @@ if __name__ == "__main__":
         )
         if not args.no_recurrent:
             set_seed(seed_v1_edges)
-            v1 = add_edges_v1(v1, args.core_radius)
+            v1 = add_edges_v1(v1, args.core_radius, args.no_like_to_like_weight_rule)
         v1.build()
         print("Saving v1 network")
         v1.save(args.output_dir, compression=args.compression)

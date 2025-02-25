@@ -11,6 +11,6 @@
 
 # using 56 core on 1 node ensure that we are using a node with 2 28-core Xeons.
 # Those nodes have 512GB of RAM, so we can submit with 500GB of memory usage.
-# To build the full model, we need about ~400GB of RAM.
+# To build the full model, we need about ~800GB of RAM.
 
-srun --mpi=pmi2 python -u build_network.py -f -o full/network --fraction 1
+srun --mpi=pmi2 python -u build_network.py -f -o full/network --radius 700.0 --core-radius 400.0

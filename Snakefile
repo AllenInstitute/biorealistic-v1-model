@@ -30,6 +30,7 @@ network_options = [
     "plain",
     "adjusted",
     "checkpoint",
+    "checkpoint_random",
 ]
 
 network_files = [
@@ -80,10 +81,22 @@ networks = {
         "core_radius": 200.0,
         "memory": 20  # GB, to run on HPC
     },
+    "core_nll": {
+        "radius": 400.0,
+        "core_radius": 200.0,
+        "memory": 20,  # GB, to run on HPC
+        "other_options": "-nll"
+    },
     "full": {
         "radius": 700.0,
         "core_radius": 400.0,
         "memory": 80  # GB, to run on HPC
+    },
+    "full_nll": {
+        "radius": 700.0,
+        "core_radius": 400.0,
+        "memory": 80,  # GB, to run on HPC
+        "other_options": "-nll"
     }
 }
 
@@ -95,6 +108,13 @@ for i in range(10):
         "memory": 20,
         "seed": i * 1000,
         "other_options": "--fluctuate-nneu"
+    }
+    networks[f"core_nll_{i}"] = {
+        "radius": 400.0,
+        "core_radius": 200.0,
+        "memory": 20,
+        "seed": i * 1000,
+        "other_options": "--fluctuate-nneu -nll"
     }
 
 
@@ -109,6 +129,9 @@ wildcard_constraints:
 n_threads = 4
 
 # rule to make all the core networks
+rule all_core_nlls_plot:
+    input: expand("core_nll_{i}/output_adjusted/raster_by_tuning_angle.png", i=range(10))
+
 rule all_cores:
     input: expand("core_{i}/output_adjusted/spikes.h5", i=range(10))
 
@@ -487,7 +510,9 @@ rule run_filternet_osi_job:
 rule run_osi_job:
     input:
         script="{network_name}/jobs/8dir_10trials_{network_option}.sh",
-        data="{network_name}/filternet_8dir_10trials/angle0_trial0/spikes.h5"
+        data=["{network_name}/filternet_8dir_10trials/angle0_trial0/spikes.h5",
+              "{network_name}/bkg/bkg_spikes_250Hz_3s.h5"],
+        components="{network_name}/components/synaptic_models/e4_to_e4.json"
     output: "{network_name}/8dir_10trials_{network_option}/angle0_trial0/spikes.h5"
     params: curdir=curdir
     shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
@@ -504,7 +529,9 @@ rule run_contrast_job:
     input:
         script="{network_name}/jobs/contrasts_{network_option}.sh",
         network="{network_name}/network/v1_v1_edges_checkpoint.h5",
-        data="{network_name}/filternet_contrasts/angle0_contrast0.05_trial0/spikes.h5"
+        data=["{network_name}/filternet_contrasts/angle0_contrast0.05_trial0/spikes.h5",
+              "{network_name}/bkg/bkg_spikes_250Hz_3s.h5"],
+        components="{network_name}/components/synaptic_models/e4_to_e4.json"
     output: "{network_name}/contrasts_{network_option}/angle0_contrast0.05_trial0/spikes.h5"
     params: curdir=curdir
     shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"

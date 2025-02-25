@@ -68,3 +68,47 @@ class ContrastStimulus:
                 self.angle_idx += 1
 
         return angle, contrast, trial
+
+
+import numpy as np
+
+
+class DriftingGratingsStimulus:
+    """
+    A class that defines the stimulus conditions for drifting grating experiments.
+
+    Usage:
+        stim = DriftingGratingsStimulus()
+        for angle, trial in stim:
+            # process the stimulus condition
+    """
+
+    def __init__(self):
+        # Here we use the same angles as for the contrast stimulus.
+        # np.linspace(0, 315, 8) yields: [0, 45, 90, 135, 180, 225, 270, 315]
+        self.angles = np.linspace(0, 315, 8)
+        self.trials = range(10)
+
+    def __iter__(self):
+        # A simple nested iteration over angles and trials.
+        for angle in self.angles:
+            for trial in self.trials:
+                yield angle, trial
+
+    def get_all_result_paths(self, basedir, network_option):
+        """
+        Returns a list of result paths with the naming convention:
+            {basedir}/drifting_{network_option}/angle{int(angle)}_trial{trial}
+        """
+        path_list = []
+        for angle, trial in self:
+            path_list.append(
+                f"{basedir}/8dir_10trials_{network_option}/angle{int(angle)}_trial{trial}"
+            )
+        return path_list
+
+    def get_shape(self):
+        """
+        Returns the shape of the conditions as (n_angles, n_trials).
+        """
+        return (len(self.angles), len(self.trials))
