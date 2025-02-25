@@ -42,6 +42,8 @@ where `<network_name>` is one of the defined names in `Snakefile`. Namely:
 * `full`: The full size network (700 µm radius, ~203k neurons)
 * `core`: 400 µm radius network. ~67k neurons.
 * `core_X`: X is {0-9}. The number of neurons in each cell model has Poisson fluctuation.
+* `core_nll`: Same geometry as core, but no weight like-to-like is used.
+* `core_nll_X`: Same as core_X, but no weight like-to-like is used.
 * `small`: 200 µm radius network.
 * `tiny`: 100 µm radius network. Mainly for testing the build script.
 * `profile`: For profiling workflows. 200 µm radius.
@@ -65,6 +67,19 @@ base_props/exclude_list.csv: Cells listed in this file will be excluded from the
 base_props/bkg_weights_population.csv: This file defines synaptic weights from background cell (currently, there is only one entity for background source) to each cell population. The synaptic weights in this file are copied from the previous model (except for L5 which is average of the two types in the previous model), and are parameters of the optimization stage later.
 
 Preferred data storage option is CSV format, as long as the data are not large. All the csv files are 'space' separarated (to match with SONATA format). Larger data can be stored as h5 data frame. All should be readable in pandas.
+
+
+## Notes
+In the new V1 model, the LGN coordinates are defined as the visual field coordinates
+(elevation and azimuth), though these coordinates are not zero-centered.
+The LGN’s elevation axis is oriented upward, aligning with the V1 model’s z-axis;
+however, this may conflict with conventional image coordinate systems, where row indices
+increase downward. Note that this definition differs from our previous model (Billeh et
+al., 2020), which defined the LGN coordinate axis as downward.
+Use the y_dir and flip_y options in BMTK to control image orientation when presenting
+data to this network.
+
+
 
 ## Main contributors
 
