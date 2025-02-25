@@ -1,6 +1,12 @@
 
 # Running a biorealistic model with TensorFlow
 
+## Install CUDA
+Please install CUDA if you do not have it on your computer.
+
+https://docs.nvidia.com/cuda/cuda-installation-guide-linux/
+
+
 ## Get the code
 
 Fork the following repo.
