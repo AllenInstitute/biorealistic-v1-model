@@ -64,7 +64,10 @@ V1_GLIF_model/
 
 
 ## Training on the cluster
-Example: 'multi_training_slurm.sh' (Please change sbatch fields for your need.)
+Example: 'multi_training_allen.sh'
+
+The 'parallel_training_testing_allen.sh' will automatically submit jobs with configs
+appropriate for the Allen Institute cluster.
 
 Before submitting the job, please activate the environment for TF in the hpc-login. (or write that in the script, which might be better.)
 
