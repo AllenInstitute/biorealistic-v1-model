@@ -19,6 +19,7 @@ config_files = [
     "config_lgnbkg.json",
     "config_plain.json",
     "config_checkpoint.json",
+    "config_noweightloss.json",
     "config_bkgtune.json",
     "config_filternet.json",
     "config_filternet_bkgtune.json",
@@ -30,6 +31,7 @@ network_options = [
     "plain",
     "adjusted",
     "checkpoint",
+    "noweightloss",
     "checkpoint_random",
 ]
 
@@ -129,6 +131,32 @@ wildcard_constraints:
 n_threads = 4
 
 # rule to make all the core networks
+rule all_cores_nll_response_corr_plot:
+    input: expand("core_nll_{i}/figures/response_correlation_{input_type}.png", i=range(10), input_type=["plain", "checkpoint", "noweightloss"])
+
+rule all_cores_nll_contrast_plot:
+    input: expand("core_nll_{i}/figures/contrast_responsive_cells_{input_type}.pdf", i=range(10), input_type=["plain", "checkpoint", "noweightloss"])
+
+rule all_cores_nll_contrast_plot_adjusted:
+    input: expand("core_nll_{i}/figures/contrast_responsive_cells_{input_type}.pdf", i=[1, 2, 3, 4, 5, 8], input_type=["adjusted"])
+    
+rule all_cores_nll_rasters:
+    input: expand("core_nll_{i}/output_{input_type}/raster_by_tuning_angle.png", i=range(10), input_type=["plain", "adjusted", "checkpoint", "noweightloss"])
+    
+rule all_core_nll_odsi_plots:
+    input: expand("core_nll_{i}/figures/OSI_DSI_{input_type}.png", i=range(10), input_type=["plain", "checkpoint", "noweightloss"])
+
+rule all_core_nll_odsi_plots_adjusted:
+    input: expand("core_nll_{i}/figures/OSI_DSI_{input_type}.png", i=[1, 2, 3, 4, 5, 8], input_type=["adjusted"])
+    
+rule all_cores_all:
+    input:
+        rules.all_cores_nll_contrast_plot.input,
+        rules.all_cores_nll_contrast_plot_adjusted.input,
+        rules.all_cores_nll_rasters.input,
+        rules.all_core_nll_odsi_plots.input,
+        rules.all_core_nll_odsi_plots_adjusted.input
+
 rule all_core_nlls_plot:
     input: expand("core_nll_{i}/output_adjusted/raster_by_tuning_angle.png", i=range(10))
 
@@ -590,3 +618,210 @@ rule profile_build:
 
 rule clear_logs:
     shell: "rm */jobs/logs/*"
+
+rule response_correlation_calculation:
+    input:
+        network_files=[
+            "{network_name}/network/v1_nodes.h5",
+            "{network_name}/network/v1_v1_edges.h5"
+        ],
+        activity_files=[
+            "{network_name}/metrics/stim_spikes_output_imagenet_checkpoint.npz",
+            "{network_name}/metrics/stim_spikes_output_imagenet.npz"
+        ]
+    output:
+        correlations="{network_name}/metrics/correlations_{input_type}.npy",
+    threads: 4,
+    params:
+        base_dir="{network_name}",
+        input_type="{input_type}"
+    shell:
+        """
+        python response_correlation_calculations.py --base_dir {params.base_dir} --input_type {params.input_type}
+        """
+
+rule calculate_distances:
+    input:
+        network_files=[
+            "{network_name}/network/v1_nodes.h5",
+            "{network_name}/network/v1_v1_edges.h5"
+        ]
+    output:
+        distances="{network_name}/metrics/distances.npy"
+    params:
+        base_dir="{network_name}"
+    shell:
+        """
+        python calculate_distances.py --base_dir {params.base_dir}
+        """
+
+rule response_correlation_plot:
+    input:
+        script="response_correlation_plot.py",
+        correlations="{network_name}/metrics/correlations_{input_type}.npy",
+        distances="{network_name}/metrics/distances.npy"
+    output:
+        plot="{network_name}/figures/response_correlation_{input_type}.png"
+    params:
+        base_dir="{network_name}",
+        input_type="{input_type}"
+    shell:
+        """
+        python response_correlation_plot.py {params.base_dir} {params.input_type}
+        """
+
+# Rule to calculate sparsity measures
+rule calculate_sparsity:
+    input:
+        script="sparsity_calculations.py",
+        activity_files=[
+            "{base_dir}/metrics/stim_spikes_output_imagenet.npz",
+            "{base_dir}/metrics/stim_spikes_output_imagenet_checkpoint.npz"
+        ]
+    output:
+        lifetime_sparsity="{base_dir}/metrics/lifetime_sparsity_{input_type}.npy",
+        population_sparsity="{base_dir}/metrics/population_sparsity_{input_type}.npy"
+    params:
+        base_dir="{base_dir}",
+        input_type="{input_type}"
+    threads: 8
+    shell:
+        """
+        python {input.script} --base_dir {params.base_dir} --input_type {params.input_type}
+        """
+
+# Rule to run calculate_sparsity for all core_nll_? networks
+rule all_nll_sparsity:
+    input:
+        expand("core_nll_{i}/metrics/lifetime_sparsity_{input_type}.npy", i=range(10), input_type=["checkpoint", "plain", "noweightloss"]),
+        expand("core_nll_{i}/metrics/population_sparsity_{input_type}.npy", i=range(10), input_type=["checkpoint", "plain", "noweightloss"])
+
+# Rule to plot population sparsity for all core_nll_? networks
+rule plot_population_sparsity:
+    input:
+        expand("core_nll_{i}/metrics/population_sparsity_{input_type}.npy", i=range(10), input_type=["checkpoint", "plain", "noweightloss"])
+    output:
+        "population_sparsity_{input_type}.png"
+    params:
+        script="plot_sparsity.py",
+        base_dirs=["core_nll_{i}" for i in range(10)],
+        input_type="{input_type}",
+        output_dir="."
+    shell:
+        """
+        python {params.script} --base_dirs {params.base_dirs} --input_type {params.input_type} --output_dir {params.output_dir}
+        """
+
+# Rule to plot lifetime sparsity for each core_nll_? network
+rule plot_lifetime_sparsity:
+    input:
+        expand("core_nll_{i}/metrics/lifetime_sparsity_{input_type}.npy", i=range(10), input_type=["checkpoint", "plain"])
+    output:
+        expand("lifetime_sparsity_core_nll_{i}_{input_type}.png", i=range(10), input_type=["checkpoint", "plain"])
+    params:
+        script="plot_sparsity.py",
+        base_dirs=["core_nll_{i}" for i in range(10)],
+        input_type="{input_type}",
+        output_dir="."
+    shell:
+        """
+        python {params.script} --base_dirs {params.base_dirs} --input_type {params.input_type} --output_dir {params.output_dir}
+        """
+
+# Define the network options for spectral analysis - removing "adjusted" from some networks
+spectral_network_options = [
+    "plain",
+    "checkpoint",
+    "noweightloss"
+]
+
+# Networks that have adjusted data available (based on your Snakefile patterns)
+adjusted_networks = [1, 2, 3, 4, 5, 8]
+
+# Rule to run spectral analysis for a single network and input type
+rule spectral_analysis:
+    input:
+        script="spectral_analysis2.py",
+        data="{network_name}/contrasts_{network_option}/angle0_contrast0.05_trial0/spikes.h5"
+    output:
+        "{network_name}/contrasts_{network_option}/combined_spectra_700to2700.json"
+    threads: 4
+    shell:
+        """
+        python {input.script} \
+        --basedir {wildcards.network_name} \
+        --subdir contrasts_{wildcards.network_option} \
+        --n_processes {threads} \
+        """
+
+# Rule to generate spectral plots for a single network and input type
+rule spectral_plots:
+    input:
+        script="spectral_analysis2.py",
+        data="{network_name}/contrasts_{network_option}/combined_spectra_700to2700.json"
+    output:
+        directory("{network_name}/contrasts_{network_option}/figures")
+    shell:
+        """
+        python {input.script} \
+        --basedir {wildcards.network_name} \
+        --subdir contrasts_{wildcards.network_option} \
+        --plot_only
+        """
+
+# Rule to run spectral analysis for all core_nll_? networks with all input types
+rule all_spectral_analysis:
+    input:
+        expand("core_nll_{i}/contrasts_{input_type}/combined_spectra_700to2700.json", 
+              i=range(10), input_type=spectral_network_options)
+
+# Rule to generate spectral plots for all core_nll_? networks with all input types
+rule all_spectral_plots:
+    input:
+        expand("core_nll_{i}/contrasts_{input_type}/figures", 
+              i=range(10), input_type=spectral_network_options)
+
+# Rule to aggregate spectral analysis from all networks
+rule aggregate_spectra:
+    input:
+        script="aggregate_spectra.py",
+        data=expand("core_nll_{i}/contrasts_{input_type}/combined_spectra_700to2700.json", 
+                    i=range(10), input_type=spectral_network_options) + 
+             expand("core_nll_{i}/contrasts_adjusted/combined_spectra_700to2700.json", 
+                    i=adjusted_networks)
+    output:
+        directory("aggregate_spectra")
+    shell:
+        """
+        python {input.script} \
+        --base_dirs core_nll_0 core_nll_1 core_nll_2 core_nll_3 core_nll_4 core_nll_5 core_nll_6 core_nll_7 core_nll_8 core_nll_9 \
+        --input_types plain checkpoint noweightloss adjusted \
+        --output_dir {output}
+        """
+
+# Rule to generate normalized aggregate plots
+rule aggregate_spectra_normalized:
+    input:
+        script="aggregate_spectra.py",
+        data=expand("core_nll_{i}/contrasts_{input_type}/combined_spectra_700to2700.json", 
+                    i=range(10), input_type=spectral_network_options) + 
+             expand("core_nll_{i}/contrasts_adjusted/combined_spectra_700to2700.json", 
+                    i=adjusted_networks)
+    output:
+        directory("aggregate_spectra_normalized")
+    shell:
+        """
+        python {input.script} \
+        --base_dirs core_nll_0 core_nll_1 core_nll_2 core_nll_3 core_nll_4 core_nll_5 core_nll_6 core_nll_7 core_nll_8 core_nll_9 \
+        --input_types plain checkpoint noweightloss adjusted \
+        --output_dir {output} \
+        --normalized
+        """
+
+# Rule for all spectral analysis tasks
+rule all_spectral:
+    input:
+        rules.all_spectral_analysis.input,
+        rules.all_spectral_plots.input,
+        rules.aggregate_spectra.output,
+        rules.aggregate_spectra_normalized.output
