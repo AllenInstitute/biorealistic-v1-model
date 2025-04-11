@@ -118,6 +118,13 @@ for i in range(10):
         "seed": i * 1000,
         "other_options": "--fluctuate-nneu -nll"
     }
+    networks[f"core_nll_{i}_uniform"] = {
+        "radius": 400.0,
+        "core_radius": 200.0,
+        "memory": 20,
+        "seed": i * 1000,
+        "other_options": "--fluctuate-nneu -nll"
+    }
 
 
 # only include available ones

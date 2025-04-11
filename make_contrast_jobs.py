@@ -81,7 +81,9 @@ if __name__ == "__main__":
                     "edges_file"
                 ] = f"$NETWORK_DIR/v1_v1_edges_{args.network_option}.h5"
             # also change the bkg for TF checkpoint
-            if "checkpoint" in args.network_option:
+            if any(
+                [opt in args.network_option for opt in ["checkpoint", "noweightloss"]]
+            ):
                 js["networks"]["edges"][2][
                     "edges_file"
                 ] = f"$NETWORK_DIR/bkg_v1_edges_{args.network_option}.h5"

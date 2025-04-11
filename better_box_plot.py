@@ -114,7 +114,7 @@ def plot_scat(ax, df, x, y, cpal=None, s=1):
 def plot_normal(df, cpal):
     fig, axs = plt.subplots(4, 2, figsize=(24, 12))
     plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], cpal)
-    plot_one(axs[0, 1], df, "Avg_Rate(Hz)", [0, 50], cpal)
+    plot_one(axs[0, 1], df, "Ave_Rate(Hz)", [0, 50], cpal)
     plot_one(axs[1, 0], df, "Rate at preferred direction (Hz)", [0, 50], cpal)
     plot_one(axs[2, 0], df, "DSI", [0, 1], cpal)
     plot_one(axs[2, 1], df, "OSI", [0, 1], cpal)
@@ -125,13 +125,15 @@ def plot_normal(df, cpal):
 
 
 def plot_sac(df, cpal):
-    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+    fig, axs = plt.subplots(1, 3, figsize=(12, 3))
     # plot_one(axs[0], df, "Rate at preferred direction (Hz)", [0, 50], cpal, e_only=True)
-    plot_one(axs[0], df, "Avg_Rate(Hz)", [0, 25], cpal, e_only=True)
+    plot_one(axs[0], df, "Ave_Rate(Hz)", [0, 15], cpal, e_only=True)
     plot_one(axs[1], df, "OSI", [0, 1], cpal, e_only=True)
+    plot_one(axs[2], df, "DSI", [0, 1], cpal, e_only=True)
     # remove the legend from axs[0], move the legend of axs[1] to outside the plot
     axs[0].get_legend().remove()
-    axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    axs[1].get_legend().remove()
+    axs[2].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
     plt.tight_layout()
     return fig, axs
 
@@ -172,19 +174,28 @@ color_pal = {
     "small_before_tuning": "tab:blue",
     "small_after_tuning": "tab:pink",
     "Baseline Model": "tab:orange",
-    "Rate Adjusted Model": "tab:orange",
-    "Optimized Model": "tab:blue",
+    "Rate Adjusted Model": "tab:blue",
+    "Optimized Model": "tab:green",
 }
 
 
 # osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
+
+
 osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels data"))
 # osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core adjusted", radius=200.0))
 osi_dfs.append(
-    get_osi_df("core_1", "OSI_DSI_DF_adjusted.csv", "Rate Adjusted Model", radius=200.0)
+    get_osi_df("core_nll_1", "OSI_DSI_DF_plain.csv", "Baseline Model", radius=200.0)
 )
 osi_dfs.append(
-    get_osi_df("core", "OSI_DSI_DF_checkpoint.csv", "Optimized Model", radius=200.0)
+    get_osi_df(
+        "core_nll_1", "OSI_DSI_DF_adjusted.csv", "Rate Adjusted Model", radius=200.0
+    )
+)
+osi_dfs.append(
+    get_osi_df(
+        "core_nll_1", "OSI_DSI_DF_checkpoint.csv", "Optimized Model", radius=200.0
+    )
 )
 # osi_dfs.append(
 #     get_osi_df("core_0427", "OSI_DSI_DF_recurrent.csv", "core recurrent", radius=200.0)
@@ -193,8 +204,24 @@ osi_dfs.append(
 # osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full recurrent", radius=400.0))
 df = pd.concat(osi_dfs).reset_index()
 
-pattern = "normal"
-# pattern = "sac"
+# add in the ei values for the neuropixels.
+ctdf = utils.cell_type_df
+ctdf.keys()
+ctdf_type = ctdf.set_index("cell_type_old")["ei"]
+ctdf_type[np.nan] = np.nan
+# pick unique ones.
+ctdf_type = ctdf_type[~ctdf_type.index.duplicated(keep="first")]
+
+df["cell_type"].shape
+ctdf_type[df["cell_type"]].shape
+
+df["cell_type"].shape
+df["cell_type"]
+df["ei"] = ctdf_type[df["cell_type"]].values
+
+
+# pattern = "normal"
+pattern = "sac"
 
 # fig, axs = plt.subplots(4, 1, figsize=(12, 20))
 if pattern == "sac":
@@ -208,13 +235,13 @@ if pattern == "sac":
     # axs[0].get_legend().remove()
     # axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
     plt.tight_layout()
-    plt.savefig("box_simplified_SAC.png", dpi=150)
+    plt.savefig("box_simplified.png", dpi=150)
 elif pattern == "normal":
     # color_pal = None
     fig, axs = plt.subplots(4, 2, figsize=(24, 12))
     # fig, axs = plt.subplots(3, 1, figsize=(9, 12))
     plot_one(axs[0, 0], df, "Spont_Rate(Hz)", [0, 50], color_pal)
-    plot_one(axs[0, 1], df, "Avg_Rate(Hz)", [0, 50], color_pal)
+    plot_one(axs[0, 1], df, "Ave_Rate(Hz)", [0, 50], color_pal)
     plot_one(axs[1, 0], df, "Rate at preferred direction (Hz)", [0, 50], color_pal)
     plot_one(axs[2, 0], df, "DSI", [0, 1], color_pal)
     plot_one(axs[2, 1], df, "OSI", [0, 1], color_pal)
@@ -228,7 +255,7 @@ elif pattern == "normal":
 elif pattern == "scats":
     # scatter plots of the rates.
     fig, axs = plt.subplots(2, 2, figsize=(12, 12))
-    plot_scat(axs[0, 0], df, "Spont_Rate(Hz)", "Avg_Rate(Hz)", color_pal, s=5)
+    plot_scat(axs[0, 0], df, "Spont_Rate(Hz)", "Ave_Rate(Hz)", color_pal, s=5)
     axs[0, 0].set_yscale("log")
     axs[0, 0].set_aspect("equal")
     # equality line
@@ -250,12 +277,15 @@ elif pattern == "scats":
 
 
 # %%
+
+
+# %%
 l4df = df.query("data_type == 'full round9' and location == 'VisL4'")
 # print the following 4 items
 print(l4df.groupby("cell_type").mean()["Spont_Rate(Hz)"])
-print(l4df.groupby("cell_type").mean()["Avg_Rate(Hz)"])
+print(l4df.groupby("cell_type").mean()["Ave_Rate(Hz)"])
 print(l4df.groupby("ei").mean()["Spont_Rate(Hz)"])
-print(l4df.groupby("ei").mean()["Avg_Rate(Hz)"])
+print(l4df.groupby("ei").mean()["Ave_Rate(Hz)"])
 
 
 # %% experimenting shading

@@ -9,8 +9,8 @@ from scipy.interpolate import interp1d
 
 
 npdf = pd.read_csv("neuropixels/metrics/OSI_DSI_DF_data.csv", sep=" ")
-sp_rates = npdf.groupby("cell_type").mean()["Avg_Rate(Hz)"]
-# sp_rates = npdf.groupby("cell_type").median()["Avg_Rate(Hz)"]
+sp_rates = npdf.groupby("cell_type").mean()["Ave_Rate(Hz)"]
+# sp_rates = npdf.groupby("cell_type").median()["Ave_Rate(Hz)"]
 sp_rates
 target_fr = sp_rates
 

@@ -39,7 +39,7 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), set_nam
         columns=[
             "DG_angle",
             "node_id",
-            "Avg_rate(Hz)",
+            "Ave_Rate(Hz)",
             "SD_rate(Hz)",
             "Spont_rate(Hz)",
         ],
@@ -97,7 +97,7 @@ def calculate_Rates_DF(numNrns, trials=10, angles=np.arange(0, 360, 45), set_nam
             numNrns
         )
         # at one point, try nanmean and nanstd for remedying faining cluster computation
-        Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "Avg_rate(Hz)"] = np.nanmean(
+        Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "Ave_Rate(Hz)"] = np.nanmean(
             firingRatesTrials, axis=0
         )
         Rates_DF.loc[i * numNrns : (i + 1) * numNrns - 1, "SD_rate(Hz)"] = np.nanstd(
@@ -120,7 +120,7 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
     angles = range(0, 360, 45)
     angle_counts = 0
     for angle, g in rates_df.groupby("DG_angle"):
-        all_rates[:, angle_counts] = g["Avg_rate(Hz)"]
+        all_rates[:, angle_counts] = g["Ave_Rate(Hz)"]
         all_spont[:, angle_counts] = g["Spont_rate(Hz)"]
         angle_counts += 1
 
@@ -144,7 +144,7 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
     osi_df["OSI"] = osi
     osi_df["preferred_angle"] = np.array(angles)[preferred_angle_ind]
     osi_df["max_mean_rate(Hz)"] = preferred_rates
-    osi_df["Avg_Rate(Hz)"] = np.mean(all_rates, axis=1)
+    osi_df["Ave_Rate(Hz)"] = np.mean(all_rates, axis=1)
     osi_df["Spont_Rate(Hz)"] = np.mean(all_spont, axis=1)
     return osi_df
 

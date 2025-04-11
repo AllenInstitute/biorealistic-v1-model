@@ -65,7 +65,7 @@
         "edge_types_file": "$NETWORK_DIR/lgn_v1_edge_types.csv"
       },
       {
-        "edges_file": "$NETWORK_DIR/bkg_v1_edges.h5",
+        "edges_file": "$NETWORK_DIR/bkg_v1_edges_checkpoint.h5",
         "edge_types_file": "$NETWORK_DIR/bkg_v1_edge_types.csv"
       }
     ]

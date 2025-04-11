@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     npdf = pd.read_csv("neuropixels/metrics/OSI_DSI_DF_data.csv", sep=" ")
 
-    sp_rates = npdf.groupby("cell_type").mean()["Avg_Rate(Hz)"]
+    sp_rates = npdf.groupby("cell_type").mean()["Ave_Rate(Hz)"]
     # replacing the white space with _ in case the OSI_DSI_DF is old.
     sp_rates.index = sp_rates.index.str.replace(" ", "_")
 
