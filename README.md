@@ -29,12 +29,12 @@ The 'conda' command can be replaced with 'mamba' if you have it installed, and i
 conda env create -f environment.yml -n <env_name>
 ```
 
-## How to build and run a network (incl. network adjustment)
+## How to build a network and run a simulation
 
-The most straightforward way to get the final adjusted network and it's output is doing the following.
+The most straightforward way to get a network and it's simulation output is doing the following.
 
 ```bash
-snakemake <network_name>/output_adjusted/spikes.h5
+snakemake <network_name>/output_plain/spikes.h5
 ```
 
 where `<network_name>` is one of the defined names in `Snakefile`. Namely:
