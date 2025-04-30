@@ -30,7 +30,11 @@ dependencies:
   # modeling
   - openpyxl
 
-  # allensdk
+  # allensdk (based on AllenSDK/requirements.txt to avoid pip package override)
+  - scipy<1.11
+  - numpy<1.24
+  - pandas==1.5.3
+  - xarray<2023.2.0
   - future
   - jinja2
   - nest-asyncio
@@ -41,7 +45,6 @@ dependencies:
   - requests
   - scikit-build
   - scikit-image
-  - scipy
   - seaborn
   - semver
   - simpleitk
@@ -49,7 +52,6 @@ dependencies:
   - six
   - sqlalchemy
   - tqdm
-  - xarray
 
   
   # PIP dependencies
