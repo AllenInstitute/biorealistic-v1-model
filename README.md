@@ -31,7 +31,7 @@ conda env create -f environment.yml -n <env_name>
 
 ## How to build a network and run a simulation
 
-The most straightforward way to get a network and it's simulation output is doing the following.
+The most straightforward way to get a network and its simulation output is doing the following.
 
 ```bash
 snakemake <network_name>/output_plain/spikes.h5
