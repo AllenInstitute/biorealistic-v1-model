@@ -44,3 +44,9 @@ tensorflow/*
 tf_props/*
 base_props_deprecated/*
 connection_params_for_v1DD/*
+
+aggregate_spectra*/
+weight_comparison*/
+weight_analysis*/
+box_*.png
+box_*.svg

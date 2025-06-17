@@ -29,8 +29,8 @@ The command to create the env should be:
 This is necessary if you are using the conda version of cuda.
 
 In your conda environment directory, under "etc/conda/activate.d/", create a script that sets the following environmental variables
-XLA_FLAGS=--xla_gpu_cuda_data_dir=\<conda home\>/envs/tf5
-LD_LIBRARY_PATH=/lib64:\<conda home\>/envs/tf5/lib
+XLA_FLAGS=--xla_gpu_cuda_data_dir=\<conda home\>/envs/\<env name\>
+LD_LIBRARY_PATH=/lib64:\<conda home\>/envs/\<env name\>/lib
 
 In my case, I have a script named:
 `/allen/programs/mindscope/workgroups/realistic-model/shinya.ito/miniconda3/envs/tf5/etc/conda/activate.d/env_vars.sh`
