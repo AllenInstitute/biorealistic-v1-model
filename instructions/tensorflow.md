@@ -36,8 +36,10 @@ In my case, I have a script named:
 `/allen/programs/mindscope/workgroups/realistic-model/shinya.ito/miniconda3/envs/tf5/etc/conda/activate.d/env_vars.sh`
 
 which content is
-`export XLA_FLAGS=--xla_gpu_cuda_data_dir=/home/shinya.ito/realistic-model/miniconda3/envs/tf5`
-`export LD_LIBRARY_PATH=/lib64:/home/shinya.ito/realistic-model/miniconda3/envs/tf5/lib`
+```bash
+export XLA_FLAGS=--xla_gpu_cuda_data_dir=/home/shinya.ito/realistic-model/miniconda3/envs/tf5
+export LD_LIBRARY_PATH=/lib64:/home/shinya.ito/realistic-model/miniconda3/envs/tf5/lib
+```
 
 If you don't do this, it will try to load the system's CUDA library, which may not be setup.
 
