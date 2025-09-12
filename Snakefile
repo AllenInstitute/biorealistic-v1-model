@@ -50,6 +50,12 @@ network_options_1 = [
     "naive",
 ]
 
+network_options_1d = [
+    "adjusted",
+    "bio_trained",
+    "naive",
+]
+
 network_options_2 = [
     "plain",
     "adjusted",
@@ -564,7 +570,7 @@ rule run_filternet_osi_job:
         script="{network_name}/jobs/filternet_8dir_10trials.sh"
     output: "{network_name}/filternet_8dir_10trials/angle0_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
     
 
 rule run_osi_job:
@@ -575,7 +581,7 @@ rule run_osi_job:
         components="{network_name}/components/synaptic_models/e4_to_e4.json"
     output: "{network_name}/8dir_10trials_{network_option}/angle0_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
 
 
 rule run_filternet_contrast_job:
@@ -583,7 +589,7 @@ rule run_filternet_contrast_job:
         script="{network_name}/jobs/filternet_contrasts.sh"
     output: "{network_name}/filternet_contrasts/angle0_contrast0.05_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
 
 rule run_contrast_job:
     input:
@@ -594,7 +600,7 @@ rule run_contrast_job:
         components="{network_name}/components/synaptic_models/e4_to_e4.json"
     output: "{network_name}/contrasts_{network_option}/angle0_contrast0.05_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh -t hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
 
 
 rule contrast_spike_aggregation:
@@ -662,7 +668,7 @@ rule response_correlation_calculation:
             "{network_name}/metrics/stim_spikes_output_imagenet.npz"
         ]
     output:
-        correlations="{network_name}/metrics/correlations_{input_type}.npy",
+        correlations="{network_name}/metrics/response_correlations_{input_type}.npy",
     threads: 4,
     params:
         base_dir="{network_name}",
@@ -690,7 +696,7 @@ rule calculate_distances:
 rule response_correlation_plot:
     input:
         script="response_correlation_plot.py",
-        correlations="{network_name}/metrics/correlations_{input_type}.npy",
+        correlations="{network_name}/metrics/response_correlations_{input_type}.npy",
         distances="{network_name}/metrics/distances.npy"
     output:
         plot="{network_name}/figures/response_correlation_{input_type}.png"
@@ -701,6 +707,27 @@ rule response_correlation_plot:
         """
         python response_correlation_plot.py {params.base_dir} {params.input_type}
         """
+        
+rule aggregate_correlation_plot:
+    input:
+        script="aggregate_correlation_plot.py",
+        data="core_nll_9/metrics/response_correlations_{input_type}.npy", 
+    output:
+        "aggregated_response_correlation/{input_type}.png"
+    shell:
+        """
+        mkdir -p aggregated_response_correlation
+        python {input.script} core_nll_? {wildcards.input_type} aggregated_response_correlation/{wildcards.input_type}.png
+        """
+
+# rule to run all respons_correlation calculations for all networks
+rule all_response_correlation_plots:
+    input:
+        expand("core_nll_{i}/figures/response_correlation_{input_type}.png", i=range(10), input_type=network_options_1),
+        expand("aggregated_response_correlation/{input_type}.png", input_type=network_options_1)
+
+
+
 
 # Rule to calculate sparsity measures
 rule calculate_sparsity:
@@ -725,13 +752,13 @@ rule calculate_sparsity:
 # Rule to run calculate_sparsity for all core_nll_? networks
 rule all_nll_sparsity:
     input:
-        expand("core_nll_{i}/metrics/lifetime_sparsity_{input_type}.npy", i=range(10), input_type=network_options1),
-        expand("core_nll_{i}/metrics/population_sparsity_{input_type}.npy", i=range(10), input_type=network_options1)
+        expand("core_nll_{i}/metrics/lifetime_sparsity_{input_type}.npy", i=range(10), input_type=network_options_1),
+        expand("core_nll_{i}/metrics/population_sparsity_{input_type}.npy", i=range(10), input_type=network_options_1)
 
 # Rule to plot population sparsity for all core_nll_? networks
 rule plot_population_sparsity:
     input:
-        expand("core_nll_{i}/metrics/population_sparsity_{input_type}.npy", i=range(10), input_type=network_options1)
+        expand("core_nll_{i}/metrics/population_sparsity_{input_type}.npy", i=range(10), input_type=network_options_1)
     output:
         "population_sparsity_{input_type}.png"
     params:
@@ -747,9 +774,9 @@ rule plot_population_sparsity:
 # Rule to plot lifetime sparsity for each core_nll_? network
 rule plot_lifetime_sparsity:
     input:
-        expand("core_nll_{i}/metrics/lifetime_sparsity_{input_type}.npy", i=range(10), input_type=network_options1)
+        expand("core_nll_{i}/metrics/lifetime_sparsity_{input_type}.npy", i=range(10), input_type=network_options_1)
     output:
-        expand("lifetime_sparsity_core_nll_{i}_{input_type}.png", i=range(10), input_type=network_options1)
+        expand("lifetime_sparsity_core_nll_{i}_{input_type}.png", i=range(10), input_type=network_options_1)
     params:
         script="plot_sparsity.py",
         base_dirs=["core_nll_{i}" for i in range(10)],
@@ -817,7 +844,7 @@ rule aggregate_spectra:
         """
         python {input.script} \
         --base_dirs core_nll_0 core_nll_1 core_nll_2 core_nll_3 core_nll_4 core_nll_5 core_nll_6 core_nll_7 core_nll_8 core_nll_9 \
-        --input_types plain checkpoint noweightloss adjusted \
+        --input_types plain bio_trained naive adjusted \
         --output_dir {output}
         """
 
@@ -833,7 +860,7 @@ rule aggregate_spectra_normalized:
         """
         python {input.script} \
         --base_dirs core_nll_0 core_nll_1 core_nll_2 core_nll_3 core_nll_4 core_nll_5 core_nll_6 core_nll_7 core_nll_8 core_nll_9 \
-        --input_types plain checkpoint noweightloss adjusted \
+        --input_types plain bio_trained naive adjusted \
         --output_dir {output} \
         --normalized
         """
@@ -844,4 +871,17 @@ rule all_spectral:
         rules.all_spectral_analysis.input,
         rules.all_spectral_plots.input,
         rules.aggregate_spectra.output,
-        rules.aggregate_spectra_normalized.output
+        # rules.aggregate_spectra_normalized.output
+
+# Rule to run all analysis for core_nll_0
+rule all_core_nll_0_all:
+    input:
+        expand("core_nll_0/figures/contrast_responsive_cells_{input_type}.pdf", input_type=network_options_1),
+        expand("core_nll_0/output_{input_type}/raster_and_spectra_by_tuning_angle.png", input_type=network_options_2),
+        expand("core_nll_0/figures/OSI_DSI_{input_type}.png", input_type=network_options_1),
+        # Add other relevant outputs for network 0 if needed, for example:
+        # expand("core_nll_0/figures/response_correlation_{input_type}.png", input_type=network_options_1),
+        # expand("core_nll_0/metrics/lifetime_sparsity_{input_type}.npy", input_type=network_options_1),
+        # expand("core_nll_0/metrics/population_sparsity_{input_type}.npy", input_type=network_options_1),
+        expand("core_nll_0/contrasts_{input_type}/combined_spectra_700to2700.json", input_type=network_options_1),
+        expand("core_nll_0/contrasts_{input_type}/figures", input_type=network_options_1),
