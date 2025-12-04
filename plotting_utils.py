@@ -91,7 +91,17 @@ def determine_layer_divisions(v1df):
     return dict(zip(layers, divisions))
 
 
-def plot_raster(config_file, s=1, radius=400.0, sortby=None, infer=True, **kwarg):
+def plot_raster(
+    config_file,
+    s=1,
+    radius=400.0,
+    sortby=None,
+    infer=True,
+    grouping="full",
+    legend_markerscale=None,
+    layer_label_fontsize=None,
+    **kwarg,
+):
     # try:
     #     config_js = read_config(config_file)
     #     net = form_network(config_js)
@@ -105,7 +115,7 @@ def plot_raster(config_file, s=1, radius=400.0, sortby=None, infer=True, **kwarg
 
     # defaulting to infer. because if I change the directory name, it tries to read from the new one.
     spike_df, hue_order, color_dict, layer_divisions = make_figure_elements(
-        config_file, radius, sortby, infer
+        config_file, radius, sortby, infer, grouping
     )
 
     ax = sns.scatterplot(
@@ -120,19 +130,67 @@ def plot_raster(config_file, s=1, radius=400.0, sortby=None, infer=True, **kwarg
     )
     # change the x label to Time (ms)
     ax.set_xlabel("Time (ms)")
+    # remove y label since we now show layer ticks with counts
+    ax.set_ylabel("")
     ax.invert_yaxis()
+    # Determine fontsize for layer labels
+    _lbl_fs = layer_label_fontsize if layer_label_fontsize is not None else plt.rcParams.get("font.size", 10)
+    # Draw layer division lines
     for name, div in layer_divisions.items():
         ax.axhline(y=div, color="black", linestyle="-", linewidth=0.3)
-        ax.text(
-            0,
-            div,
-            name,
-            horizontalalignment="left",
-            verticalalignment="bottom",
-            fontsize=9,
-        )
 
-    ax.legend(loc="upper right")
+    # Build y-ticks and labels with counts per layer, aligned at the division lines
+    layers_order = [k for k in layer_divisions.keys() if k != ""]
+    ticks, labels = [], []
+    prev = layer_divisions.get("", 0)
+    for name in layers_order:
+        this = layer_divisions[name]
+        count = max(int(this - prev), 0)
+        ticks.append(this)
+        # labels.append(f"{name}\n(n={count})")
+        labels.append(f"{name}")
+        prev = this
+
+    if ticks:
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(labels)
+        for t in ax.get_yticklabels():
+            t.set_verticalalignment("bottom")
+            t.set_fontsize(_lbl_fs)
+
+    # Add total neuron count at top-left, slightly above plotting area
+    if layer_divisions:
+        try:
+            total_n = max(layer_divisions.values())
+        except Exception:
+            total_n = None
+        if total_n is not None and total_n > 0:
+            annot_fs = max(int(_lbl_fs * 0.8), 8)
+            ax.text(
+                0.0,
+                1.02,
+                f"N={total_n}",
+                transform=ax.transAxes,
+                ha="left",
+                va="bottom",
+                fontsize=annot_fs,
+            )
+
+    if legend_markerscale is not None:
+        leg = ax.legend(loc="upper right", scatterpoints=1, markerscale=legend_markerscale)
+    else:
+        leg = ax.legend(loc="upper right")
+    # Ensure legend text sizes are consistent with base font
+    if leg is not None:
+        for t in leg.get_texts():
+            t.set_fontsize(_lbl_fs)
+        if leg.get_title() is not None:
+            leg.get_title().set_fontsize(_lbl_fs)
+
+    # Ensure tick and axis label sizes match the base font
+    ax.tick_params(axis="both", labelsize=_lbl_fs)
+    ax.xaxis.label.set_size(_lbl_fs)
+    ax.yaxis.label.set_size(_lbl_fs)
 
     return ax
 
@@ -186,13 +244,52 @@ def plot_fr_histogram(
     return ax
 
 
-def make_figure_elements(config_file, radius, sortby, infer):
+def make_figure_elements(config_file, radius, sortby, infer, grouping="full"):
     net = form_network(config_file, infer=infer)
     spike_df = get_spikes(config_file, infer=infer)
 
     v1df = net.nodes["v1"].to_dataframe()
-    v1df = pick_core(v1df, radius=radius)
-    v1df["Cell Type"] = v1df["pop_name"].apply(identify_cell_type)
+    if radius is not None:
+        v1df = pick_core(v1df, radius=radius)
+    # Map each pop_name to its canonical cell_type using the naming scheme CSV
+    import network_utils as nu
+    ctdf = nu.get_cell_type_table()  # index = pop_name
+    pop_to_celltype = ctdf["cell_type"]
+    pop_to_hex = ctdf[["cell_type", "hex"]].drop_duplicates().set_index("cell_type")["hex"]
+
+    # Use the mapping (fall back to generic categories if missing)
+    v1df["Cell Type"] = v1df["pop_name"].map(pop_to_celltype)
+    missing_mask = v1df["Cell Type"].isna()
+    if missing_mask.any():
+        # fallback to previous identify_cell_type for unseen pop_names
+        v1df.loc[missing_mask, "Cell Type"] = v1df.loc[missing_mask, "pop_name"].apply(identify_cell_type)
+
+    # If simplified grouping is requested, map to four categories before sorting
+    if grouping == "four":
+        # Determine layer number from pop_name to find L1 inhibitory
+        layer_num = v1df["pop_name"].str.extract(r"[ei](\d)").astype(int)[0]
+        base_labels = v1df["Cell Type"].astype(str)
+
+        def map_to_group(cell_type: str) -> str:
+            # Merge L5 IT/ET/NP into Exc
+            if cell_type in ("L5_IT", "L5_ET", "L5_NP"):
+                return "Exc"
+            if cell_type.endswith("_Exc") or cell_type == "Exc":
+                return "Exc"
+            if cell_type.endswith("_PV") or cell_type in ("Pvalb", "PV"):
+                return "PV"
+            if cell_type.endswith("_SST") or cell_type in ("Sst", "SST"):
+                return "SST"
+            if cell_type.endswith("_VIP") or cell_type in ("Vip", "Htr3a", "VIP"):
+                return "VIP"
+            return cell_type
+
+        grouped = base_labels.map(map_to_group)
+        grouped.loc[layer_num.eq(1) & ~base_labels.str.contains("Exc")] = "L1"
+
+        # Overwrite Cell Type for sorting and downstream labeling
+        v1df["Cell Type"] = grouped
+
     v1df["Sort Position"] = determine_sort_position(v1df, sortby)
 
     spike_df = spike_df.loc[spike_df.index.isin(v1df.index)]
@@ -200,10 +297,45 @@ def make_figure_elements(config_file, radius, sortby, infer):
     spike_df["Sorted ID"] = v1df["Sort Position"].loc[spike_df.index]
     spike_df["Cell Type"] = v1df["Cell Type"].loc[spike_df.index]
 
-    hue_order = ["Exc", "Pvalb", "Sst", "Vip", "Htr3a"]
-    color_order = ["tab:red", "tab:blue", "tab:olive", "tab:purple", "tab:purple"]
-    # color_order = ["tab:red", "tab:blue", "yellowgreen", "violet", "violet"]
-    color_dict = dict(zip(hue_order, color_order))
+    # ---------------------------------------------
+    # Build palettes and labels
+    # ---------------------------------------------
+    if grouping == "four":
+        # Colors: use L2/3 colours for all layers
+        l23_keys = {
+            "Exc": "L2/3_Exc",
+            "PV": "L2/3_PV",
+            "SST": "L2/3_SST",
+            "VIP": "L2/3_VIP",
+        }
+        color_dict = {}
+        for k, canonical in l23_keys.items():
+            if canonical in pop_to_hex.index:
+                color_dict[k] = pop_to_hex.loc[canonical]
+        # L1 in neutral gray for visibility but equal brightness feel
+        color_dict["L1"] = "#9E9E9E"
+
+        # Keep order concise, put L1 first
+        order_pref = ["L1", "Exc", "PV", "SST", "VIP"]
+        present = list(spike_df["Cell Type"].dropna().unique())
+        hue_order = [k for k in order_pref if k in present]
+    else:
+        # Full palette: use CSV colours directly; add fallbacks for generic labels
+        color_dict = pop_to_hex.to_dict()
+        fallback_palette = {
+            'Exc': '#D61515',
+            'PV' : '#157C0C',
+            'SST': '#0C7979',
+            'VIP': '#8F40DF',
+        }
+        color_dict.update({
+            "Exc": fallback_palette["Exc"],
+            "Pvalb": fallback_palette["PV"],
+            "Sst": fallback_palette["SST"],
+            "Vip": fallback_palette["VIP"],
+            "Htr3a": fallback_palette["VIP"],
+        })
+        hue_order = list(color_dict.keys())
 
     layer_divisions = determine_layer_divisions(v1df)
     return spike_df, hue_order, color_dict, layer_divisions
