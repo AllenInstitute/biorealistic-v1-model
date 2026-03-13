@@ -45,6 +45,7 @@ dependencies:
   - requests
   - scikit-build
   - scikit-image
+  - scikit-learn
   - seaborn
   - semver
   - simpleitk
@@ -52,6 +53,7 @@ dependencies:
   - six
   - sqlalchemy
   - tqdm
+  - matplotlib
 
   
   # PIP dependencies

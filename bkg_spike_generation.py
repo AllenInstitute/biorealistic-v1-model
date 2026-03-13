@@ -142,6 +142,8 @@ if __name__ == "__main__":
         seed += 1
 
     start_seed3 = 551358
+    # seed = start_seed3  # A forgotten line. Not enforcing because a bunch of files are already generated.
+    # Not using this won't be a problem for generating random bkg spikes.
     print("Generating bkg spikes for imagenet...")
     dirname = f"{basedir}/bkg_imagenet"
     pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
@@ -154,3 +156,21 @@ if __name__ == "__main__":
             seed=seed,
         )
         seed += 1
+        
+    start_seed4 = 667542
+    seed = start_seed4
+    print("Generating bkg spikes for brain observatory...")
+    dirname = f"{basedir}/bkg_bo"
+    pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+    for chunk in tqdm(range(51)):
+        write_bkg(
+            f"{dirname}/bkg_bo_chunk_{chunk:02d}.h5",
+            n_neu,
+            rate=250,
+            duration=30.25,
+            seed=seed,
+        )
+        seed += 1
+
+
+    

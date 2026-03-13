@@ -4,7 +4,7 @@ A project for making biorealistic model of mouse V1.
 This is a successor project of making a model of the mouse primary visual cortex
 (<https://portal.brain-map.org/explore/models/mv1-all-layers>)
 
-The improvements will be:
+The improvements are:
 
 * Connection probability and weights are derived from coherent datasets, including the Allen Institute synaptic physiology data and MICrONS electron microscopy connectomics dataset (instead from the literature).
 * Synaptic connections are now expressed by double alpha functions and the receptor types are more elaborated.
@@ -14,6 +14,13 @@ The improvements will be:
 Only PointNet version is available as of now.
 
 ## Installation instruction
+
+This repository mainly documents the PointNet-based network build and simulation workflow.
+If you are interested in TensorFlow-based training workflows, please refer to
+`instructions/tensorflow.md` and the related files in the `instructions/` directory.
+If you are interested in running simulations using trained networks, trained SONATA
+network files are available here:
+<https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0>
 
 First, clone this repository to your local environment.
 
@@ -43,7 +50,7 @@ where `<network_name>` is one of the defined names in `Snakefile`. Namely:
 * `core`: 400 µm radius network. ~67k neurons.
 * `core_X`: X is {0-9}. The number of neurons in each cell model has Poisson fluctuation.
 * `core_nll`: Same geometry as core, but no weight like-to-like is used.
-* `core_nll_X`: Same as core_X, but no weight like-to-like is used.
+* `core_nll_X`: Same as core_X, but no weight like-to-like is used (used in the paper)
 * `small`: 200 µm radius network.
 * `tiny`: 100 µm radius network. Mainly for testing the build script.
 * `profile`: For profiling workflows. 200 µm radius.
