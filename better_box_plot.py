@@ -8,9 +8,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 import pathlib
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Patch
 from plotting_utils import pick_core
 import utils
+
+# globally set the font to arial
+plt.rcParams['font.family'] = 'Arial'
+
 
 
 # basedir = 'small'
@@ -138,12 +142,47 @@ def plot_sac(df, cpal):
     return fig, axs
 
 
+def plot_grant(df, cpal):
+    # similar to sac, but without DSI.
+    fig, axs = plt.subplots(2, 1, figsize=(4.5, 5))
+    plot_one(axs[0], df, "Ave_Rate(Hz)", [0, 15], cpal, e_only=True)
+    plot_one(axs[1], df, "OSI", [0, 1], cpal, e_only=True)
+    
+    # change the y label of the top plot to "Ave. FR (Hz)"
+    axs[0].set_ylabel("Ave. FR (Hz)")
+    
+    # remove the x ticklabels for the top plot
+    axs[0].set_xticklabels([])
+    # add a single, horizontal legend at the top of the figure
+    categories = list(pd.unique(df["data_type"]))
+    handles = [Patch(facecolor=cpal.get(cat, "gray"), edgecolor="black", label=cat) for cat in categories]
+    fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.55, 0.90), ncol=len(categories), frameon=False)
+    
+    # remove the legend box
+    axs[0].get_legend().remove()
+    axs[1].get_legend().remove()
+    
+    # remove spines.
+    axs[0].spines['top'].set_visible(False)
+    axs[0].spines['right'].set_visible(False)
+    axs[1].spines['top'].set_visible(False)
+    axs[1].spines['right'].set_visible(False)
+    # leave space at the top for the legend
+    fig.tight_layout(rect=[0, 0, 1, 0.86])
+    return fig, axs
+    
+
+
 osi_dfs = []
 
 color_pal = {
+    "Trained": "tab: green",
+    "Untrained": "tab:orange",
+    "Experiment": "tab:gray",
     "Billeh 2020, GLIF final": "tab:orange",
-    "Neuropixels data": "tab:gray",
-    "Neuropixels v3": "tab:gray",
+    "Neuropixels": "tab:gray",
+    "Neuropixels v4": "tab:gray",
+    "Neuropixels v4 (LM)": "tab:red",
     # "Neuropixels": "k",
     "core 9am": "tab:pink",
     "core bkg minus4": "tab:cyan",
@@ -176,32 +215,79 @@ color_pal = {
     "Baseline Model": "tab:orange",
     "Rate Adjusted Model": "tab:blue",
     "Optimized Model": "tab:green",
+    "Bio-trained Model": "tab:green",
+    "Naive-trained Model": "tab:blue",
+    "Inh-selective pos 200": "tab:red",
+    "Inh-selective neg 200": "tab:blue",
+    "Inh-selective pos 100": "tab:purple",
+    "Inh-selective neg 100": "tab:green",
+    "Exc-selective pos 100": "tab:pink",
+    "Exc-selective neg 100": "tab:olive",
+    "Exc-nonselective pos 100": "tab:cyan",
+    "Exc-nonselective neg 100": "tab:brown",
+    "Inh-nonselective pos 100": "tab:orange",
+    "Inh-nonselective neg 100": "tab:gray",
+    "Exc-selective matched pos 100": "tab:red",
+    "Exc-selective matched neg 100": "tab:blue",
+    "Inh-nonselective matched pos 100": "tab:purple",
+    "Inh-nonselective matched neg 100": "tab:green",
 }
 
 
-# osi_dfs.append(get_osi_df("billeh", "OSI_DSI_DF.csv", "Billeh 2020, GLIF final"))
+# osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels"))
+# osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_neuropixels_LM_v4.csv", "Neuropixels v4 (LM)"))
 
+# untrained network
+osi_dfs.append(get_osi_df("core_nll_0", "OSI_DSI_DF_plain.csv", "Untrained", radius=200.0))
 
-osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_DF_data.csv", "Neuropixels data"))
-# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF_orig.csv", "core adjusted", radius=200.0))
-osi_dfs.append(
-    get_osi_df("core_nll_1", "OSI_DSI_DF_plain.csv", "Baseline Model", radius=200.0)
-)
 osi_dfs.append(
     get_osi_df(
-        "core_nll_1", "OSI_DSI_DF_adjusted.csv", "Rate Adjusted Model", radius=200.0
+        "core_nll_0", "OSI_DSI_DF_bio_trained.csv", "Trained", radius=200.0
     )
 )
-osi_dfs.append(
-    get_osi_df(
-        "core_nll_1", "OSI_DSI_DF_checkpoint.csv", "Optimized Model", radius=200.0
-    )
-)
+
+osi_dfs.append(get_osi_df("neuropixels", "OSI_DSI_neuropixels_v4.csv", "Experiment"))
+
+
+
+
 # osi_dfs.append(
-#     get_osi_df("core_0427", "OSI_DSI_DF_recurrent.csv", "core recurrent", radius=200.0)
+#     get_osi_df(
+#         "core_nll_0", "OSI_DSI_DF_inh_selective_pos200.csv", "Inh-selective pos 200", radius=200.0
+#     )
 # )
-# osi_dfs.append(get_osi_df("core", "OSI_DSI_DF.csv", "core new", radius=200.0))
-# osi_dfs.append(get_osi_df("full", "OSI_DSI_DF.csv", "full recurrent", radius=400.0))
+# osi_dfs.append(
+#     get_osi_df(
+#         "core_nll_0", "OSI_DSI_DF_inh_selective_neg200.csv", "Inh-selective neg 200", radius=200.0
+#     )
+# )
+
+# datasets = [
+#     ("core_nll_0", "OSI_DSI_DF_inh_selective_neg100.csv", "Inh-selective neg 100"),
+#     ("core_nll_0", "OSI_DSI_DF_inh_selective_pos100.csv", "Inh-selective pos 100"),
+#     ("core_nll_0", "OSI_DSI_DF_inh_selective_neg200.csv", "Inh-selective neg 200"),
+#     ("core_nll_0", "OSI_DSI_DF_inh_selective_pos200.csv", "Inh-selective pos 200"),
+#     ("core_nll_0", "OSI_DSI_DF_exc_selective_pos100.csv", "Exc-selective pos 100"),
+#     ("core_nll_0", "OSI_DSI_DF_exc_selective_neg100.csv", "Exc-selective neg 100"),
+#     ("core_nll_0", "OSI_DSI_DF_exc_nonselective_pos100.csv", "Exc-nonselective pos 100"),
+#     ("core_nll_0", "OSI_DSI_DF_exc_nonselective_neg100.csv", "Exc-nonselective neg 100"),
+#     ("core_nll_0", "OSI_DSI_DF_inh_nonselective_pos100.csv", "Inh-nonselective pos 100"),
+#     ("core_nll_0", "OSI_DSI_DF_inh_nonselective_neg100.csv", "Inh-nonselective neg 100"),
+#     ("core_nll_0", "OSI_DSI_DF_exc_selective_matched_pos100.csv", "Exc-selective matched pos 100"),
+#     ("core_nll_0", "OSI_DSI_DF_exc_selective_matched_neg100.csv", "Exc-selective matched neg 100"),
+#     ("core_nll_0", "OSI_DSI_DF_inh_nonselective_matched_pos100.csv", "Inh-nonselective matched pos 100"),
+#     ("core_nll_0", "OSI_DSI_DF_inh_nonselective_matched_neg100.csv", "Inh-nonselective matched neg 100"),
+# ]
+
+# for basedir, metric_file, label in datasets:
+#     path = pathlib.Path(basedir) / 'metrics' / metric_file
+#     if path.exists():
+#         osi_dfs.append(get_osi_df(basedir, metric_file, label, radius=200.0))
+#     else:
+#         print(f"Warning: {path} missing, skipping {label}")
+
+
+
 df = pd.concat(osi_dfs).reset_index()
 
 # add in the ei values for the neuropixels.
@@ -221,7 +307,8 @@ df["ei"] = ctdf_type[df["cell_type"]].values
 
 
 # pattern = "normal"
-pattern = "sac"
+# pattern = "sac"
+pattern = "grant"
 
 # fig, axs = plt.subplots(4, 1, figsize=(12, 20))
 if pattern == "sac":
@@ -236,6 +323,9 @@ if pattern == "sac":
     # axs[1].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
     plt.tight_layout()
     plt.savefig("box_simplified.png", dpi=150)
+elif pattern == "grant":
+    fig, axs = plot_grant(df, color_pal)
+    plt.savefig("box_grant.png", dpi=300)
 elif pattern == "normal":
     # color_pal = None
     fig, axs = plt.subplots(4, 2, figsize=(24, 12))
@@ -249,7 +339,8 @@ elif pattern == "normal":
     plot_scat(axs[3, 1], df, "Rate at preferred direction (Hz)", "OSI", color_pal, s=5)
 
     plt.tight_layout()
-    plt.savefig("core/figures/box_plain.png", dpi=150)
+    plt.savefig("core_nll_0/figures/box_inh_selective_clamp.png", dpi=150)
+    sys.exit(0)
     # plt.savefig("box_Dec12.svg", bbox="tight")
     # plt.savefig("box_Dec12.png", dpi=150)
 elif pattern == "scats":

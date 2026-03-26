@@ -32,6 +32,34 @@ def compute_osi(rates, angles):
     return np.abs(vec)
 
 
+def compute_reliability(angle_by_trial_rates: np.ndarray) -> float:
+    """Compute reliability as Pearson r between two halves of trials.
+
+    Parameters
+    ----------
+    angle_by_trial_rates : np.ndarray
+        Array of shape (n_angles, n_trials) for a single cell and contrast.
+
+    Returns
+    -------
+    float
+        Pearson correlation between mean responses across orientations in the two halves.
+    """
+    if angle_by_trial_rates.ndim != 2:
+        return np.nan
+    n_trials = angle_by_trial_rates.shape[1]
+    if n_trials < 2:
+        return np.nan
+    mid = n_trials // 2
+    if mid == 0:
+        return np.nan
+    first_half = angle_by_trial_rates[:, :mid].mean(axis=1)
+    second_half = angle_by_trial_rates[:, mid:].mean(axis=1)
+    if np.allclose(np.std(first_half), 0) or np.allclose(np.std(second_half), 0):
+        return np.nan
+    r = np.corrcoef(first_half, second_half)[0, 1]
+    return float(r)
+
 def get_color_map():
     """Return a mapping from cell_type (e.g. 'L2/3_Exc') to hex color string."""
     scheme_path = Path("base_props/cell_type_naming_scheme.csv")
@@ -97,8 +125,9 @@ def process_one_network(basedir: str, network_option: str, color_map: dict):
         # Mean firing rate across orientations, trials, and cells
         mean_rates = ct_rates.mean(axis=(0, 2, 3))  # (contrasts,)
 
-        # Compute OSI for each cell for each contrast
+        # Compute OSI and reliability for each cell for each contrast
         osi_vals = []
+        reliability_vals = []
         for c_idx in range(len(contrast_vals)):
             # rates for current contrast -> (angles, trials, cells)
             angle_trial_cell = ct_rates[:, c_idx, :, :]
@@ -106,11 +135,16 @@ def process_one_network(basedir: str, network_option: str, color_map: dict):
             angle_cell = angle_trial_cell.mean(axis=1)
             osi_each = [compute_osi(angle_cell[:, cid], angles) for cid in range(angle_cell.shape[1])]
             osi_vals.append(np.nanmean(osi_each))
+            # reliability per cell
+            rel_each = [compute_reliability(angle_trial_cell[:, :, cid]) for cid in range(angle_trial_cell.shape[2])]
+            reliability_vals.append(np.nanmean(rel_each))
         osi_vals = np.array(osi_vals)
+        reliability_vals = np.array(reliability_vals)
 
         cell_data[cell_type] = {
             'mean_rates': mean_rates,
             'osi_vals': osi_vals,
+            'reliability_vals': reliability_vals,
             'color': color_map.get(cell_type, None)
         }
 
@@ -122,10 +156,15 @@ def process_one_network(basedir: str, network_option: str, color_map: dict):
     # 2. OSI figure
     fig_osi, axes_osi = plt.subplots(2, 2, figsize=(12, 10))
     axes_osi = axes_osi.flatten()
+    
+    # 3. Reliability figure
+    fig_rel, axes_rel = plt.subplots(2, 2, figsize=(12, 10))
+    axes_rel = axes_rel.flatten()
 
     for idx, (layer_name, cell_types) in enumerate(layer_groups.items()):
         ax_rate = axes_rate[idx]
         ax_osi = axes_osi[idx]
+        ax_rel = axes_rel[idx]
         
         # Plot each cell type in this layer
         for cell_type in cell_types:
@@ -139,6 +178,10 @@ def process_one_network(basedir: str, network_option: str, color_map: dict):
                 
                 # OSI plot
                 ax_osi.plot(contrast_vals, data['osi_vals'], 
+                          marker='o', label=cell_type, color=color, linewidth=2)
+                
+                # Reliability plot
+                ax_rel.plot(contrast_vals, data['reliability_vals'], 
                           marker='o', label=cell_type, color=color, linewidth=2)
         
         # Format rate subplot
@@ -155,6 +198,14 @@ def process_one_network(basedir: str, network_option: str, color_map: dict):
         ax_osi.set_ylim(0, 1)
         ax_osi.legend(fontsize=8)
         ax_osi.grid(True, alpha=0.3)
+        
+        # Format Reliability subplot
+        ax_rel.set_xlabel('Contrast')
+        ax_rel.set_ylabel('Reliability (r)')
+        ax_rel.set_title(f'{layer_name} - Reliability vs. Contrast')
+        ax_rel.set_ylim(0, 1)
+        ax_rel.legend(fontsize=8)
+        ax_rel.grid(True, alpha=0.3)
 
     # Finalize and save figures
     fig_rate.suptitle(f'Firing Rate vs. Contrast ({network_option})', fontsize=14, y=0.98)
@@ -166,6 +217,11 @@ def process_one_network(basedir: str, network_option: str, color_map: dict):
     fig_osi.tight_layout()
     fig_osi.savefig(save_dir / f"contrast_selectivity_by_layer_{network_option}.png", dpi=300, bbox_inches='tight')
     plt.close(fig_osi)
+    
+    fig_rel.suptitle(f'Reliability vs. Contrast ({network_option})', fontsize=14, y=0.98)
+    fig_rel.tight_layout()
+    fig_rel.savefig(save_dir / f"contrast_reliability_by_layer_{network_option}.png", dpi=300, bbox_inches='tight')
+    plt.close(fig_rel)
     
     print(f"[INFO] Saved combined layer plots for {network_option} in {basedir}/figures")
 

@@ -570,7 +570,7 @@ rule run_filternet_osi_job:
         script="{network_name}/jobs/filternet_8dir_10trials.sh"
     output: "{network_name}/filternet_8dir_10trials/angle0_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc 'cd {params.curdir}; sbatch --wait {input.script}'"
     
 
 rule run_osi_job:
@@ -581,7 +581,7 @@ rule run_osi_job:
         components="{network_name}/components/synaptic_models/e4_to_e4.json"
     output: "{network_name}/8dir_10trials_{network_option}/angle0_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc 'cd {params.curdir}; sbatch --wait {input.script}'"
 
 
 rule run_filternet_contrast_job:
@@ -589,7 +589,7 @@ rule run_filternet_contrast_job:
         script="{network_name}/jobs/filternet_contrasts.sh"
     output: "{network_name}/filternet_contrasts/angle0_contrast0.05_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc 'cd {params.curdir}; sbatch --wait {input.script}'"
 
 rule run_contrast_job:
     input:
@@ -600,7 +600,7 @@ rule run_contrast_job:
         components="{network_name}/components/synaptic_models/e4_to_e4.json"
     output: "{network_name}/contrasts_{network_option}/angle0_contrast0.05_trial0/spikes.h5"
     params: curdir=curdir
-    shell: "ssh hpc-login 'cd {params.curdir}; sbatch --wait {input.script}'"
+    shell: "ssh hpc 'cd {params.curdir}; sbatch --wait {input.script}'"
 
 
 rule contrast_spike_aggregation:

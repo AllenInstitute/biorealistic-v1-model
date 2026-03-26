@@ -37,7 +37,7 @@ if __name__ == "__main__":
         outdir = filterdir
         configdir = args.basedir + f"/configs/filternet_{job_name}"
     else:
-        base_config = args.basedir + "/configs/config_plain.json"
+        base_config = args.basedir + f"/configs/config_{args.network_option}.json"
         outdir = args.basedir + f"/output_{job_name}"
         configdir = args.basedir + f"/configs/{job_name}"
 
@@ -74,19 +74,6 @@ if __name__ == "__main__":
             js["manifest"]["$LGNINPUT_DIR"] = filterdir_indv
             js["manifest"]["$OUTPUT_DIR"] = outdir_indv
             config_name = configdir + f"/config_{config_counts}.json"
-
-            # change the edge file if not plain
-            if args.network_option != "plain":
-                js["networks"]["edges"][0][
-                    "edges_file"
-                ] = f"$NETWORK_DIR/v1_v1_edges_{args.network_option}.h5"
-            # also change the bkg for TF checkpoint
-            if any(
-                [opt in args.network_option for opt in ["checkpoint", "noweightloss"]]
-            ):
-                js["networks"]["edges"][2][
-                    "edges_file"
-                ] = f"$NETWORK_DIR/bkg_v1_edges_{args.network_option}.h5"
 
             # if the config file contains background input, change the input file
             if "$BKGINPUT_DIR" in js["manifest"].keys():

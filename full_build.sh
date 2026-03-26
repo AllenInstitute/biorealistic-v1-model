@@ -13,4 +13,4 @@
 # Those nodes have 512GB of RAM, so we can submit with 500GB of memory usage.
 # To build the full model, we need about ~800GB of RAM.
 
-srun --mpi=pmi2 python -u build_network.py -f -o full/network --radius 700.0 --core-radius 400.0
+srun --mpi=pmi2 python -u build_network.py -f -o full_nll/network --radius 700.0 --core-radius 400.0 -nll

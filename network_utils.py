@@ -14,6 +14,47 @@ from math import exp
 debug = False
 
 
+# recursive loading of h5 file
+def load_h5_dict(h5_path):
+    def recurse(h5_obj):
+        out = {}
+        for key, item in h5_obj.items():
+            if isinstance(item, h5py.Dataset):
+                out[key] = item[()]  # Load as NumPy array
+            elif isinstance(item, h5py.Group):
+                out[key] = recurse(item)
+        return out
+
+    with h5py.File(h5_path, 'r') as f:
+        return recurse(f)
+
+def sort_spikes(spikes):
+    # make a disctionary of the spikes.
+    # the key is the cell id, and the value is the list of spikes.
+    sorted_spikes = {}
+    node_ids = spikes["node_ids"]
+    timestamps = spikes["timestamps"]
+    for i in range(len(node_ids)):
+        if node_ids[i] not in sorted_spikes:
+            sorted_spikes[node_ids[i]] = []
+        sorted_spikes[node_ids[i]].append(timestamps[i])
+    return sorted_spikes
+
+
+def load_spike_dict(h5_path, pop_name="v1"):
+    if pop_name == "bkg":
+        # special treatment
+        spikes = load_h5_dict(h5_path)["spikes"]
+        spikes["node_ids"] = spikes["gids"]
+    else:
+        spikes = load_h5_dict(h5_path)["spikes"][pop_name]
+    sorted_spikes = sort_spikes(spikes)
+    # reorder and convert to numpy array
+    sorted_spikes = {k: np.sort(v) for k, v in sorted_spikes.items()}
+    sorted_spikes = dict(sorted(sorted_spikes.items()))
+    
+    return sorted_spikes
+
 def get_cell_type_table(src=None, tgt=None):
     """
     Define the cell type table and converter.
@@ -35,21 +76,24 @@ def get_cell_type_table(src=None, tgt=None):
     return ctdf
 
 
-def get_tau_syn(synaptic_folder="glif_models/synaptic_models/", double_alpha=True):
+def get_tau_syn(synaptic_folder="glif_models/synaptic_models/", double_alpha=True, separate_tau=False):
     tau_syn_dict = {}
     for file in Path(synaptic_folder).glob("*.json"):
         with open(file, "r") as f:
             if double_alpha:
                 props = json.load(f)
-                tau_syn_dict[file.name] = (
-                    props["tau_syn_fast"] + props["tau_syn_slow"] * props["amp_slow"]
-                )
+                if separate_tau:
+                    tau_syn_dict[file.name] = (props["tau_syn_fast"], props["tau_syn_slow"], props["amp_slow"])
+                else:
+                    tau_syn_dict[file.name] = (
+                        props["tau_syn_fast"] + props["tau_syn_slow"] * props["amp_slow"]
+                    )
             else:
                 tau_syn_dict[file.name] = json.load(f)["tau_syn"]
     return tau_syn_dict
 
 
-def load_edges(basedir, src="v1", tgt="v1", appendix=""):
+def load_edges(basedir, src="v1", tgt="v1", appendix="", double_alpha=True, separate_tau=False):
     edgeh5 = h5py.File(f"{basedir}/network/{src}_{tgt}_edges{appendix}.h5", "r")
     edges = {}
     edges["source_id"] = np.array(edgeh5[f"edges/{src}_to_{tgt}/source_node_id"])
@@ -85,7 +129,7 @@ def load_edges(basedir, src="v1", tgt="v1", appendix=""):
         edges["syn_weight"] = edges["types"]["syn_weight"][edges["edge_type_id"]].values
         print("syn_weight is loaded from types file.")
 
-    tau_syn_dict = get_tau_syn()
+    tau_syn_dict = get_tau_syn(double_alpha=double_alpha, separate_tau=separate_tau)
     edges["types"]["tau_syn"] = edges["types"]["dynamics_params"].map(tau_syn_dict)
 
     return edges
