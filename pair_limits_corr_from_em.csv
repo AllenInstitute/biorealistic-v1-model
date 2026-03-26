@@ -1,0 +1,17 @@
+source,target,connections
+L2/3_Exc,L2/3_Exc,806
+L2/3_Exc,L4_Exc,65
+L2/3_Exc,L5_Exc,248
+L2/3_Exc,L6_Exc,22
+L4_Exc,L2/3_Exc,457
+L4_Exc,L4_Exc,1386
+L4_Exc,L5_Exc,363
+L4_Exc,L6_Exc,25
+L5_Exc,L2/3_Exc,155
+L5_Exc,L4_Exc,59
+L5_Exc,L5_Exc,235
+L5_Exc,L6_Exc,16
+L6_Exc,L2/3_Exc,41
+L6_Exc,L4_Exc,15
+L6_Exc,L5_Exc,23
+L6_Exc,L6_Exc,18

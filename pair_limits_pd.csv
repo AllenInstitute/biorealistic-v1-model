@@ -1,0 +1,10 @@
+source,target,connections
+L2/3 Exc,L2/3 Exc,198
+L2/3 Exc,L4 Exc,9
+L2/3 Exc,L5 Exc,160
+L4 Exc,L2/3 Exc,23
+L4 Exc,L4 Exc,4
+L4 Exc,L5 Exc,29
+L5 Exc,L2/3 Exc,19
+L5 Exc,L4 Exc,0
+L5 Exc,L5 Exc,63

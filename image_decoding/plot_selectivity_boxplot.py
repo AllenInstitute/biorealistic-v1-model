@@ -46,7 +46,7 @@ def prepare_long_table(np_path: Path, model_path: Path) -> pd.DataFrame:
     df_model["dataset"] = df_model["network_type"].replace({
         "bio_trained": "Bio-trained",
         "naive": "Naive",
-        "plain": "Plain",
+        "plain": "Untrained",
         "adjusted": "Adjusted",
     })
 
@@ -76,6 +76,7 @@ def main():
     parser.add_argument("--model_by_unit", type=Path, default=Path("image_decoding/summary/sparsity_model_by_unit.csv"))
     parser.add_argument("--out", type=Path, default=Path("image_decoding/summary/selectivity_boxplot.png"))
     parser.add_argument("--exclude_naive", action="store_true", help="Exclude Naive dataset from the plot")
+    parser.add_argument("--exclude_adjusted", action="store_true", help="Exclude Adjusted dataset from the plot")
     args = parser.parse_args()
 
     data = prepare_long_table(args.np_by_unit, args.model_by_unit)
@@ -83,9 +84,11 @@ def main():
 
     # Palette and hue order
     pal = dataset_palette()
-    desired = ["Neuropixels", "Bio-trained", "Naive", "Plain", "Adjusted"]
+    desired = ["Neuropixels", "Bio-trained", "Naive", "Untrained", "Adjusted"]
     if args.exclude_naive:
         desired = [d for d in desired if d != "Naive"]
+    if args.exclude_adjusted:
+        desired = [d for d in desired if d != "Adjusted"]
     hue_order = [d for d in desired if d in data["dataset"].unique().tolist()]
     hue_palette = {k: pal[k] for k in hue_order}
 

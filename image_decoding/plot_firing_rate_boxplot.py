@@ -126,9 +126,9 @@ def load_model_unit_rates(core_root: Path, networks: List[int], network_type: st
         unit_mean = rates.mean(axis=(0, 2))  # (C,)
         # Map network_type to display dataset label
         label_map = {
-            "bio_trained": "Bio-trained",
+            "bio_trained": "Trained",
             "naive": "Naive",
-            "plain": "Plain",
+            "plain": "Untrained",
             "adjusted": "Adjusted",
         }
         df = pd.DataFrame({
@@ -154,6 +154,7 @@ def main():
     parser.add_argument("--core_root", type=Path, default=Path("."))
     parser.add_argument("--networks", type=int, nargs="*", default=list(range(10)))
     parser.add_argument("--exclude_naive", action="store_true", help="Exclude Naive dataset from the plot")
+    parser.add_argument("--exclude_adjusted", action="store_true", help="Exclude Adjusted dataset from the plot")
     args = parser.parse_args()
 
     # Load per-unit mean firing rates
@@ -166,6 +167,8 @@ def main():
     data = pd.concat([df_np, df_bio, df_naive, df_plain, df_adjusted], ignore_index=True)
     if args.exclude_naive:
         data = data[data["dataset"] != "Naive"]
+    if args.exclude_adjusted:
+        data = data[data["dataset"] != "Adjusted"]
     # Add combined L5_Exc alongside subtypes
     data = add_l5_exc_combined(data)
     data = data.dropna(subset=["cell_type", "firing_rate"]) 
@@ -184,13 +187,15 @@ def main():
         "Neuropixels": "#7f7f7f",
         "Bio-trained": hue_deg_to_hex(135),  # green-cyan
         "Naive": hue_deg_to_hex(315),        # magenta-purple (reserved for future use)
-        "Plain": hue_deg_to_hex(45),         # golden/yellow
+        "Untrained": hue_deg_to_hex(45),     # golden/yellow
         "Adjusted": hue_deg_to_hex(225),     # blue-purple
     }
     # Determine hue order dynamically based on presence and exclusion
-    desired_order = ["Neuropixels", "Bio-trained", "Naive", "Plain", "Adjusted"]
+    desired_order = ["Neuropixels", "Bio-trained", "Naive", "Untrained", "Adjusted"]
     if args.exclude_naive:
         desired_order = [d for d in desired_order if d != "Naive"]
+    if args.exclude_adjusted:
+        desired_order = [d for d in desired_order if d != "Adjusted"]
     present = [d for d in desired_order if d in data["dataset"].unique().tolist()]
     hue_order = present
     hue_palette = {k: palette_all[k] for k in hue_order}

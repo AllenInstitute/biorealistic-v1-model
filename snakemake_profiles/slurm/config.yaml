@@ -1,0 +1,7 @@
+executor: slurm
+jobs: 100
+default-resources:
+  - slurm_partition=d3
+  - runtime="3h"
+  - mem_mb=32768
+  - cpus_per_task=8

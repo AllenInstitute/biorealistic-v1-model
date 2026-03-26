@@ -6,7 +6,9 @@ import numpy as np
 import pandas as pd
 
 
-def load_cached(network: int, network_type: str) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+def load_cached(
+    network: int, network_type: str
+) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     base = Path(f"core_nll_{network}") / f"cached_rates_{network_type}"
     rates = np.load(base / "rates_core.npy", mmap_mode="r")  # (reps, cells, images)
     labels = np.load(base / "labels_core.npy")  # (reps, images)
@@ -15,15 +17,38 @@ def load_cached(network: int, network_type: str) -> Tuple[np.ndarray, np.ndarray
 
 
 def calculate_lifetime_sparsity(rates_img: np.ndarray) -> float:
-    # rates_img: (n_images,) image-wise responses
+    # rates_img: (n_images,) image-wise responses for one trial
     if rates_img.size == 0:
         return np.nan
     mean_rate = float(np.mean(rates_img))
     if mean_rate == 0.0:
         return np.nan
-    mean_sq = float(np.mean(rates_img ** 2))
+    mean_sq = float(np.mean(rates_img**2))
     n = rates_img.size
-    return (1.0 - (mean_rate ** 2) / mean_sq) / (1.0 - 1.0 / n)
+    return (1.0 - (mean_rate**2) / mean_sq) / (1.0 - 1.0 / n)
+
+
+def calculate_trial_averaged_sparsity(rates_trial_image: np.ndarray) -> float:
+    """Average lifetime sparsity across trials for a single neuron."""
+
+    if rates_trial_image.ndim != 2:
+        raise ValueError(
+            f"Expected (n_trials, n_images) array, got shape {rates_trial_image.shape}"
+        )
+
+    if rates_trial_image.shape[0] == 0:
+        return np.nan
+
+    per_trial = [
+        calculate_lifetime_sparsity(rates_trial_image[i, :])
+        for i in range(rates_trial_image.shape[0])
+    ]
+    if not per_trial:
+        return np.nan
+    arr = np.asarray(per_trial, dtype=float)
+    if np.all(np.isnan(arr)):
+        return np.nan
+    return float(np.nanmean(arr))
 
 
 def compute_network_sparsity(network: int, network_type: str) -> pd.DataFrame:
@@ -33,14 +58,17 @@ def compute_network_sparsity(network: int, network_type: str) -> pd.DataFrame:
         raise ValueError(f"Unexpected rates shape {rates.shape}")
     if rates.shape[2] not in (118, 119):
         raise ValueError(f"Unexpected image dimension {rates.shape}")
-    # Average repetitions
-    mean_rates = rates.mean(axis=0)  # (cells, images)
+    rates = rates.astype(float, copy=False)
     # Restrict to 118 natural images if 119 present
-    if mean_rates.shape[1] == 119:
-        mean_rates = mean_rates[:, :118]
+    if rates.shape[2] == 119:
+        rates = rates[:, :, :118]
+
+    # Match the Neuropixels definition: average across repetitions first, then compute
+    # lifetime sparsity across stimuli on the mean response.
+    mean_rates = rates.mean(axis=0)  # (cells, images)
 
     values = []
-    n_cells_tensor = mean_rates.shape[0]
+    _, n_cells_tensor, _ = rates.shape
     if len(meta) != n_cells_tensor:
         meta = meta.iloc[:n_cells_tensor].reset_index(drop=True)
     for ci in range(n_cells_tensor):
@@ -62,9 +90,16 @@ def compute_network_sparsity(network: int, network_type: str) -> pd.DataFrame:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compute lifetime sparsity across images for simulated networks.")
+    parser = argparse.ArgumentParser(
+        description="Compute lifetime sparsity across images for simulated networks."
+    )
     parser.add_argument("--networks", type=int, nargs="*", default=list(range(10)))
-    parser.add_argument("--network_types", nargs="*", default=["bio_trained", "naive"], help="e.g. bio_trained naive")
+    parser.add_argument(
+        "--network_types",
+        nargs="*",
+        default=["bio_trained", "naive"],
+        help="e.g. bio_trained naive",
+    )
     parser.add_argument("--outdir", type=str, default="image_decoding/summary")
     args = parser.parse_args()
 
@@ -86,7 +121,9 @@ def main():
             frames.append(df)
 
     if not frames:
-        raise SystemExit("No networks processed. Ensure caches exist (image_decoding/cache_precompute.py).")
+        raise SystemExit(
+            "No networks processed. Ensure caches exist (image_decoding/cache_precompute.py)."
+        )
 
     by_unit = pd.concat(frames, ignore_index=True)
     by_unit.to_csv(out_dir / "selectivity_model_by_unit.csv", index=False)
@@ -94,37 +131,56 @@ def main():
 
     # Aggregate by cell type per network_type
     agg = (
-        by_unit.groupby(["network_type", "cell_type"])  # type: ignore[arg-type]
-        ["image_selectivity"]
+        by_unit.groupby(["network_type", "cell_type"])[  # type: ignore[arg-type]
+            "image_selectivity"
+        ]
         .agg(["mean", "std", "count"])  # type: ignore[list-item]
         .reset_index()
-        .rename(columns={"mean": "mean_image_selectivity", "std": "std_image_selectivity", "count": "n_units"})
+        .rename(
+            columns={
+                "mean": "mean_image_selectivity",
+                "std": "std_image_selectivity",
+                "count": "n_units",
+            }
+        )
     )
-    agg_legacy = agg.rename(columns={
-        "mean_image_selectivity": "mean_lifetime_sparsity",
-        "std_image_selectivity": "std_lifetime_sparsity",
-    })
+    agg_legacy = agg.rename(
+        columns={
+            "mean_image_selectivity": "mean_lifetime_sparsity",
+            "std_image_selectivity": "std_lifetime_sparsity",
+        }
+    )
     agg.to_csv(out_dir / "selectivity_model_by_type.csv", index=False)
     agg_legacy.to_csv(out_dir / "sparsity_model_by_type.csv", index=False)
 
     # Per-network aggregation
     agg_net = (
-        by_unit.groupby(["network", "network_type", "cell_type"])  # type: ignore[arg-type]
-        ["image_selectivity"]
+        by_unit.groupby(
+            ["network", "network_type", "cell_type"]
+        )[  # type: ignore[arg-type]
+            "image_selectivity"
+        ]
         .agg(["mean", "std", "count"])  # type: ignore[list-item]
         .reset_index()
-        .rename(columns={"mean": "mean_image_selectivity", "std": "std_image_selectivity", "count": "n_units"})
+        .rename(
+            columns={
+                "mean": "mean_image_selectivity",
+                "std": "std_image_selectivity",
+                "count": "n_units",
+            }
+        )
     )
-    agg_net_legacy = agg_net.rename(columns={
-        "mean_image_selectivity": "mean_lifetime_sparsity",
-        "std_image_selectivity": "std_lifetime_sparsity",
-    })
+    agg_net_legacy = agg_net.rename(
+        columns={
+            "mean_image_selectivity": "mean_lifetime_sparsity",
+            "std_image_selectivity": "std_lifetime_sparsity",
+        }
+    )
     agg_net.to_csv(out_dir / "selectivity_model_by_network_and_type.csv", index=False)
-    agg_net_legacy.to_csv(out_dir / "sparsity_model_by_network_and_type.csv", index=False)
+    agg_net_legacy.to_csv(
+        out_dir / "sparsity_model_by_network_and_type.csv", index=False
+    )
 
 
 if __name__ == "__main__":
     main()
-
-
-
