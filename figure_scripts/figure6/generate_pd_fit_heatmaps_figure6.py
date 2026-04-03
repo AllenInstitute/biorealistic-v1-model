@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from analysis_shared.pd_effect_size import compute_effect_size_matrix, plot_effect_size_heatmaps
+from analysis_shared.io import load_edges_with_computed_pref_dir
 
 
 def _detect_default_bases(max_n: int = 10) -> list[str]:
@@ -48,6 +49,11 @@ def main() -> None:
         default=95.0,
         help="Percentile for color scaling (abs for a/c and b/c; value for -log10 p).",
     )
+    ap.add_argument("--no-computed-pd", action="store_false", dest="use_computed_pd",
+                    help="Revert to structural tuning_angle instead of response-derived PD")
+    ap.add_argument("--min-fr", type=float, default=1.0,
+                    help="Min max_mean_rate(Hz) threshold for response-derived PD")
+    ap.set_defaults(use_computed_pd=True)
     args = ap.parse_args()
 
     bases = args.bases if args.bases else _detect_default_bases()
@@ -56,6 +62,11 @@ def main() -> None:
 
     os.makedirs(args.out_dir, exist_ok=True)
     os.makedirs(args.cache_dir, exist_ok=True)
+
+    loader = None
+    if args.use_computed_pd:
+        from functools import partial
+        loader = partial(load_edges_with_computed_pref_dir, min_fr=args.min_fr)
 
     for network_type in ["bio_trained", "naive"]:
         cache_path = os.path.join(
@@ -81,6 +92,7 @@ def main() -> None:
                 inh_respective_layer=True,
                 aggregate_l5_types=False,
                 omit_np=True,
+                loader=loader,
             )
             try:
                 import pickle

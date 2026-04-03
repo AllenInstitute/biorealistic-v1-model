@@ -8,7 +8,7 @@ from typing import Sequence
 from analysis_shared.grouping import aggregate_l5, apply_inh_simplification
 from analysis_shared.grouping import filter_inh_respective_layer
 from analysis_shared.stats import bin_mean_sem, fit_cosine_series_deg
-from analysis_shared.io import load_edges_with_pref_dir
+from analysis_shared.io import load_edges_with_pref_dir, load_edges_with_computed_pref_dir
 from analysis_shared.sampling import apply_per_pair_sampling, read_pair_limits_csv
 from analysis_shared.style import apply_pub_style, trim_spines
 
@@ -26,12 +26,15 @@ def pd_exc_matrix_plot(
     max_per_pair: int | None = None,
     pair_limits_csv: str | None = None,
     sample_seed: int = 0,
+    loader=None,
 ) -> None:
+    if loader is None:
+        loader = load_edges_with_pref_dir
     apply_pub_style()
     # Concatenate PD edges across bases
     dfs = []
     for bd in base_dirs:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         # Attach types if available via response_correlation pipeline
         try:
             from aggregate_correlation_plot import process_network_data
@@ -149,6 +152,7 @@ def pd_full_matrix_plot(
     max_per_pair: int | None = None,
     pair_limits_csv: str | None = None,
     sample_seed: int = 0,
+    loader=None,
 ) -> None:
     """Plot a full matrix (histogram + cosine fit) for simulation across
     all Exc types plus aggregated inhibitory types (PV/SST/VIP, L1_Inh if present).
@@ -156,12 +160,14 @@ def pd_full_matrix_plot(
     Matches the cell-type set used in the effect-size figure when simplify_inh=True
     and aggregate_l5_types=True.
     """
+    if loader is None:
+        loader = load_edges_with_pref_dir
     apply_pub_style()
 
     # Concatenate PD edges across bases
     dfs = []
     for bd in base_dirs:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         # Attach types if available via response_correlation pipeline
         try:
             from aggregate_correlation_plot import process_network_data
@@ -301,6 +307,7 @@ def compute_pd_full_matrix_cache(
     max_per_pair: int | None = None,
     pair_limits_csv: str | None = None,
     sample_seed: int = 0,
+    loader=None,
 ) -> dict:
     """Compute and return compact plotting data for the full PD matrix.
 
@@ -310,10 +317,12 @@ def compute_pd_full_matrix_cache(
       - 'centers': np.ndarray of bin centers
       - 'pairs': dict[(s,t)] -> { 'means', 'sems', 'fit': {'a','b','c','p_a','p_b'} }
     """
+    if loader is None:
+        loader = load_edges_with_pref_dir
     # Load and type-annotate edges
     dfs = []
     for bd in base_dirs:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         try:
             from aggregate_correlation_plot import process_network_data
 
@@ -490,12 +499,15 @@ def compute_pd_ei2x2_cache(
     max_per_pair: int | None = None,
     pair_limits_csv: str | None = None,
     sample_seed: int = 0,
+    loader=None,
 ) -> dict:
     """Compute cached data for a 2x2 E/I matrix (E→E, E→I, I→E, I→I)."""
+    if loader is None:
+        loader = load_edges_with_pref_dir
     # Load and type-annotate edges
     dfs = []
     for bd in base_dirs:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         try:
             from aggregate_correlation_plot import process_network_data
 

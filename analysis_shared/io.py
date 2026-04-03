@@ -36,6 +36,56 @@ def load_v1_features(network_dir: str, label: str) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
+def load_edges_with_computed_pref_dir(
+    network_dir: str,
+    network_type: str,
+    *,
+    min_fr: float = 1.0,
+) -> pd.DataFrame:
+    """Compute per-edge preferred direction difference using response-derived PD.
+
+    Uses pref_dir_deg from OSI_DSI_DF_{network_type}.csv (OSI-phase + DSI-projection
+    disambiguation). Edges where either neuron has max_mean_rate(Hz) < min_fr are
+    excluded. Set min_fr=0 to include all core neurons regardless of firing rate.
+
+    Returns same columns as load_edges_with_pref_dir:
+      source_id, target_id, syn_weight, pref_dir_diff_deg
+    """
+    appendix = _format_appendix(network_type)
+    edges = nu.load_edges(network_dir, src="v1", tgt="v1", appendix=appendix)
+    nodes = nu.load_nodes(network_dir, loc="v1", core_radius=200)
+
+    metrics_path = os.path.join(
+        network_dir, "metrics", f"OSI_DSI_DF_{network_type}.csv"
+    )
+    metrics = pd.read_csv(
+        metrics_path, sep=" ", usecols=["node_id", "pref_dir_deg", "max_mean_rate(Hz)"]
+    ).set_index("node_id")
+
+    n_neurons = len(nodes["node_id"])
+    fr = metrics["max_mean_rate(Hz)"].reindex(range(n_neurons)).fillna(0.0).values
+    responsive = fr >= min_fr
+    valid = nodes["core"] & responsive  # spatial core AND responsive
+
+    src_ids = edges["source_id"]
+    tgt_ids = edges["target_id"]
+    both_valid = valid[src_ids] & valid[tgt_ids]
+
+    src_ids = src_ids[both_valid]
+    tgt_ids = tgt_ids[both_valid]
+    syn_w = edges["syn_weight"][both_valid]
+
+    pref_dir = metrics["pref_dir_deg"].reindex(range(n_neurons)).fillna(0.0).values
+    diff = nu.angle_difference(pref_dir[src_ids], pref_dir[tgt_ids], mode="direction")
+
+    return pd.DataFrame({
+        "source_id": src_ids,
+        "target_id": tgt_ids,
+        "syn_weight": syn_w,
+        "pref_dir_diff_deg": diff,
+    })
+
+
 def load_edges_with_pref_dir(network_dir: str, network_type: str) -> pd.DataFrame:
     """Compute per-edge preferred direction difference (degrees) for core-to-core edges.
     Returns DataFrame with columns: source_id, target_id, syn_weight, pref_dir_diff_deg.

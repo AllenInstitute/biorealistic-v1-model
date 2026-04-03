@@ -15,7 +15,7 @@ if ROOT not in sys.path:
 
 from analysis_shared.style import apply_pub_style, trim_spines
 from analysis_shared.celltype_labels import abbrev_cell_type
-from analysis_shared.io import load_edges_with_pref_dir
+from analysis_shared.io import load_edges_with_pref_dir, load_edges_with_computed_pref_dir
 from analysis_shared.grouping import aggregate_l5, apply_inh_simplification
 from analysis_shared.stats import bin_mean_sem, fit_cosine_series_deg, ols_slope_p
 from analysis_shared.pd import compute_pd_full_matrix_cache
@@ -281,12 +281,13 @@ def _render_corr_hist_rangeavg(
     trim_spines(ax)
 
 
-def _load_pd_cache_for_nt(bases: list[str], nt: str) -> dict:
+def _load_pd_cache_for_nt(bases: list[str], nt: str, loader=None, force_recompute: bool = False) -> dict:
     cache_dir = os.path.join("figures", "paper", "cache_side_by_side")
     os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f"pd_sim_full_matrix_{nt}.pkl")
+    suffix = "_computedpd" if loader is not None else ""
+    cache_path = os.path.join(cache_dir, f"pd_sim_full_matrix_{nt}{suffix}.pkl")
     cache = None
-    if os.path.isfile(cache_path):
+    if (not force_recompute) and os.path.isfile(cache_path):
         try:
             import pickle
             with open(cache_path, "rb") as f:
@@ -303,6 +304,7 @@ def _load_pd_cache_for_nt(bases: list[str], nt: str) -> dict:
             max_per_pair=None,
             pair_limits_csv=None,
             sample_seed=0,
+            loader=loader,
         )
         try:
             import pickle
@@ -447,7 +449,7 @@ def _load_corr_cache_for_nt(bases: list[str], nt: str, aggregate_l5_types: bool 
     return cache
 
 
-def plot_pd_side_by_side(bases: list[str], out_png: str) -> None:
+def plot_pd_side_by_side(bases: list[str], out_png: str, loader=None, force_recompute: bool = False) -> None:
     apply_pub_style()
     os.makedirs(os.path.dirname(out_png), exist_ok=True)
     # Half-column width figure; shrink vertical by ~30%
@@ -455,7 +457,7 @@ def plot_pd_side_by_side(bases: list[str], out_png: str) -> None:
     pairs = [("bio_trained", axes[0]), ("naive", axes[1])]
     s, t = "L2/3_Exc", "L2/3_Exc"
     for nt, ax in pairs:
-        cache = _load_pd_cache_for_nt(bases, nt)
+        cache = _load_pd_cache_for_nt(bases, nt, loader=loader, force_recompute=force_recompute)
         entry = cache.get("pairs", {}).get((s, t))
         centers = cache.get("centers") if cache is not None else None
         if (not entry) or (centers is None):
@@ -722,14 +724,23 @@ def main():
     ap = argparse.ArgumentParser(description="Generate side-by-side PD and Corr histograms for selected pairs (bio vs naive)")
     ap.add_argument("--out-dir", default="figures/paper/figure6", help="Output directory")
     ap.add_argument("--force-recompute", action="store_true")
+    ap.add_argument("--no-computed-pd", action="store_false", dest="use_computed_pd",
+                    help="Revert to structural tuning_angle instead of response-derived PD")
+    ap.add_argument("--min-fr", type=float, default=1.0,
+                    help="Min max_mean_rate(Hz) threshold for response-derived PD")
+    ap.set_defaults(use_computed_pd=True)
     args = ap.parse_args()
 
     bases = discover_bases()
     if not bases:
         raise SystemExit("No base directories found.")
 
+    from functools import partial
+    loader = partial(load_edges_with_computed_pref_dir, min_fr=args.min_fr) if args.use_computed_pd else None
+
     os.makedirs(args.out_dir, exist_ok=True)
-    plot_pd_side_by_side(bases, os.path.join(args.out_dir, "pd_side_by_side_E23_E23.png"))
+    plot_pd_side_by_side(bases, os.path.join(args.out_dir, "pd_side_by_side_E23_E23.png"),
+                         loader=loader, force_recompute=args.force_recompute)
     plot_corr_side_by_side(bases, os.path.join(args.out_dir, "corr_side_by_side_examples.png"), force_recompute=args.force_recompute)
     plot_corr_side_by_side_new(bases, os.path.join(args.out_dir, "corr_side_by_side_examples_new.png"), force_recompute=args.force_recompute)
     plot_corr_side_by_side_extras(bases, os.path.join(args.out_dir, "corr_side_by_side_extras.png"), force_recompute=args.force_recompute)

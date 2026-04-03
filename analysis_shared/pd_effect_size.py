@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from analysis_shared.io import load_edges_with_pref_dir
+from analysis_shared.io import load_edges_with_pref_dir, load_edges_with_computed_pref_dir
 from analysis_shared.grouping import (
     apply_inh_simplification,
     aggregate_l5,
@@ -27,15 +27,18 @@ def compute_effect_size_matrix(
     aggregate_l5_types: bool = False,
     omit_np: bool = False,
     cache_path: str | None = None,
+    loader=None,
 ) -> Dict[str, np.ndarray]:
     """Compute effect sizes a/c and b/c for all source/target cell-type pairs (signed normalization).
     Returns dict with keys: 'types', 'a_over_c', 'b_over_c'.
     Cache results to cache_path (pickle) if provided.
     """
+    if loader is None:
+        loader = load_edges_with_pref_dir
     # Load and concatenate PD edges with types
     dfs = []
     for bd in base_dirs:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         # Attach types via response-correlation pipeline
         from aggregate_correlation_plot import process_network_data
 

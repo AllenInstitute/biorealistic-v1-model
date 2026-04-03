@@ -30,7 +30,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from analysis_shared.celltype_labels import abbrev_cell_type, abbrev_cell_types
-from analysis_shared.io import load_edges_with_pref_dir
+from analysis_shared.io import load_edges_with_pref_dir, load_edges_with_computed_pref_dir
 from analysis_shared.stats import bin_mean_sem, fit_cosine_series_deg
 from analysis_shared.style import apply_pub_style, trim_spines
 from aggregate_correlation_plot import process_network_data
@@ -69,10 +69,12 @@ def _detect_bases(max_n: int = 10) -> list[str]:
 # Data loading / caching
 # ---------------------------------------------------------------------------
 
-def _load_pd_data(bases: list[str], network_type: str) -> pd.DataFrame:
+def _load_pd_data(bases: list[str], network_type: str, loader=None) -> pd.DataFrame:
+    if loader is None:
+        loader = load_edges_with_pref_dir
     parts = []
     for bd in bases:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         try:
             typed = process_network_data((bd, network_type))
             typed = typed[["source_id", "target_id", "source_type", "target_type"]]
@@ -88,9 +90,10 @@ def _build_cache(
     network_type: str,
     types: list[str],
     bin_step: float,
+    loader=None,
 ) -> dict:
     t0 = time.time()
-    df = _load_pd_data(bases, network_type)
+    df = _load_pd_data(bases, network_type, loader=loader)
     df = df.dropna(subset=["source_type", "target_type"])
     df = df[df["source_type"].isin(types) & df["target_type"].isin(types)].copy()
 
@@ -150,6 +153,7 @@ def _render_pd_panel(
     title: str | None,
     tiny_font: int = 5,
     label_font: int = 6,
+    annotation_at_bottom: bool = False,
 ) -> None:
     from matplotlib.ticker import MaxNLocator
     ax.set_xlim(x_min, x_max)
@@ -185,11 +189,18 @@ def _render_pd_panel(
           + fit["c"])
     ax.plot(xs, ys, color="crimson", linewidth=0.9)
 
-    # Annotation: a and p_a only (space is tight)
-    p_a = fit["p_a"]
-    sig = ("***" if p_a < 1e-3 else "**" if p_a < 1e-2 else "*" if p_a < 0.05 else "")
-    ax.text(0.04, 0.97, f"a={fit['a']:.2f}{sig}",
-            transform=ax.transAxes, fontsize=tiny_font - 0.5, va="top", color="#222222")
+    # Annotation: a/c and b/c with significance stars
+    c = fit["c"]
+    safe_c = c if abs(c) > 1e-10 else 1.0
+    a_over_c = fit["a"] / safe_c
+    b_over_c = fit["b"] / safe_c
+    def _sig(p):
+        return "***" if p < 1e-3 else "**" if p < 1e-2 else "*" if p < 0.05 else ""
+    _ay, _va = (0.03, "bottom") if annotation_at_bottom else (0.97, "top")
+    ax.text(0.04, _ay,
+            f"a/c={a_over_c:.2f}{_sig(fit['p_a'])}\nb/c={b_over_c:.2f}{_sig(fit['p_b'])}",
+            transform=ax.transAxes, fontsize=tiny_font - 0.5, va=_va, color="#222222",
+            linespacing=1.2)
 
     trim_spines(ax)
     if show_xlabel:
@@ -244,6 +255,7 @@ def plot_matrix(cache: dict, out_pdf: str) -> None:
                 show_xlabel=(i == n - 1),
                 show_ylabel=labels[i] if j == 0 else None,
                 title=labels[j] if i == 0 else None,
+                annotation_at_bottom=(s in EXC_FULL),
             )
 
     mid_x = (left_margin + right_margin) / 2
@@ -372,6 +384,11 @@ def main():
     ap.add_argument("--force-recompute", action="store_true")
     ap.add_argument("--matrix-only", action="store_true")
     ap.add_argument("--heatmap-only", action="store_true")
+    ap.add_argument("--no-computed-pd", action="store_false", dest="use_computed_pd",
+                    help="Revert to structural tuning_angle instead of response-derived PD")
+    ap.add_argument("--min-fr", type=float, default=1.0,
+                    help="Min max_mean_rate(Hz) threshold for response-derived PD")
+    ap.set_defaults(use_computed_pd=True)
     args = ap.parse_args()
 
     bases = args.bases or _detect_bases()
@@ -393,7 +410,11 @@ def main():
 
     if cache is None:
         print("Building cache …")
-        cache = _build_cache(bases, nt, ALL_19, args.bin_step)
+        loader = None
+        if getattr(args, 'use_computed_pd', True):
+            from functools import partial
+            loader = partial(load_edges_with_computed_pref_dir, min_fr=args.min_fr)
+        cache = _build_cache(bases, nt, ALL_19, args.bin_step, loader=loader)
         with open(cache_path, "wb") as f:
             pickle.dump(cache, f)
         print(f"Cache saved: {cache_path}")

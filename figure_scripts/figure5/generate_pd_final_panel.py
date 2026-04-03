@@ -65,6 +65,7 @@ def _drop_types_from_matrix(eff: dict, drop: set[str]) -> dict:
 
 
 from analysis_shared.style import apply_pub_style, trim_spines
+from analysis_shared.io import load_edges_with_pref_dir, load_edges_with_computed_pref_dir
 from analysis_shared.pd import (
     compute_pd_full_matrix_cache,
     compute_pd_ei2x2_cache,
@@ -265,6 +266,7 @@ def _compute_violin_long_df(
     pair_limits_csv: str | None,
     resamples: int,
     seed: int,
+    loader=None,
 ) -> pd.DataFrame:
     em_pd = load_em_pd_pickle(
         os.path.join(
@@ -280,6 +282,7 @@ def _compute_violin_long_df(
         connections_per_draw=None,
         seed=seed,
         pair_limits_csv=pair_limits_csv,
+        loader=loader,
     )
     types = ["L2/3", "L4", "L5"]
     pairs_full = [(s, t) for s in types for t in types]
@@ -299,16 +302,16 @@ def _compute_violin_long_df(
     # Add simulation All E→E MC p-values by sampling exactly 426 connections to match experimental data
     # This ensures fair comparison with experimental E→E (426 total connections)
     try:
-        from analysis_shared.io import load_edges_with_pref_dir
         from analysis_shared.grouping import aggregate_l5 as _agg_l5
         import numpy as _np
 
+        _loader = loader if loader is not None else load_edges_with_pref_dir
         rng = _np.random.RandomState(seed)
 
         # Load and pool all E→E simulation connections
         pooled = []
         for bd in bases:
-            e = load_edges_with_pref_dir(bd, network_type)
+            e = _loader(bd, network_type)
             try:
                 from aggregate_correlation_plot import process_network_data
 
@@ -542,15 +545,23 @@ def main():
     ap.add_argument("--replot-only", action="store_true")
     ap.add_argument("--force-recompute", action="store_true")
     ap.add_argument(
-        "--effect-split-e5",
-        action="store_true",
-        help="Use split L5 excitatory types (L5_IT/L5_ET/L5_NP) for the effect-size heatmaps (a/c, b/c).",
+        "--no-effect-split-e5",
+        action="store_false",
+        dest="effect_split_e5",
+        help="Aggregate L5 excitatory subtypes into L5_Exc for the effect-size heatmaps.",
     )
     ap.add_argument(
-        "--effect-omit-np",
-        action="store_true",
-        help="Omit L5_NP from the effect-size heatmaps (only relevant when --effect-split-e5).",
+        "--no-effect-omit-np",
+        action="store_false",
+        dest="effect_omit_np",
+        help="Include L5_NP in the effect-size heatmaps.",
     )
+    ap.set_defaults(effect_split_e5=True, effect_omit_np=True)
+    ap.add_argument("--no-computed-pd", action="store_false", dest="use_computed_pd",
+                    help="Revert to structural tuning_angle instead of response-derived PD")
+    ap.add_argument("--min-fr", type=float, default=1.0,
+                    help="Min max_mean_rate(Hz) threshold for response-derived PD")
+    ap.set_defaults(use_computed_pd=True)
     args = ap.parse_args()
 
     apply_pub_style()
@@ -566,6 +577,12 @@ def main():
 
     os.makedirs(args.cache_dir, exist_ok=True)
     import pickle
+
+    # Build loader for response-derived PD (or None = structural tuning_angle)
+    _loader = None
+    if args.use_computed_pd:
+        from functools import partial
+        _loader = partial(load_edges_with_computed_pref_dir, min_fr=args.min_fr)
 
     # EI cache
     # Include within-layer inh aggregation in cache key to avoid stale loads.
@@ -598,6 +615,7 @@ def main():
             inh_respective_layer=True,
             aggregate_l5_types=True,
             bin_step=args.bin_step,
+            loader=_loader,
         )
         with open(ei_pkl, "wb") as f:
             pickle.dump(ei_cache, f)
@@ -610,6 +628,7 @@ def main():
             inh_respective_layer=True,
             aggregate_l5_types=True,
             bin_step=args.bin_step,
+            loader=_loader,
         )
         with open(ei_pkl, "wb") as f:
             pickle.dump(ei_cache, f)
@@ -633,6 +652,7 @@ def main():
             inh_respective_layer=True,
             aggregate_l5_types=True,
             bin_step=args.bin_step,
+            loader=_loader,
         )
         with open(full_pkl, "wb") as f:
             pickle.dump(full_cache, f)
@@ -645,6 +665,7 @@ def main():
             inh_respective_layer=True,
             aggregate_l5_types=True,
             bin_step=args.bin_step,
+            loader=_loader,
         )
         with open(full_pkl, "wb") as f:
             pickle.dump(full_cache, f)
@@ -668,6 +689,7 @@ def main():
                 inh_respective_layer=True,
                 aggregate_l5_types=(not args.effect_split_e5),
                 cache_path=eff_pkl,
+                loader=_loader,
             )
     else:
         if not args.replot_only:
@@ -678,6 +700,7 @@ def main():
                 inh_respective_layer=True,
                 aggregate_l5_types=(not args.effect_split_e5),
                 cache_path=eff_pkl,
+                loader=_loader,
             )
         else:
             with open(eff_pkl, "rb") as f:
@@ -709,6 +732,7 @@ def main():
             pair_limits_csv=args.pair_limits_csv,
             resamples=args.resamples,
             seed=args.seed,
+            loader=_loader,
         )
         with open(vio_pkl, "wb") as f:
             pickle.dump(df_long, f)

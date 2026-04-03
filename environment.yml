@@ -26,6 +26,10 @@ dependencies:
   - mpich  # for our cluster slurm compatibility
   - bmtk
   - numba
+
+  # analysis / figure generation
+  - h5py
+  - joblib
   
   # modeling
   - openpyxl

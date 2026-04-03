@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from analysis_shared.io import load_edges_with_pref_dir
+from analysis_shared.io import load_edges_with_pref_dir, load_edges_with_computed_pref_dir
 from analysis_shared.grouping import aggregate_l5
 from analysis_shared.stats import fit_cosine_series_deg
 from analysis_shared.style import apply_pub_style, trim_spines
@@ -44,10 +44,12 @@ def _read_pair_limits_csv(path: str) -> Dict[Tuple[str, str], int]:
     return mapping
 
 
-def _prepare_pd_dataframe(base_dirs: Sequence[str], network_type: str, aggregate_l5_types: bool) -> pd.DataFrame:
+def _prepare_pd_dataframe(base_dirs: Sequence[str], network_type: str, aggregate_l5_types: bool, loader=None) -> pd.DataFrame:
+    if loader is None:
+        loader = load_edges_with_pref_dir
     dfs = []
     for bd in base_dirs:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         try:
             from aggregate_correlation_plot import process_network_data
             typed = process_network_data((bd, network_type))
@@ -69,8 +71,8 @@ def _prepare_pd_dataframe(base_dirs: Sequence[str], network_type: str, aggregate
     return df
 
 
-def compute_pd_mc_pvalues(base_dirs: Sequence[str], network_type: str, *, aggregate_l5_types: bool, resamples: int, connections_per_draw: int | None, seed: int = 0, pair_limits_csv: str | None = None) -> Dict[Tuple[str, str], Dict[str, np.ndarray]]:
-    df = _prepare_pd_dataframe(base_dirs, network_type, aggregate_l5_types)
+def compute_pd_mc_pvalues(base_dirs: Sequence[str], network_type: str, *, aggregate_l5_types: bool, resamples: int, connections_per_draw: int | None, seed: int = 0, pair_limits_csv: str | None = None, loader=None) -> Dict[Tuple[str, str], Dict[str, np.ndarray]]:
+    df = _prepare_pd_dataframe(base_dirs, network_type, aggregate_l5_types, loader=loader)
     # Focus pairs for PD reduced stats
     exc_types = PD_EXC_FOCUS
 

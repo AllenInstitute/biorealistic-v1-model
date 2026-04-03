@@ -17,17 +17,19 @@ if str(ROOT) not in sys.path:
 
 from analysis_shared.em_compare import load_em_pd_pickle
 from analysis_shared.grouping import aggregate_l5
-from analysis_shared.io import load_edges_with_pref_dir
+from analysis_shared.io import load_edges_with_pref_dir, load_edges_with_computed_pref_dir
 from analysis_shared.stats import bin_mean_sem, fit_cosine_series_deg
 from analysis_shared.style import apply_pub_style, trim_spines
 
 
-def _load_sim_df_all(base_dirs, network_type: str) -> pd.DataFrame:
+def _load_sim_df_all(base_dirs, network_type: str, loader=None) -> pd.DataFrame:
+    if loader is None:
+        loader = load_edges_with_pref_dir
     from aggregate_correlation_plot import process_network_data
 
     dfs = []
     for bd in base_dirs:
-        e = load_edges_with_pref_dir(bd, network_type)
+        e = loader(bd, network_type)
         typed = process_network_data((bd, network_type))[
             ["source_id", "target_id", "source_type", "target_type"]
         ]
@@ -166,6 +168,11 @@ def main():
     ap.add_argument("--network-type", default="bio_trained")
     ap.add_argument("--out", default="figures/paper/pd_sim_em_panels.png")
     ap.add_argument("--bin-step", type=float, default=20.0)
+    ap.add_argument("--no-computed-pd", action="store_false", dest="use_computed_pd",
+                    help="Revert to structural tuning_angle instead of response-derived PD")
+    ap.add_argument("--min-fr", type=float, default=1.0,
+                    help="Min max_mean_rate(Hz) threshold for response-derived PD")
+    ap.set_defaults(use_computed_pd=True)
     args = ap.parse_args()
 
     apply_pub_style()
@@ -186,7 +193,11 @@ def main():
         (["L5_Exc"], ["L5_Exc"], "L5 Exc → L5 Exc"),
     ]
 
-    sim_all = _load_sim_df_all(bases, args.network_type)
+    loader = None
+    if getattr(args, 'use_computed_pd', True):
+        from functools import partial
+        loader = partial(load_edges_with_computed_pref_dir, min_fr=args.min_fr)
+    sim_all = _load_sim_df_all(bases, args.network_type, loader=loader)
     em = load_em_pd_pickle(
         os.path.join(
             "analysis_shared", "delta_pref_direction_vs_weight_v1dd_250827.pkl"

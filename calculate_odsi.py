@@ -117,7 +117,7 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
     all_rates = np.zeros((num_neurons, num_angles))
     all_spont = np.zeros((num_neurons, num_angles))
 
-    angles = range(0, 360, 45)
+    angles = list(range(0, 360, 45))
     angle_counts = 0
     for angle, g in rates_df.groupby("DG_angle"):
         all_rates[:, angle_counts] = g["Ave_Rate(Hz)"]
@@ -129,20 +129,32 @@ def calculate_OSI_DSI_from_DF(rates_df, basedir):
         np.arange(len(preferred_angle_ind)), preferred_angle_ind
     ]
 
-    phase_rad = np.array(angles) * math.pi / 180
+    phase_rad = np.deg2rad(angles)  # shape (8,)
 
-    dsi = np.abs(
-        (all_rates * np.exp(1j * phase_rad)).sum(axis=1) / all_rates.sum(axis=1)
-    )
-    osi = np.abs(
-        (all_rates * np.exp(2j * phase_rad)).sum(axis=1) / all_rates.sum(axis=1)
-    )
+    # Complex vectors for DSI (1st harmonic) and OSI (2nd harmonic)
+    total_rates = all_rates.sum(axis=1)
+    safe_total = np.where(total_rates > 0, total_rates, 1.0)
+    z1 = (all_rates * np.exp(1j * phase_rad)).sum(axis=1)
+    z2 = (all_rates * np.exp(2j * phase_rad)).sum(axis=1)
+
+    dsi = np.abs(z1) / safe_total
+    osi = np.abs(z2) / safe_total
+
+    # Preferred direction: orientation from OSI phase, disambiguation from DSI projection
+    # theta_ori in [-pi/2, pi/2]; project z1 onto this axis to pick the correct half
+    theta_ori = np.angle(z2) / 2.0
+    projection = np.real(z1 * np.exp(-1j * theta_ori))
+    pref_dir_rad = np.where(projection >= 0, theta_ori, theta_ori + np.pi)
+    pref_dir_deg = np.rad2deg(pref_dir_rad % (2 * np.pi))   # [0, 360)
+    pref_ori_deg = np.rad2deg(theta_ori % np.pi)             # [0, 180)
 
     osi_df = pd.DataFrame()
     osi_df["node_id"] = range(num_neurons)
     osi_df["DSI"] = dsi
     osi_df["OSI"] = osi
     osi_df["preferred_angle"] = np.array(angles)[preferred_angle_ind]
+    osi_df["pref_dir_deg"] = pref_dir_deg
+    osi_df["pref_ori_deg"] = pref_ori_deg
     osi_df["max_mean_rate(Hz)"] = preferred_rates
     osi_df["Ave_Rate(Hz)"] = np.mean(all_rates, axis=1)
     osi_df["Spont_Rate(Hz)"] = np.mean(all_spont, axis=1)

@@ -187,6 +187,7 @@ def _render_hist_panel(
     title: str | None,
     tiny_font: int = 5,
     label_font: int = 6,
+    annotation_at_bottom: bool = False,
 ) -> None:
     bin_size = float(bins[1] - bins[0])
     from matplotlib.ticker import MaxNLocator
@@ -254,8 +255,9 @@ def _render_hist_panel(
     if np.isfinite(d_like):
         lines.append(f"Δl={d_like:.2f}")
     if lines:
-        ax.text(0.04, 0.97, "\n".join(lines), transform=ax.transAxes,
-                fontsize=tiny_font - 0.5, va="top", color="#222222", linespacing=1.1)
+        _ay, _va = (0.03, "bottom") if annotation_at_bottom else (0.97, "top")
+        ax.text(0.04, _ay, "\n".join(lines), transform=ax.transAxes,
+                fontsize=tiny_font - 0.5, va=_va, color="#222222", linespacing=1.1)
 
     trim_spines(ax)
     if show_xlabel:
@@ -312,6 +314,7 @@ def plot_matrix(cache: dict, out_pdf: str) -> None:
                 show_xlabel=(i == n - 1),
                 show_ylabel=labels[i] if j == 0 else None,
                 title=labels[j] if i == 0 else None,
+                annotation_at_bottom=(s in EXC_FULL),
             )
 
     # Source/Target labels anchored to the subplot area edges
