@@ -370,7 +370,6 @@ rule bkg_edges_override:
         "precomputed_props/bkg_v1_edge_types.csv",
         "{network_name}/network/bkg_nodes.h5",
         "{network_name}/components/synaptic_models/e4_to_e4.json"
-    input:
     output: "{network_name}/network/bkg_v1_edge_types.csv"
     shell: "cp {input[0]} {output}"
 
