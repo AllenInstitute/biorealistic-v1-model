@@ -48,7 +48,15 @@ I suggest using [miniforge](https://github.com/conda-forge/miniforge) if you are
 The 'conda' command can be replaced with 'mamba' if you have it installed, and it's much faster than 'conda'.
 
 ```bash
-conda env create -f environment.yml -n <env_name>
+CONDA_CHANNEL_PRIORITY=strict conda env create -f environment.yml -n <env_name>
+```
+
+> **Note:** The `CONDA_CHANNEL_PRIORITY=strict` flag is required. Without it, the solver may hang indefinitely due to the combination of multiple channels and strict version pins.
+
+The pip-section packages (`allensdk`, `pylightxl`, `sonata`) may silently fail during `conda env create`. If `allensdk` is not found after creating the environment, install them manually:
+
+```bash
+pip install allensdk pylightxl sonata
 ```
 
 ## Resources outside this repo
