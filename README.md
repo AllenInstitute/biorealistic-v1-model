@@ -11,12 +11,12 @@ The improvements are:
 * Segregation of the L5 excitatory cells into IT, ET, and NP types.
 * More GLIF cell models are used.
 
-Only PointNet version is available as of now.
+Only the PointNet version is available as of now.
 
 ## Table of contents
 
-- [Installation instruction](#installation-instruction)
-- [Resources outside this repo](#resources-outside-this-repo)
+- [Installation instructions](#installation-instructions)
+- [Resources outside this repository](#resources-outside-this-repo)
 - [How to build a network and run a simulation](#how-to-build-a-network-and-run-a-simulation)
 - [Simulation pipelines for analysis](#simulation-pipelines-for-analysis)
   - [Network weight variants](#network-weight-variants)
@@ -30,30 +30,30 @@ Only PointNet version is available as of now.
 - [Notes](#notes)
 - [Main contributors](#main-contributors)
 
-## Installation instruction
+## Installation instructions
 
-This repository mainly documents the PointNet-based network build and simulation workflow.
+This repository documents the PointNet-based network-building and simulation workflow.
 TensorFlow-based training workflows are documented in the companion `V1_GLIF_model`
-repository. If you need the SONATA network for that workflow, build it in this repository
-or download a prebuilt network from [this Dropbox folder](https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0).
+repository. If you need the SONATA network for that workflow, build it here or download a
+prebuilt network from [this Dropbox folder](https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0).
 
-First, clone this repository to your local environment.
+Start by cloning this repository locally.
 
 ```bash
 git clone https://github.com/AllenInstitute/biorealistic-v1-model.git
 ```
 
-I suggest using [miniforge](https://github.com/conda-forge/miniforge) if you are setting up the environment for this. (Other conda variants will also work, if you specify 'conda-forge' as the primary package source.)
+We recommend using [miniforge](https://github.com/conda-forge/miniforge) to set up the environment. Other conda variants also work, as long as `conda-forge` is the primary package source.
 
-The 'conda' command can be replaced with 'mamba' if you have it installed, and it's much faster than 'conda'.
+If you have `mamba` installed, you can use it in place of `conda`.
 
 ```bash
 CONDA_CHANNEL_PRIORITY=strict conda env create -f environment.yml -n <env_name>
 ```
 
-> **Note:** The `CONDA_CHANNEL_PRIORITY=strict` flag is required. Without it, the solver may hang indefinitely due to the combination of multiple channels and strict version pins.
+> **Note:** The `CONDA_CHANNEL_PRIORITY=strict` flag is required. Without it, the solver may hang because of the combination of multiple channels and strict version pins.
 
-The pip-section packages (`allensdk`, `pylightxl`, `sonata`) may silently fail during `conda env create`. If `allensdk` is not found after creating the environment, install them manually:
+The pip-section packages (`allensdk`, `pylightxl`, `sonata`) may not install cleanly during `conda env create`. If `allensdk` is missing after creating the environment, install the packages manually:
 
 ```bash
 pip install allensdk pylightxl sonata
@@ -61,19 +61,19 @@ pip install allensdk pylightxl sonata
 
 ## Resources outside this repo
 
-The following companion repositories are part of the same analysis workflow:
+The following companion repositories support the same analysis workflow:
 
-- **[V1_GLIF_model](https://github.com/JavierGalvan9/V1_GLIF_model)** — TensorFlow implementation for training and evaluating the GLIF V1 model. Use this with a SONATA network built in this repository, or with a prebuilt network obtained from the Dropbox download below.
+- **[V1_GLIF_model](https://github.com/JavierGalvan9/V1_GLIF_model)** — TensorFlow implementation for training and evaluating the GLIF V1 model. Use it with a SONATA network built in this repository, or with a prebuilt network obtained from the Dropbox download below.
 - **[biorealistic-v1-model-digital-twin](https://github.com/AllenInstitute/biorealistic-v1-model-digital-twin)** — analysis pipeline for digital-twin model training, MEI generation, and spatial-frequency analyses.
 - **[biorealistic-v1-model-em-analysis](https://github.com/AllenInstitute/biorealistic-v1-model-em-analysis)** — EM-based synapse-count and connectivity analysis used to parameterize the network.
 - **[v1_functional_property](https://github.com/shixnya/v1_functional_property)** — Neuropixels-derived functional-property tables and related analysis scripts for V1 cell types.
 - **[Prebuilt SONATA network files (Dropbox)](https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0)** — prebuilt network data for the TensorFlow workflow.
 
-If you need a prebuilt SONATA network for the TensorFlow workflow, see the download link in the network-building section below.
+If you need a prebuilt SONATA network for the TensorFlow workflow, use the Dropbox link above or the download link in the network-building section below.
 
 ## How to build a network and run a simulation
 
-The most straightforward way to get a network and its simulation output is doing the following.
+The simplest way to obtain a network and its simulation output is to run the following:
 
 ```bash
 snakemake <network_name>/output_plain/spikes.h5
