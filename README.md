@@ -15,8 +15,8 @@ Only the PointNet version is available as of now.
 
 ## Table of contents
 
-- [Installation instructions](#installation-instructions)
 - [Resources outside this repository](#resources-outside-this-repo)
+- [Installation instructions](#installation-instructions)
 - [How to build a network and run a simulation](#how-to-build-a-network-and-run-a-simulation)
 - [Simulation pipelines for analysis](#simulation-pipelines-for-analysis)
   - [Network weight variants](#network-weight-variants)
@@ -29,6 +29,18 @@ Only the PointNet version is available as of now.
 - [Analysis and figure generation](#analysis-and-figure-generation)
 - [Notes](#notes)
 - [Main contributors](#main-contributors)
+
+## Resources outside this repository
+
+The following companion repositories support the same analysis workflow:
+
+- **[V1_GLIF_model](https://github.com/JavierGalvan9/V1_GLIF_model)** — TensorFlow implementation for training and evaluating the GLIF V1 model. Use it with a SONATA network built in this repository, or with a prebuilt network obtained from the Dropbox download below.
+- **[biorealistic-v1-model-digital-twin](https://github.com/AllenInstitute/biorealistic-v1-model-digital-twin)** — analysis pipeline for digital-twin model training, MEI generation, and spatial-frequency analyses.
+- **[biorealistic-v1-model-em-analysis](https://github.com/AllenInstitute/biorealistic-v1-model-em-analysis)** — EM-based synapse-count and connectivity analysis used to parameterize the network.
+- **[v1_functional_property](https://github.com/shixnya/v1_functional_property)** — Neuropixels-derived functional-property tables and related analysis scripts for V1 cell types.
+- **[Prebuilt SONATA network files (Dropbox)](https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0)** — prebuilt network data for the TensorFlow workflow.
+
+If you need a prebuilt SONATA network for the TensorFlow workflow, use the Dropbox link above or the download link in the network-building section below.
 
 ## Installation instructions
 
@@ -58,18 +70,6 @@ The pip-section packages (`allensdk`, `pylightxl`, `sonata`) may not install cle
 ```bash
 pip install allensdk pylightxl sonata
 ```
-
-## Resources outside this repo
-
-The following companion repositories support the same analysis workflow:
-
-- **[V1_GLIF_model](https://github.com/JavierGalvan9/V1_GLIF_model)** — TensorFlow implementation for training and evaluating the GLIF V1 model. Use it with a SONATA network built in this repository, or with a prebuilt network obtained from the Dropbox download below.
-- **[biorealistic-v1-model-digital-twin](https://github.com/AllenInstitute/biorealistic-v1-model-digital-twin)** — analysis pipeline for digital-twin model training, MEI generation, and spatial-frequency analyses.
-- **[biorealistic-v1-model-em-analysis](https://github.com/AllenInstitute/biorealistic-v1-model-em-analysis)** — EM-based synapse-count and connectivity analysis used to parameterize the network.
-- **[v1_functional_property](https://github.com/shixnya/v1_functional_property)** — Neuropixels-derived functional-property tables and related analysis scripts for V1 cell types.
-- **[Prebuilt SONATA network files (Dropbox)](https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0)** — prebuilt network data for the TensorFlow workflow.
-
-If you need a prebuilt SONATA network for the TensorFlow workflow, use the Dropbox link above or the download link in the network-building section below.
 
 ## How to build a network and run a simulation
 
