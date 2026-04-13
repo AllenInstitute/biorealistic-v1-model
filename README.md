@@ -81,7 +81,6 @@ snakemake <network_name>/output_plain/spikes.h5
 
 where `<network_name>` is one of the defined names in `Snakefile`. Namely:
 
-* `full`: The full size network (700 µm radius, ~203k neurons)
 * `core`: 400 µm radius network. ~67k neurons.
 * `core_X`: X is {0-9}. The number of neurons in each cell model has Poisson fluctuation.
 * `core_nll`: Same geometry as core, but no weight like-to-like is used.
@@ -89,12 +88,13 @@ where `<network_name>` is one of the defined names in `Snakefile`. Namely:
 * `small`: 200 µm radius network.
 * `tiny`: 100 µm radius network. Mainly for testing the build script.
 * `profile`: For profiling workflows. 200 µm radius.
+* `full`: The full size network (700 µm radius, ~203k neurons).
 
 You can create a custom size if you define parameters in `Snakefile`.
 
-Also, you can edit `V1model_seed_file.xlsx` to change what cell types are be included. For example, if you want to make L4 only network, you can delete all the cell types other than L4 from this file.
+Also, you can edit `V1model_seed_file.xlsx` to change what cell types are included. For example, if you want to make an L4-only network, you can delete all the cell types other than L4 from this file.
 
-Building the `full` model requires hundreds of GBs of memory. It usually needs to be run on a cluster computer, but it is not incorporated in the snakemake workflow yet. If you really need the `full` network, running the build script should be done manually. The subsequent processes should work fine once you build the model.
+Building the `full` model requires hundreds of GBs of memory. It usually needs to be run on a cluster computer, but it is not incorporated in the snakemake workflow yet. If you really need the `full` network, running the build script should be done manually. The subsequent processes should work fine with skakemake once you build the model.
 
 ## Simulation pipelines for analysis
 
@@ -118,12 +118,10 @@ Each network can be simulated with different weight files selected by the `netwo
 parameter. The main options used in the paper are:
 
 * `plain` — Original untrained weights (as built).
-* `adjusted` — Weights after the current-adjustment procedure (`make_adjusted_network.py`).
-* `bio_trained` — Weights after TensorFlow training with biological constraints.
-* `naive` — Weights after TensorFlow training without biological constraints.
+* `bio_trained` — Weights after TensorFlow training with synaptic weight distribution constraints.
+* `naive` — Weights after TensorFlow training without synaptic weight distribution constraints.
 
-These map to config files `config_templates/config_<option>.json`, which point to the
-corresponding edge files (e.g., `v1_v1_edges_bio_trained.h5`). Trained edge files must
+These map to config files `config_templates/config_<option>.json`, which point to the corresponding edge files (e.g., `v1_v1_edges_bio_trained.h5`). Trained edge files must
 be placed in `<network_name>/network/` before running simulations.
 
 ### Drifting-grating simulations (Figures 3, 5, 6)
@@ -366,7 +364,7 @@ All scripts are standalone and runnable from the repo root with `conda activate 
 - `contrast_response/plot_contrast_response_extended.py` — Contrast response line plots (bio-trained).
 - `incoming_cohorts/plot_incoming_weight_boxplots_extended.py` — Incoming-weight cohort analyses.
 
-### `image_decoding/` — Natural-image decoding pipeline (Figure 4)
+### `image_decoding/` — Natural-image decoding pipeline (legacy)
 
 A self-contained sub-package for image-decoding analyses. See `image_decoding/README.md` for full details.
 
