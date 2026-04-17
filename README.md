@@ -16,6 +16,7 @@ Only the PointNet version is available as of now.
 ## Table of contents
 
 - [Resources outside this repository](#resources-outside-this-repo)
+- [System requirements](#system-requirements)
 - [Installation instructions](#installation-instructions)
 - [How to build a network and run a simulation](#how-to-build-a-network-and-run-a-simulation)
 - [Simulation pipelines for analysis](#simulation-pipelines-for-analysis)
@@ -41,6 +42,11 @@ The following companion repositories support the same analysis workflow:
 - **[Prebuilt SONATA network files (Dropbox)](https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0)** — prebuilt network data for the TensorFlow workflow.
 
 If you need a prebuilt SONATA network for the TensorFlow workflow, use the Dropbox link above or the download link in the network-building section below.
+
+## System requirements
+
+- **Operating system:** Linux is officially tested. macOS may work but is untested. Windows is not supported.
+- **Hardware:** No GPU is required. The PointNet/NEST simulation workflow is CPU-based. Building the `full` (700 µm radius, ~203k neurons) network requires hundreds of GBs of memory and is typically run on a cluster; smaller network sizes (`core`, `small`, `tiny`) run on a workstation.
 
 ## Installation instructions
 
@@ -69,6 +75,12 @@ CONDA_CHANNEL_PRIORITY=strict conda env create -f environment.yml -n <env_name>
 ```
 
 > **Note:** The `CONDA_CHANNEL_PRIORITY=strict` flag is required. Without it, the solver may hang because of the combination of multiple channels and strict version pins.
+
+Activate the environment before running any commands in this repository:
+
+```bash
+conda activate <env_name>
+```
 
 The pip-section packages (`allensdk`, `pylightxl`, `sonata`) may not install cleanly during `conda env create`. If `allensdk` is missing after creating the environment, install the packages manually:
 
