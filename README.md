@@ -48,6 +48,11 @@ This repository documents the PointNet-based network-building and simulation wor
 TensorFlow-based training workflows are documented in the companion `V1_GLIF_model`
 repository. If you need the SONATA network for that workflow, build it here or download a
 prebuilt network from [this Dropbox folder](https://www.dropbox.com/scl/fo/4i8tsihwokn78jpb6wqls/AE9ukbU8ShG1R5hQEdssxDg?rlkey=332wdyd2ou5yujy5us3eq89pc&st=pg2mabe6&dl=0).
+Included prebuilt networks are core_nll_0 through core_nll_9 (see below for details) with the following options:
+- plain: fresh build with only BKG tuning (no suffix)
+- bio_trained: edge weight trained with distribution constraints (suffix `_bio_trained` in the SONATA edges files)
+- naive: edge weight trained without distribution constraints (suffix `_naive` in the SONATA edges files)
+
 
 Start by cloning this repository locally.
 
@@ -94,7 +99,7 @@ You can create a custom size if you define parameters in `Snakefile`.
 
 Also, you can edit `V1model_seed_file.xlsx` to change what cell types are included. For example, if you want to make an L4-only network, you can delete all the cell types other than L4 from this file.
 
-Building the `full` model requires hundreds of GBs of memory. It usually needs to be run on a cluster computer, but it is not incorporated in the snakemake workflow yet. If you really need the `full` network, running the build script should be done manually. The subsequent processes should work fine with skakemake once you build the model.
+Building the `full` model requires hundreds of GBs of memory. It usually needs to be run on a cluster computer, but it is not incorporated in the snakemake workflow yet. If you really need the `full` network, running the build script should be done manually. The subsequent processes should work fine with snakemake once you build the model.
 
 ## Simulation pipelines for analysis
 
