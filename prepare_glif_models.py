@@ -16,11 +16,14 @@ import time
 
 
 def get_glif3_model(id):
+    destination = f"glif_models/cell_models/{id}_glif_lif_asc_config.json"
+    if os.path.exists(destination):
+        return
+
     # models = glif_api.get_neuronal_models(id)[0]["neuronal_models"]
     models = safe_get_neuronal_models(id)[0]["neuronal_models"]
     glif3id = int(np.where(["3 LIF" in m["name"] for m in models])[0])
     modelpath = models[glif3id]["well_known_files"][0]["path"]
-    destination = f"glif_models/cell_models/{id}_glif_lif_asc_config.json"
     # if the model path is availabe, simply copy it to the destination
     if os.path.exists(modelpath):
         # if False:
@@ -58,3 +61,4 @@ for _, cell in tqdm(df.iterrows(), total=len(df)):
         get_glif3_model(id)
         count += 1
 print(f"Downloaded {count} models")
+pathlib.Path("glif_models/cell_models/.complete").touch()

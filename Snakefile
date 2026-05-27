@@ -9,7 +9,7 @@ build_files = [
     "glif_props/v1_edge_models.csv",
     "glif_props/lgn_weights_model.csv",
     "glif_props/bkg_weights_model.csv",
-    "glif_models/cell_models/313861608_glif_lif_asc_config.json" # representative model
+    "glif_models/cell_models/.complete",
 ]
 
 config_files = [
@@ -283,7 +283,7 @@ rule cell_models:
     input:
         script="prepare_glif_models.py",
         data="cell_types/cells_with_glif_pop_name.csv"
-    output: "glif_models/cell_models/313861608_glif_lif_asc_config.json" # representative model
+    output: "glif_models/cell_models/.complete"
     shell: "python {input.script}"
 
 
@@ -367,11 +367,13 @@ rule build_network:
 
 rule bkg_edges_override:
     input:
-        "precomputed_props/bkg_v1_edge_types.csv",
-        "{network_name}/network/bkg_nodes.h5",
-        "{network_name}/components/synaptic_models/e4_to_e4.json"
+        script="filter_bkg_edge_types.py",
+        bkg_weights="glif_props/bkg_weights_model.csv",
+        bkg_nodes="{network_name}/network/bkg_nodes.h5",
+        bkg_edges="{network_name}/network/bkg_v1_edges.h5",
+        components="{network_name}/components/synaptic_models/e4_to_e4.json"
     output: "{network_name}/network/bkg_v1_edge_types.csv"
-    shell: "cp {input[0]} {output}"
+    shell: "python {input.script} {input.bkg_weights} {input.bkg_edges} {output}"
 
 
 rule bkg_spikes:

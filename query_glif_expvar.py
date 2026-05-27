@@ -15,18 +15,22 @@ sys.path.append(os.path.join(relative_path, "libraries"))
 
 # Find all mouse cells with models
 glif_api = GlifApi()
-# ctc = CellTypesCache(
-#    manifest_file=os.path.join(relative_path, "cell_types_manifest.json")
-# )
 
-ctc = CellTypesCache()
-specimen_id_list = []
-temp = ctc.get_cells()
-for c in temp:
-    if c["species"] == "Mus musculus":
-        specimen_id_list.append(c["id"])
 
-print(len(specimen_id_list), "mouse specimens in public database")
+def get_mouse_specimen_ids():
+    # ctc = CellTypesCache(
+    #    manifest_file=os.path.join(relative_path, "cell_types_manifest.json")
+    # )
+
+    ctc = CellTypesCache()
+    specimen_id_list = []
+    temp = ctc.get_cells()
+    for c in temp:
+        if c["species"] == "Mus musculus":
+            specimen_id_list.append(c["id"])
+
+    print(len(specimen_id_list), "mouse specimens in public database")
+    return specimen_id_list
 
 
 def get_expVar(specimen_id_list, keyword):
@@ -132,26 +136,32 @@ def find_model_spid(specimen_id_list, keyword):
 # )
 
 
-glif_sp_ids = find_model_spid(specimen_id_list, "3 LIF + Afterspike Currents")
-print(len(glif_sp_ids), "specimens with GLIF 3 model")
-glif_expVar = get_expVar(glif_sp_ids, "3 LIF + Afterspike Currents")
-glif_eV_values = np.array(glif_expVar)[
-    np.array([g != None for g in glif_expVar])
-]  # get rid of 'None'
+def main():
+    specimen_id_list = get_mouse_specimen_ids()
+    glif_sp_ids = find_model_spid(specimen_id_list, "3 LIF + Afterspike Currents")
+    print(len(glif_sp_ids), "specimens with GLIF 3 model")
+    glif_expVar = get_expVar(glif_sp_ids, "3 LIF + Afterspike Currents")
+    glif_eV_values = np.array(glif_expVar)[
+        np.array([g != None for g in glif_expVar])
+    ]  # get rid of 'None'
 
-print(
-    "total GLIF 3 with explained variance value:",
-    len(glif_eV_values),
-    ", mean:",
-    np.mean(glif_eV_values),
-    ", median:",
-    np.median(glif_eV_values),
-)
+    print(
+        "total GLIF 3 with explained variance value:",
+        len(glif_eV_values),
+        ", mean:",
+        np.mean(glif_eV_values),
+        ", median:",
+        np.median(glif_eV_values),
+    )
 
-# %% make a table and save
-df = pd.DataFrame(
-    glif_eV_values, index=glif_sp_ids, columns=["explained variance ratio"]
-)
+    # %% make a table and save
+    df = pd.DataFrame(
+        glif_eV_values, index=glif_sp_ids, columns=["explained variance ratio"]
+    )
 
-df.to_csv("cell_types/glif_explained_variance_ratio.csv")
-print("Data written in cell_types/glif_explained_variance_ratio.csv.\nDone!")
+    df.to_csv("cell_types/glif_explained_variance_ratio.csv")
+    print("Data written in cell_types/glif_explained_variance_ratio.csv.\nDone!")
+
+
+if __name__ == "__main__":
+    main()
