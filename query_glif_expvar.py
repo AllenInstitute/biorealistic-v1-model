@@ -24,7 +24,16 @@ def get_mouse_specimen_ids():
 
     ctc = CellTypesCache()
     specimen_id_list = []
-    temp = ctc.get_cells()
+    for i in range(10):
+        try:
+            temp = ctc.get_cells()
+            break
+        except:
+            print(f"cell list retrieval failed, retrying... (trial {i+1} of 10)")
+            time.sleep(0.5)
+    else:
+        raise ValueError("cell list retrieval failed")
+
     for c in temp:
         if c["species"] == "Mus musculus":
             specimen_id_list.append(c["id"])
